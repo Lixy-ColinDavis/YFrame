@@ -26,9 +26,10 @@ namespace YFrame
         public MainWindow()
         {
             logger = new YF_Manager_Log(YF_Name, YF_ID);
+            DataContext = new MainWindowViewModel();
 
             InitializeComponent();
-            DataContext = new MainWindowViewModel();
+            
         }
     }
 }

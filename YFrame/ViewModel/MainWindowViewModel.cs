@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
 
@@ -78,14 +80,31 @@ namespace YFrame
             }
         }
 
+        private string _logText;  // 日志显示
+        public string LogText
+        {
+            get => _logText;
+            set
+            {
+                if (_logText != value)
+                {
+                    _logText = value;
+                    OnPropertyChanged(nameof(LogText));
+                }
+            }
+        }
+
         public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
         public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
         public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
         public ICommand ToggleLightThemeCommand { get; set; }           // 亮主题事件
         public ICommand ToggleDarkThemeCommand { get; set; }            // 暗主题事件
+        public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动
+        public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化
 
 
-        
+
+
         public static YF_Manager.DelegateFunctionModel.dvFunc_s_s dlg_Show_Cpu_Memory;
 
         public MainWindowViewModel()
@@ -105,11 +124,28 @@ namespace YFrame
         private void InitCommond()
         {
             // 初始化命令
-            ToggleLeftToolWindowCommand = new YF_Manager.YF_RelayCommand(() => { LeftVisible = !LeftVisible; });
-            ToggleRightToolWindowCommand = new YF_Manager.YF_RelayCommand(() => { RightVisible = !RightVisible; });
-            Btn_Exit_Command = new YF_Manager.YF_RelayCommand(() => { Environment.Exit(0); });
-            ToggleLightThemeCommand = new YF_Manager.YF_RelayCommand(() => { ChangeTheme("Common/Themes/LightTheme.xaml"); });
-            ToggleDarkThemeCommand = new YF_Manager.YF_RelayCommand   (() => { ChangeTheme("Common/Themes/DarkTheme.xaml"); });
+            ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+            ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+            Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
+            ToggleLightThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
+            ToggleDarkThemeCommand = new YF_RelayCommand   (() => { ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
+            Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
+            Title_Move_Command = new YF_RelayCommand<object>(param =>
+            {
+                if (param is Border border)
+                {
+                    var window = Window.GetWindow(border);
+                    window?.DragMove();
+                }
+                else if (param is FrameworkElement element)
+                {
+                    var window = Window.GetWindow(element);
+                    window?.DragMove();
+                }
+            });
+
+
+
             dlg_Show_Cpu_Memory = Show_Cpu_Memory;
         }
 
@@ -135,6 +171,15 @@ namespace YFrame
             }
         }
 
+        private void Move_Window(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
+            {
+                var window = Window.GetWindow((DependencyObject)sender);
+                window.DragMove();
+            }
+        }
+
         // 委托 刷新性能数据
         public void Show_Cpu_Memory(string cpu, string memory)
         {
@@ -145,7 +190,7 @@ namespace YFrame
         // 委托 刷新log
         public void Show_Log(string msg)
         {
-            Console.WriteLine(msg);
+            LogText += msg + "\n";
         }
     }
 }
