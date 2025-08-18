@@ -51,9 +51,10 @@ namespace YFrame
 
         public PerformanceMonitor()
         {
+            MainWindow.logger.LogInfo("性能监视器初始化-开始");
             InitializeComponent();
 
-            MainWindow.logger.LogInfo("性能监视器初始化"); 
+            
 
             SeriesCollection = new SeriesCollection
             {
@@ -113,7 +114,7 @@ namespace YFrame
                     totalMemoryMB =  Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024); // 转为MB
                 }
 
-                MainWindow.logger.LogInfo($"总系统内存：{totalMemoryMB}MB, {totalMemoryMB / 1024}GB.");
+                MainWindow.logger.LogInfo($"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
 
                 // 初始化CPU计数器（全局CPU使用率）
                 cpuCounter = new PerformanceCounter(
@@ -136,7 +137,7 @@ namespace YFrame
             });
             thread.IsBackground = true;
             thread.Start();
-
+            MainWindow.logger.LogInfo("性能监视器初始化-完成");
         }
 
         // 刷新性能数据
@@ -166,7 +167,7 @@ namespace YFrame
                 if(CounterTimes++ % 12 == 0)
                     MainWindow.logger.LogInfo($"" +
                         $"CPU:{cpuUsage.ToString("0.0")}%  " +
-                        $"内存{(usedMemoryMB / 1024).ToString("0.0")}GB/{(totalMemoryMB / 1024).ToString("0.0")}GB"
+                        $"内存:{(usedMemoryMB / 1024).ToString("0.0")}GB/{(totalMemoryMB / 1024).ToString("0.0")}GB"
                         );
             }
             catch (Exception ex)

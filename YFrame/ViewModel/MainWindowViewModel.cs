@@ -1,4 +1,6 @@
-﻿using System;
+﻿using LiveCharts.Defaults;
+using LiveCharts;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -109,10 +111,12 @@ namespace YFrame
 
         public MainWindowViewModel()
         {
+            MainWindow.logger.LogInfo("主框架初始化-开始");
             InitUI();
             InitCommond();
 
             YF_Manager_Log.d_LogWrite = Show_Log;
+            MainWindow.logger.LogInfo("主框架初始化-完成");
         }
 
         private void InitUI()
@@ -123,30 +127,38 @@ namespace YFrame
 
         private void InitCommond()
         {
-            // 初始化命令
-            ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-            ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-            Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
-            ToggleLightThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
-            ToggleDarkThemeCommand = new YF_RelayCommand   (() => { ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
-            Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
-            Title_Move_Command = new YF_RelayCommand<object>(param =>
+            try
             {
-                if (param is Border border)
+                // 初始化命令
+                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                Btn_Exit_Command = new YF_RelayCommand(() => { MainWindow.logger.LogInfo("退出程序"); Environment.Exit(0); });
+                ToggleLightThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
+                ToggleDarkThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
+                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
+                Title_Move_Command = new YF_RelayCommand<object>(param =>
                 {
-                    var window = Window.GetWindow(border);
-                    window?.DragMove();
-                }
-                else if (param is FrameworkElement element)
-                {
-                    var window = Window.GetWindow(element);
-                    window?.DragMove();
-                }
-            });
+                    if (param is Border border)
+                    {
+                        var window = Window.GetWindow(border);
+                        window?.DragMove();
+                    }
+                    else if (param is FrameworkElement element)
+                    {
+                        var window = Window.GetWindow(element);
+                        window?.DragMove();
+                    }
+                });
 
 
 
-            dlg_Show_Cpu_Memory = Show_Cpu_Memory;
+                dlg_Show_Cpu_Memory = Show_Cpu_Memory;
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("InitCommond", ex.Message);
+            }
+            
         }
 
         /// <summary>
@@ -173,24 +185,47 @@ namespace YFrame
 
         private void Move_Window(object sender, MouseButtonEventArgs e)
         {
-            if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
+            try
             {
-                var window = Window.GetWindow((DependencyObject)sender);
-                window.DragMove();
+                if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
+                {
+                    var window = Window.GetWindow((DependencyObject)sender);
+                    window.DragMove();
+                }
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("Move_Window", ex.Message);
             }
         }
 
         // 委托 刷新性能数据
         public void Show_Cpu_Memory(string cpu, string memory)
         {
-            Txt_Cpu = "CPU: " + cpu + "%";
-            Txt_Memory = "内存: " + memory + "GB";
+            try
+            {
+                Txt_Cpu = "CPU: " + cpu + "%";
+                Txt_Memory = "内存: " + memory + "GB";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
+            }
+            
         }
 
         // 委托 刷新log
         public void Show_Log(string msg)
         {
-            LogText += msg + "\n";
+            try
+            {
+                LogText += msg + "\n";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("Show_Log", ex.Message);
+            }
+            
         }
     }
 }
