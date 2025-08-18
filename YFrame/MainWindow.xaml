@@ -1,0 +1,149 @@
+﻿<Window x:Class="YFrame.MainWindow"
+       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="YF Tools" Height="800" Width="1200"
+        xmlns:local="clr-namespace:YFrame"
+        Background="{DynamicResource BackgroundBrush}" 
+        WindowStyle="None" AllowsTransparency="True">
+    <Window.Resources>
+        <!-- Boolean 到 Visibility 的转换器 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+        <!-- 菜单栏 -->
+        <Menu DockPanel.Dock="Top" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}" Height="33">
+            <MenuItem Header="文件" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
+                <MenuItem Header="新建"/>
+                <MenuItem Header="打开"/>
+                <MenuItem Header="退出" Command="{Binding Btn_Exit_Command}"/>
+            </MenuItem>
+            <MenuItem Header="编辑"/>
+            <MenuItem Header="视图" Foreground="{DynamicResource TextBrush}" >
+                <MenuItem Header="左侧工具栏" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
+                <MenuItem Header="右侧工具栏" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
+                <MenuItem Header="白色主题" Command="{Binding ToggleLightThemeCommand}" CommandParameter="Light"/>
+                <MenuItem Header="深灰主题" Command="{Binding ToggleDarkThemeCommand}" CommandParameter="Dark"/>
+            </MenuItem>
+            <MenuItem Header="工具"/>
+            <MenuItem Header="插件">
+                <MenuItem Header="加载插件"/>
+                <MenuItem Header="插件管理器"/>
+            </MenuItem>
+            <MenuItem Header="帮助"/>
+        </Menu>
+
+        <!-- 状态栏 -->
+        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource MenuBarBrush}" Height="25">
+            <StatusBarItem>
+                <TextBlock Text="就绪" Foreground="{DynamicResource TextBrush}"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Text="{Binding Txt_Cpu}" Foreground="{DynamicResource TextBrush}"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Text="{Binding Txt_Memory}" Foreground="{DynamicResource TextBrush}"/>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- 主内容区域 -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧工具栏抽屉 -->
+            <Border Grid.Column="0" Width="200" Background="{DynamicResource ToolWindowBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 1 0" Visibility="{Binding LeftVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <DockPanel>
+                    <TabControl Background="{DynamicResource ToolWindowBrush}">
+                        <TabItem Header="插件" >
+                            <ListBox ItemsSource="{Binding Plugins}" SelectedItem="{Binding SelectedPlugin}" Background="{DynamicResource BackgroundBrush}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </TabItem>
+                        <TabItem Header="资源" >
+                            <TreeView Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource TextBrush}">
+                                <TreeViewItem Header="项目" Foreground="{DynamicResource TextBrush}" >
+                                    <TreeViewItem Header="项目1"/>
+                                    <TreeViewItem Header="项目2"/>
+                                </TreeViewItem>
+                                <TreeViewItem Header="文件"  Foreground="{DynamicResource TextBrush}"/>
+                            </TreeView>
+                        </TabItem>
+                    </TabControl>
+                </DockPanel>
+            </Border>
+
+            <!-- 主工作区 -->
+            <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
+                 HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
+
+            <ContentControl Grid.Column="1" Content="{Binding CurrentPluginContent}"
+                   Background="{DynamicResource BackgroundBrush}"/>
+
+            <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
+                 HorizontalAlignment="Right" VerticalAlignment="Stretch"/>
+
+            <!-- 右侧工具栏抽屉 -->
+            <Border Grid.Column="2" Width="250" Background="{DynamicResource ToolWindowBrush}" 
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1 0 0 0"
+                    Visibility="{Binding RightVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="3"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 上部抽屉 -->
+                    <DockPanel Grid.Row="0">
+                        <!--<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
+                            <ToggleButton Content="日志" IsChecked="{Binding IsLogViewVisible}"/>
+                            <ToggleButton Content="参数" IsChecked="{Binding IsParameterViewVisible}"/>
+                        </StackPanel>-->
+
+                        <TabControl Background="{DynamicResource BackgroundBrush}">
+                            <TabItem Header="日志" >
+                                <TextBox TextWrapping="Wrap" AcceptsReturn="True" IsReadOnly="True"
+                                Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
+                                Background="Transparent" Foreground="{DynamicResource TextBrush}"/>
+                            </TabItem>
+                            <TabItem Header="参数">
+                                <DataGrid ItemsSource="{Binding Parameters}" AutoGenerateColumns="False"
+                                  Background="Transparent" Foreground="{DynamicResource TextBrush}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                        </TabControl>
+                    </DockPanel>
+
+                    <GridSplitter Grid.Row="1" Background="{DynamicResource BorderBrush}" HorizontalAlignment="Stretch"/>
+
+                    <!-- 下部抽屉 - 性能监视器 -->
+                    <DockPanel Grid.Row="2">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
+                            <TextBlock Text="性能监视器" Margin="5" Foreground="{DynamicResource TextBrush}"/>
+                        </StackPanel>
+
+                        <local:PerformanceMonitor/>
+                    </DockPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
+

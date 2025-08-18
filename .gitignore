@@ -1,0 +1,11 @@
+﻿################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+
+*.bin
+/.vs/YFrame
+/YFrame/bin/Debug/net8.0-windows/Log/LogInfo
+/YFrame/bin/Debug/net8.0-windows
+/YFrame/obj
+/YF_Manager/bin/Debug/net8.0-windows
+/YF_Manager/obj
