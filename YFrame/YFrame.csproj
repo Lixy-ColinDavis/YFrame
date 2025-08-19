@@ -9,14 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Model\**" />
-    <EmbeddedResource Remove="Model\**" />
-    <None Remove="Model\**" />
-    <Page Remove="Model\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Common\Language\en-US.xaml~RF5ba906.TMP" />
+    <None Remove="ViewModel\MainWindowViewModel.cs~RF8950a6.TMP" />
   </ItemGroup>
 
   <ItemGroup>

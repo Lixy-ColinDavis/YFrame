@@ -13,5 +13,8 @@ namespace YF_Manager
 
         // 日志路径
         public const string LogPath = @"Log";
+
+        // 插件路径
+        public const string PluginPath = @"Plugins";
     }
 }

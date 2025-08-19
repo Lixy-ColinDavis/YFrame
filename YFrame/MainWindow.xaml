@@ -77,25 +77,44 @@
                 <DockPanel>
                     <TabControl Background="{DynamicResource ToolWindowBrush}">
                         <TabItem Header="{DynamicResource key_Plug-in}" >
-                            <ListBox ItemsSource="{Binding Plugins}" SelectedItem="{Binding SelectedPlugin}" Background="{DynamicResource BackgroundBrush}">
-                                <ListBox.ItemTemplate>
+                            <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins}">
+                                <!-- 绑定到你的数据源 -->
+                                <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,5,0"/>
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            <Border CornerRadius="5" Height="33" Width="180" Margin="5,5,5,0" Background="{DynamicResource ToolWindowBrush}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="5"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Grid.Column="0" HorizontalAlignment="Left" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                                                    <!--<MenuItem Header="{DynamicResource key_Stay}" BorderThickness="0" BorderBrush="{DynamicResource ToolWindowBrush}" Grid.Column="1" Foreground="{DynamicResource TextBrush}" Background="{DynamicResource ToolWindowBrush}"/>-->
+                                                    <Button Content="{DynamicResource key_Stay}" BorderThickness="0" Background="{DynamicResource ToolWindowBrush}" 
+                                                            Foreground="{DynamicResource TextBrush}" Width="40" Margin="0,0,5,0" Grid.Column="1" HorizontalAlignment="Right">
+                                                        
+                                                    </Button>
+                                                </Grid>
+                                                 </Border>
                                         </StackPanel>
                                     </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </TabItem>
                         <TabItem Header="{DynamicResource key_Stay}" >
-                            <TreeView Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource TextBrush}">
-                                <TreeViewItem Header="项目" Foreground="{DynamicResource TextBrush}" >
-                                    <TreeViewItem Header="项目1"/>
-                                    <TreeViewItem Header="项目2"/>
-                                </TreeViewItem>
-                                <TreeViewItem Header="文件"  Foreground="{DynamicResource TextBrush}"/>
-                            </TreeView>
+                            <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins_Stay}">
+                                <!-- 绑定到你的数据源 -->
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border CornerRadius="5" Height="33" Width="180" Margin="5,5,5,0" Background="{DynamicResource ToolWindowBrush}">
+                                                <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </TabItem>
                     </TabControl>
                 </DockPanel>
@@ -156,7 +175,7 @@
                         </StackPanel>
 
                         <!--<local:PerformanceMonitor/>-->
-                        <local:PerformanceMonitor/>
+                        <ContentControl Content="{Binding Performance_Monitor_View}" />
                     </DockPanel>
                 </Grid>
             </Border>
