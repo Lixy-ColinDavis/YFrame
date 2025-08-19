@@ -36,11 +36,11 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-
                 logger.ErrorInfo("ChangeLanguage", ex.Message);
             }
             
         }
+
 
         /// <summary>
         /// 切换主题

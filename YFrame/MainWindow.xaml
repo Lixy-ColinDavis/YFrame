@@ -124,8 +124,11 @@
             <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
                  HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 
-            <ContentControl Grid.Column="1" Content="{Binding CurrentPluginContent}"
-                   Background="{DynamicResource BackgroundBrush}"/>
+            <!--<ContentControl Grid.Column="1" Content="{Binding CurrentPluginContent}"
+                   Background="{DynamicResource BackgroundBrush}"/>-->
+            <Grid x:Name="DynamicContentHost" Grid.Column="1" Margin="5" Background="{DynamicResource BackgroundBrush}">
+                <ContentControl Content="{Binding Grid_Show_Array}" Margin="5"/>
+            </Grid>
 
             <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
                  HorizontalAlignment="Right" VerticalAlignment="Stretch"/>

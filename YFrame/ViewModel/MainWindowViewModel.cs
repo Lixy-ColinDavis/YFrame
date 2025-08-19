@@ -111,6 +111,23 @@ namespace YFrame
                 }
             }
         }
+
+        private Grid _grid_Show_Array;
+        public Grid Grid_Show_Array
+        {
+            get => _grid_Show_Array;
+            set
+            {
+                if (_grid_Show_Array != value)
+                {
+                    _grid_Show_Array = value;
+                    OnPropertyChanged(nameof(Grid_Show_Array));
+                }
+            }
+        }
+
+
+
         public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
         public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
         public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
@@ -134,12 +151,22 @@ namespace YFrame
 
             YF_Manager_Log.d_LogWrite = Show_Log;
             MainWindow.logger.LogInfo("主框架初始化-完成");
+
+            
         }
 
         private void InitUI()
         {
             LeftVisible = true;
             RightVisible = true;
+
+            // 初始化显示区域
+            Grid_Show_Array = new Grid();
+            //Grid_Show_Array.Children.Add(new PerformanceMonitor());
+
+            UserControlsService.Instance.LoadAndShowUserControl();
+            UserControl uc = UserControlsService.Instance.GetControl("AI 助手");
+            Grid_Show_Array.Children.Add(uc);
 
             Performance_Monitor_View = new PerformanceMonitor();
             lsPlugins.Add(new PluginsModel() { Name = "AI助手", ID = "Ai Helper", Status = 0});
@@ -148,35 +175,37 @@ namespace YFrame
 
         private void InitCommond()
         {
-            // 初始化命令
-            ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-            ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-            Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
-            ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
-            ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
-            Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
-            Title_Move_Command = new YF_RelayCommand<object>(param =>
-            {
-                if (param is Border border)
+            try 
+            { 
+                // 初始化命令
+                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
+                ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
+                ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
+                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
+                Title_Move_Command = new YF_RelayCommand<object>(param =>
                 {
-                    var window = Window.GetWindow(border);
-                    window?.DragMove();
-                }
-                else if (param is FrameworkElement element)
-                {
-                    var window = Window.GetWindow(element);
-                    window?.DragMove();
-                }
-            });
-            ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); MainWindow.logger.LogInfo("语言切换-中文"); });
-            ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
+                    if (param is Border border)
+                    {
+                        var window = Window.GetWindow(border);
+                        window?.DragMove();
+                    }
+                    else if (param is FrameworkElement element)
+                    {
+                        var window = Window.GetWindow(element);
+                        window?.DragMove();
+                    }
+                });
+                ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); MainWindow.logger.LogInfo("语言切换-中文"); });
+                ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
 
-                dlg_Show_Cpu_Memory = Show_Cpu_Memory;
-            }
-            catch (Exception ex)
-            {
-                MainWindow.logger.ErrorInfo("InitCommond", ex.Message);
-            }
+                    dlg_Show_Cpu_Memory = Show_Cpu_Memory;
+                }
+                catch (Exception ex)
+                {
+                    MainWindow.logger.ErrorInfo("InitCommond", ex.Message);
+                }
             
         }
 
