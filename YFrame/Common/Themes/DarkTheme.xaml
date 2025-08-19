@@ -4,5 +4,5 @@
     <SolidColorBrush x:Key="MenuBarBrush" Color="#FF505050"/>
     <SolidColorBrush x:Key="ToolWindowBrush" Color="#FF909090"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#FF101010"/>
-    <SolidColorBrush x:Key="TextBrush" Color="#FFF1F1F1"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#FFF0F0F0"/>
 </ResourceDictionary> 

@@ -1,0 +1,28 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!--标题栏-->
+    <sys:String x:Key="key_Performance monitor">性能监视器</sys:String>
+    <sys:String x:Key="key_File">文件</sys:String>
+    <sys:String x:Key="key_Edit">编辑</sys:String>
+    <sys:String x:Key="key_View">视图</sys:String>
+    <sys:String x:Key="key_Language">语言</sys:String>
+    <sys:String x:Key="key_Plug-in">插件</sys:String>
+    <sys:String x:Key="key_Help">帮助</sys:String>
+
+    <sys:String x:Key="key_New">新建</sys:String>
+    <sys:String x:Key="key_Open">打开</sys:String>
+    <sys:String x:Key="key_Exit">退出</sys:String>
+    <sys:String x:Key="key_Left sidebar">左侧边栏</sys:String>
+    <sys:String x:Key="key_Right sidebar">右侧边栏</sys:String>
+    <sys:String x:Key="key_Bright theme">亮色主题</sys:String>
+    <sys:String x:Key="key_Dark theme">暗色主题</sys:String>
+    <sys:String x:Key="key_About">关于</sys:String>
+    
+    <!--抽屉-->
+    <sys:String x:Key="key_Log">日志</sys:String>
+    <sys:String x:Key="key_Param">参数</sys:String>
+    <sys:String x:Key="key_Stay">驻留</sys:String>
+    
+</ResourceDictionary>

@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Model\" />
+    <None Remove="Common\Language\en-US.xaml~RF5ba906.TMP" />
+    <None Remove="ViewModel\MainWindowViewModel.cs~RF8950a6.TMP" />
   </ItemGroup>
 
   <ItemGroup>

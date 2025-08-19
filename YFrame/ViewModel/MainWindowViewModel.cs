@@ -2,6 +2,7 @@
 using LiveCharts;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
+using YFrame.Model;
 
 namespace YFrame
 {
@@ -96,6 +98,19 @@ namespace YFrame
             }
         }
 
+        private UserControl _performance_Monitor_View;  // 性能监视器
+        public UserControl Performance_Monitor_View
+        {
+            get => _performance_Monitor_View;
+            set
+            {
+                if (_performance_Monitor_View != value)
+                {
+                    _performance_Monitor_View = value;
+                    OnPropertyChanged(nameof(Performance_Monitor_View));
+                }
+            }
+        }
         public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
         public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
         public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
@@ -103,11 +118,13 @@ namespace YFrame
         public ICommand ToggleDarkThemeCommand { get; set; }            // 暗主题事件
         public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动
         public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化
-
-
-
+        public ICommand ToggleChineseCommand { get; set; }              // 中文切换
+        public ICommand ToggleEnglishCommand { get; set; }              // 中文切换
 
         public static YF_Manager.DelegateFunctionModel.dvFunc_s_s dlg_Show_Cpu_Memory;
+
+        public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 雷达列表
+        
 
         public MainWindowViewModel()
         {
@@ -123,34 +140,36 @@ namespace YFrame
         {
             LeftVisible = true;
             RightVisible = true;
+
+            Performance_Monitor_View = new PerformanceMonitor();
+            lsPlugins.Add(new PluginsModel() { Name = "AI助手", ID = "Ai Helper", Status = 0});
+            lsPlugins.Add(new PluginsModel() { Name = "HTTP文件服务器", ID = "HttpServer", Status = 0 });
         }
 
         private void InitCommond()
         {
-            try
+            // 初始化命令
+            ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+            ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+            Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
+            ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
+            ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
+            Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
+            Title_Move_Command = new YF_RelayCommand<object>(param =>
             {
-                // 初始化命令
-                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-                Btn_Exit_Command = new YF_RelayCommand(() => { MainWindow.logger.LogInfo("退出程序"); Environment.Exit(0); });
-                ToggleLightThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
-                ToggleDarkThemeCommand = new YF_RelayCommand(() => { ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
-                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
-                Title_Move_Command = new YF_RelayCommand<object>(param =>
+                if (param is Border border)
                 {
-                    if (param is Border border)
-                    {
-                        var window = Window.GetWindow(border);
-                        window?.DragMove();
-                    }
-                    else if (param is FrameworkElement element)
-                    {
-                        var window = Window.GetWindow(element);
-                        window?.DragMove();
-                    }
-                });
-
-
+                    var window = Window.GetWindow(border);
+                    window?.DragMove();
+                }
+                else if (param is FrameworkElement element)
+                {
+                    var window = Window.GetWindow(element);
+                    window?.DragMove();
+                }
+            });
+            ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); MainWindow.logger.LogInfo("语言切换-中文"); });
+            ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
 
                 dlg_Show_Cpu_Memory = Show_Cpu_Memory;
             }
@@ -159,28 +178,6 @@ namespace YFrame
                 MainWindow.logger.ErrorInfo("InitCommond", ex.Message);
             }
             
-        }
-
-        /// <summary>
-        /// 切换主题
-        /// </summary>
-        /// <param name="themePath"></param>
-        private void ChangeTheme(string themePath)
-        {
-            try
-            {
-                // 清除现有资源
-                Application.Current.Resources.MergedDictionaries.Clear();
-
-                // 加载新主题
-                var newTheme = new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) };
-                Application.Current.Resources.MergedDictionaries.Add(newTheme);
-            }
-            catch (Exception ex)
-            {
-
-                MainWindow.logger.ErrorInfo("ChangeTheme", ex.Message);
-            }
         }
 
         private void Move_Window(object sender, MouseButtonEventArgs e)
