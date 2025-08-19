@@ -65,6 +65,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- 默认加载深色主题 -->
                 <ResourceDictionary Source="Common/Themes/DarkTheme.xaml"/>
+                <ResourceDictionary Source="Common/Language/zh-CN.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

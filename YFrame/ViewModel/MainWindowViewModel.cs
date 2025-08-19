@@ -101,7 +101,8 @@ namespace YFrame
         public ICommand ToggleDarkThemeCommand { get; set; }            // 暗主题事件
         public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动
         public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化
-
+        public ICommand ToggleChineseCommand { get; set; }              // 中文切换
+        public ICommand ToggleEnglishCommand { get; set; }              // 中文切换
 
 
 
@@ -143,8 +144,8 @@ namespace YFrame
                     window?.DragMove();
                 }
             });
-
-
+            ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); });
+            ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); });
 
             dlg_Show_Cpu_Memory = Show_Cpu_Memory;
         }

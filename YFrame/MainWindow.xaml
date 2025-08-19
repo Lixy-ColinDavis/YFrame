@@ -12,28 +12,31 @@
 
     <DockPanel LastChildFill="True">
         <!-- 菜单栏 -->
-        <Menu DockPanel.Dock="Top" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}" Height="33">
-            <MenuItem Header="文件" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
-                <MenuItem Header="新建"/>
-                <MenuItem Header="打开"/>
-                <MenuItem Header="退出" Command="{Binding Btn_Exit_Command}"/>
+        <Menu DockPanel.Dock="Top" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}" Height="34">
+            <MenuItem Header="{DynamicResource key_File}" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
+                <MenuItem Header="{DynamicResource key_New}"/>
+                <MenuItem Header="{DynamicResource key_Open}"/>
+                <MenuItem Header="{DynamicResource key_Exit}" Command="{Binding Btn_Exit_Command}"/>
             </MenuItem>
-            <MenuItem Header="编辑"/>
-            <MenuItem Header="视图" Foreground="{DynamicResource TextBrush}" >
-                <MenuItem Header="左侧工具栏" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
-                <MenuItem Header="右侧工具栏" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
-                <MenuItem Header="白色主题" Command="{Binding ToggleLightThemeCommand}" CommandParameter="Light"/>
-                <MenuItem Header="深灰主题" Command="{Binding ToggleDarkThemeCommand}" CommandParameter="Dark"/>
+            <MenuItem Header="{DynamicResource key_Edit}"/>
+            <MenuItem Header="{DynamicResource key_View}" Foreground="{DynamicResource TextBrush}" >
+                <MenuItem Header="{DynamicResource key_Left sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
+                <MenuItem Header="{DynamicResource key_Right sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
+                <MenuItem Header="{DynamicResource key_Bright theme}" Command="{Binding ToggleLightThemeCommand}" CommandParameter="Light"/>
+                <MenuItem Header="{DynamicResource key_Dark theme}" Command="{Binding ToggleDarkThemeCommand}" CommandParameter="Dark"/>
             </MenuItem>
-            <MenuItem Header="工具"/>
-            <MenuItem Header="插件">
+            <MenuItem Header="{DynamicResource key_Language}">
+                <MenuItem Header="中文"  Command="{Binding ToggleChineseCommand}"/>
+                <MenuItem Header="English"  Command="{Binding ToggleEnglishCommand}"/>
+            </MenuItem>
+        <MenuItem Header="{DynamicResource key_Plug-in}">
                 <MenuItem Header="加载插件"/>
                 <MenuItem Header="插件管理器"/>
             </MenuItem>
-            <MenuItem Header="帮助"/>
-
+            <MenuItem Header="{DynamicResource key_Help}"/>
+            <MenuItem IsEnabled="False"/>
             <!-- 右侧可拖拽区域 -->
-            <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="830" Margin="-20,-6,-20,-11">
+            <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="806" Margin="-20,-6,-20,-11">
                 <Border.InputBindings>
                     <MouseBinding MouseAction="LeftClick" Command="{Binding Title_Move_Command}" CommandParameter="{Binding ElementName=Title_Border}"/>
                 </Border.InputBindings>
@@ -73,7 +76,7 @@
             <Border Grid.Column="0" Width="200" Background="{DynamicResource ToolWindowBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 1 0" Visibility="{Binding LeftVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <DockPanel>
                     <TabControl Background="{DynamicResource ToolWindowBrush}">
-                        <TabItem Header="插件" >
+                        <TabItem Header="{DynamicResource key_Plug-in}" >
                             <ListBox ItemsSource="{Binding Plugins}" SelectedItem="{Binding SelectedPlugin}" Background="{DynamicResource BackgroundBrush}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
@@ -85,7 +88,7 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </TabItem>
-                        <TabItem Header="资源" >
+                        <TabItem Header="{DynamicResource key_Stay}" >
                             <TreeView Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource TextBrush}">
                                 <TreeViewItem Header="项目" Foreground="{DynamicResource TextBrush}" >
                                     <TreeViewItem Header="项目1"/>
@@ -127,12 +130,12 @@
                         </StackPanel>-->
 
                         <TabControl Background="{DynamicResource BackgroundBrush}">
-                            <TabItem Header="日志" >
+                            <TabItem Header="{DynamicResource key_Log}" >
                                 <TextBox TextWrapping="Wrap" AcceptsReturn="True" IsReadOnly="True"
                                 Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
                                 Background="Transparent" Foreground="{DynamicResource TextBrush}"/>
                             </TabItem>
-                            <TabItem Header="参数">
+                            <TabItem Header="{DynamicResource key_Param}">
                                 <DataGrid ItemsSource="{Binding Parameters}" AutoGenerateColumns="False"
                                   Background="Transparent" Foreground="{DynamicResource TextBrush}">
                                     <DataGrid.Columns>
@@ -149,7 +152,7 @@
                     <!-- 下部抽屉 - 性能监视器 -->
                     <DockPanel Grid.Row="2">
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
-                            <TextBlock Text="性能监视器" Margin="5" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Text="{DynamicResource key_Performance monitor}" Margin="5" Foreground="{DynamicResource TextBrush}"/>
                         </StackPanel>
 
                         <!--<local:PerformanceMonitor/>-->
