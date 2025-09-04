@@ -50,6 +50,9 @@ namespace YFrame
         }
 
 
+        /// <summary>
+        /// 加载插件
+        /// </summary>
         public void LoadAndShowUserControl()
         {
             try
@@ -58,32 +61,39 @@ namespace YFrame
                 {
                     Directory.CreateDirectory("plugins"); // 自动创建多级目录‌
                 }
-                string[] array = Directory.GetFiles("plugins", "YF_*.dll")
-                    .Select(p => System.IO.Path.GetFileNameWithoutExtension(p))
-                    .ToArray();
-                foreach (string s in array)
-                {
-                    if (s == "YF_Manager")
-                        continue;
-                    string assemblyPath = @$"Plugins\{s}.dll"; // 修改为实际路径或使用 Assembly.LoadFile 或 Assembly.LoadFrom 等方法加载已编译的程序集。
-                    Assembly assembly = Assembly.LoadFrom(assemblyPath); // 使用Assembly.LoadFile或Assembly.Load也可以，取决于你的需求。
-                    Type userControlType = assembly.GetType($"{s}.MainControl"); // 确保命名空间和类型名正确。
-                    if (userControlType != null)
-                    {
-                        // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
-                        YF_Manager.IDetail detail = Activator.CreateInstance(userControlType) as YF_Manager.IDetail;
-                        UserControl userControl = Activator.CreateInstance(userControlType) as UserControl;
-                        if (detail != null)
-                        {
-                            UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID);
-                        }
-                        else
-                        {
-                            MainWindow.logger.LogInfo("LoadAndShowUserControl: ", s +  "插件IDetail接口西悉尼读取失败");
-                        }
-                    }
 
+                string[] allDirectories = Directory.GetDirectories("plugins");
+
+                foreach (var item in allDirectories)
+                {
+                    string[] array = Directory.GetFiles(item, "YF_*.dll")
+                   .Select(p => System.IO.Path.GetFileNameWithoutExtension(p))
+                   .ToArray();
+                    foreach (string s in array)
+                    {
+                        if (s == "YF_Manager")
+                            continue;
+                        string assemblyPath = @$"{item}\{s}.dll"; // 修改为实际路径或使用 Assembly.LoadFile 或 Assembly.LoadFrom 等方法加载已编译的程序集。
+                        Assembly assembly = Assembly.LoadFrom(assemblyPath); // 使用Assembly.LoadFile或Assembly.Load也可以，取决于你的需求。
+                        Type userControlType = assembly.GetType($"{s}.MainControl"); // 确保命名空间和类型名正确。
+                        if (userControlType != null)
+                        {
+                            // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
+                            YF_Manager.IDetail detail = Activator.CreateInstance(userControlType) as YF_Manager.IDetail;
+                            UserControl userControl = Activator.CreateInstance(userControlType) as UserControl;
+                            if (detail != null)
+                            {
+                                UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID);
+                            }
+                            else
+                            {
+                                MainWindow.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                            }
+                        }
+
+                    }
                 }
+               
             }
             catch (Exception ex)
             {
