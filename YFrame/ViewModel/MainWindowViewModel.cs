@@ -140,7 +140,7 @@ namespace YFrame
 
         public static YF_Manager.DelegateFunctionModel.dvFunc_s_s dlg_Show_Cpu_Memory;
 
-        public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 雷达列表
+        public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
         
 
         public MainWindowViewModel()
@@ -151,26 +151,31 @@ namespace YFrame
 
             YF_Manager_Log.d_LogWrite = Show_Log;
             MainWindow.logger.LogInfo("主框架初始化-完成");
-
-            
         }
 
         private void InitUI()
         {
-            LeftVisible = true;
-            RightVisible = true;
+            try
+            {
+                LeftVisible = true;
+                RightVisible = true;
 
-            // 初始化显示区域
-            Grid_Show_Array = new Grid();
-            //Grid_Show_Array.Children.Add(new PerformanceMonitor());
+                // 初始化显示区域
+                Grid_Show_Array = new Grid();
+                //Grid_Show_Array.Children.Add(new PerformanceMonitor());
 
-            UserControlsService.Instance.LoadAndShowUserControl();
-            UserControl uc = UserControlsService.Instance.GetControl("AI 助手");
-            Grid_Show_Array.Children.Add(uc);
+                UserControlsService.Instance.LoadAndShowUserControl();
+                UserControl uc = UserControlsService.Instance.GetControl("AI 助手");
+                Grid_Show_Array.Children.Add(uc);
 
-            Performance_Monitor_View = new PerformanceMonitor();
-            lsPlugins.Add(new PluginsModel() { Name = "AI助手", ID = "Ai Helper", Status = 0});
-            lsPlugins.Add(new PluginsModel() { Name = "HTTP文件服务器", ID = "HttpServer", Status = 0 });
+                Performance_Monitor_View = new PerformanceMonitor();
+                lsPlugins.Add(new PluginsModel() { Name = "AI助手", ID = "Ai Helper", Status = 0 });
+                lsPlugins.Add(new PluginsModel() { Name = "HTTP文件服务器", ID = "HttpServer", Status = 0 });
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("InitUI", ex.Message);
+            }
         }
 
         private void InitCommond()

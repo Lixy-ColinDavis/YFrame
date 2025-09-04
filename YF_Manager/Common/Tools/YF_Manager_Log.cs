@@ -22,19 +22,19 @@ namespace YF_Manager
         }
 
         private static readonly object _fileLock = new();
-        public void DebugInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\DebugInfo"), _name + ": " + msg);
+        public void DebugInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\DebugLog"), _name + ": " + msg);
 
         public void ErrorInfo(string functionName, string msg)
         {
-            Write(CheckPath(@$"{Config.LogPath}\LogInfo"), _name + ": " + functionName + ": " + msg);
-            LogInfo(functionName + ": " + msg);
+            Write(CheckPath(@$"{Config.LogPath}\ErrorLog"), _name + ": " + functionName + ": " + msg);
+            LogInfo(functionName + ": " + msg, "[Error]");
         }
 
-        public void TcpInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\TcpInfo"), _name + ": " + msg);
+        public void TcpInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\TcpLog"), _name + ": " + msg);
 
-        public void LogInfo(string msg)
+        public void LogInfo(string msg, string type = "[Info]")
         {
-            Write(CheckPath(@$"{Config.LogPath}\LogInfo"), _name + ": " + msg);
+            Write(CheckPath(@$"{Config.LogPath}\InfoLog"), _name + $": {type}" + msg);
             if (d_LogWrite != null)
                 d_LogWrite(_name + ": " + msg);
         }
