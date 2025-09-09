@@ -15,6 +15,8 @@ namespace YF_Manager
         private string _name = "Default";
         private string _id = "Default";
 
+        private static long maxFileSize = 1024 * 1024; // 1MB
+
         public YF_Manager_Log(string Name, string ID)
         {
             _name = Name;
@@ -62,6 +64,13 @@ namespace YF_Manager
         {
             lock (_fileLock)
             {
+                FileInfo fileInfo = new FileInfo(path);
+                if (fileInfo.Exists && fileInfo.Length > maxFileSize)
+                {
+                    CreateNewLogFile(path);
+                }
+
+
                 try
                 {
                     using var fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
@@ -75,6 +84,24 @@ namespace YF_Manager
                 }
                 catch (Exception ex)
                 {
+                }
+            }
+
+        }
+
+        private static void CreateNewLogFile(string logDirectory)
+        {
+            string strPath = logDirectory;
+
+            for (int i = 1; i < 1000; i++)
+            {
+                if (File.Exists(logDirectory.Replace(".htm",$"_{i}.htm")))
+                    continue;
+                else
+                {
+                    File.Move(strPath, logDirectory.Replace(".htm", $"_{i}.htm"));
+                    using (File.Create(logDirectory)) { };
+                    return;
                 }
             }
 
