@@ -91,18 +91,25 @@ namespace YF_Manager
 
         private static void CreateNewLogFile(string logDirectory)
         {
-            string strPath = logDirectory;
-
-            for (int i = 1; i < 1000; i++)
+            try
             {
-                if (File.Exists(logDirectory.Replace(".htm",$"_{i}.htm")))
-                    continue;
-                else
+                string strPath = logDirectory;
+
+                for (int i = 1; i < 1000; i++)
                 {
-                    File.Move(strPath, logDirectory.Replace(".htm", $"_{i}.htm"));
-                    using (File.Create(logDirectory)) { };
-                    return;
+                    if (File.Exists(logDirectory.Replace(".htm", $"_{i}.htm")))
+                        continue;
+                    else
+                    {
+                        File.Move(strPath, logDirectory.Replace(".htm", $"_{i}.htm"));
+                        using (File.Create(logDirectory)) { };
+                        return;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+
             }
 
         }
