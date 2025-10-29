@@ -12,6 +12,7 @@ namespace YF_Manager
         // log回调，界面输出
         public static DelegateFunctionModel.dvFunc_s d_LogWrite;
 
+        // 初始化的log对象信息
         private string _name = "Default";
         private string _id = "Default";
 
@@ -23,6 +24,7 @@ namespace YF_Manager
             _id = ID;
         }
 
+        // log锁
         private static readonly object _fileLock = new();
         public void DebugInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\DebugLog"), _name + ": " + msg);
 
@@ -41,6 +43,11 @@ namespace YF_Manager
                 d_LogWrite(_name + ": " + msg);
         }
 
+        /// <summary>
+        /// log路径可用检查,自动创建
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private static string CheckPath(string path)
         {
             string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".htm";
@@ -60,11 +67,17 @@ namespace YF_Manager
             return fullPath;
         }
 
+        /// <summary>
+        /// 写入log信息
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="msg"></param>
         private void Write(string path, string msg)
         {
             lock (_fileLock)
             {
                 FileInfo fileInfo = new FileInfo(path);
+                // log文件大小限制
                 if (fileInfo.Exists && fileInfo.Length > maxFileSize)
                 {
                     CreateNewLogFile(path);
@@ -89,6 +102,10 @@ namespace YF_Manager
 
         }
 
+        /// <summary>
+        /// log递增重命名且创建信的log文件
+        /// </summary>
+        /// <param name="logDirectory"></param>
         private static void CreateNewLogFile(string logDirectory)
         {
             try
