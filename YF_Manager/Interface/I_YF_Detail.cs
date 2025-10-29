@@ -9,7 +9,7 @@ namespace YF_Manager
     /// <summary>
     /// 详细信息接口
     /// </summary>
-    public interface IDetail
+    public interface I_YF_Detail
     {
         // ID
         string YF_ID { get; }

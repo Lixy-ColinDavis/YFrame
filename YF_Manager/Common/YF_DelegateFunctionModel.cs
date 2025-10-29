@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace YF_Manager
 {
-    public class DelegateFunctionModel
+    public class YF_DelegateFunctionModel
     {
         // 委托类型声明
         public delegate void dvFunc_Vs(string str1);

@@ -98,6 +98,19 @@ namespace YFrame
             }
         }
 
+        private ObservableCollection<ParameterItem> _parameters;
+        public ObservableCollection<ParameterItem> Parameters
+        {
+            get => _parameters;
+            set
+            {
+                _parameters = value;
+                OnPropertyChanged(nameof(Parameters));
+            }
+        }
+
+
+
         private UserControl _performance_Monitor_View;  // 性能监视器
         public UserControl Performance_Monitor_View
         {
@@ -112,7 +125,7 @@ namespace YFrame
             }
         }
 
-        private Grid _grid_Show_Array;
+        private Grid _grid_Show_Array;  // 用户控件(插件)显示列表
         public Grid Grid_Show_Array
         {
             get => _grid_Show_Array;
@@ -138,7 +151,7 @@ namespace YFrame
         public ICommand ToggleChineseCommand { get; set; }              // 中文切换
         public ICommand ToggleEnglishCommand { get; set; }              // 中文切换
 
-        public static YF_Manager.DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
+        public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
 
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
         
@@ -178,12 +191,23 @@ namespace YFrame
                 // 插件列表添加
                 foreach (var item in UserControlsService.Instance.DctControls)
                 {
-                    lsPlugins.Add(new PluginsModel() { Name = item.Value, ID = item.Key, Status = 0 });
+                    lsPlugins.Add(new PluginsModel() { Name = item.Value.Name, ID = item.Key, Status = 0 });
                 }
 
                 // 读取并加载、显示目标插件
-                UserControl uc = UserControlsService.Instance.GetControl(UserControlsService.Instance.DctControls.FirstOrDefault().Value);
+                var v = UserControlsService.Instance.DctControls.FirstOrDefault().Value;
+                UserControl uc = UserControlsService.Instance.GetControl(v.Name);
                 Grid_Show_Array.Children.Add(uc);
+
+                //Parameters = new ObservableCollection<ParameterItem>();
+                //// 初始化一些默认参数
+                //Parameters.Add(new ParameterItem { Name = "参数1", Value = "" });
+                //Parameters.Add(new ParameterItem { Name = "参数2", Value = "" });
+                //foreach (var item in v.Parameters)
+                //{
+                //    _parameters.Add(new KeyValuePair<string, string>(item.Key, item.Value.ToString()));
+                //}
+
             }
             catch (Exception ex)
             {
@@ -296,5 +320,41 @@ namespace YFrame
             }
             
         }
+    }
+
+    public class ParameterItem : INotifyPropertyChanged
+    {
+        private string _name;
+        private string _value;
+
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                _name = value;
+                OnPropertyChanged(_name);
+            }
+        }
+
+        public string Value
+        {
+            get => _value;
+            set
+            {
+                _value = value;
+                OnPropertyChanged(_value);
+            }
+        }
+
+        #region INotifyPropertyChanged接口实现
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
     }
 }

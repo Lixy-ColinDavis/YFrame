@@ -22,7 +22,7 @@ namespace YFrame
         private List<UserControl> ChildControls = new List<UserControl>();
 
         // <ID, Name> => <YF_AIHelper, AI 助手>
-        public Dictionary<string, string> DctControls = new Dictionary<string, string>();   
+        public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();   
 
         /// <summary>
         /// 读取并返回插件
@@ -34,7 +34,7 @@ namespace YFrame
             try
             {
                 // 查询对应的插件
-                return ChildControls.Find(x => (x as YF_Manager.IDetail).YF_Name == name);
+                return ChildControls.Find(x => (x as YF_Manager.I_YF_Detail).YF_Name == name);
             }
             catch (Exception ex)
             {
@@ -49,13 +49,17 @@ namespace YFrame
         /// <param name="ctrl">插件-用户控件</param>
         /// <param name="Name">插件名称</param>
         /// <param name="ID">插件ID</param>
-        public void AddControl(UserControl ctrl, string Name, string ID)
+        public void AddControl(UserControl ctrl, string name, string ID, Dictionary<string, object> p)
         {
-            MainWindow.logger.DebugInfo($"加载模块：{Name}, {ID}");
+            MainWindow.logger.DebugInfo($"加载模块：{name}, {ID}");
             // 插件添加
             ChildControls.Add(ctrl);
             // 插件添加<ID, 名称>
-            DctControls.Add(ID, Name);
+            DctControls.Add(ID, new CtrlDataModel() 
+            { 
+                Name = name, 
+                Parameters = p 
+            });
         }
 
 
@@ -93,12 +97,13 @@ namespace YFrame
                         if (userControlType != null)
                         {
                             // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
-                            YF_Manager.IDetail detail = Activator.CreateInstance(userControlType) as YF_Manager.IDetail;
+                            YF_Manager.I_YF_Detail detail = Activator.CreateInstance(userControlType) as YF_Manager.I_YF_Detail;
+                            YF_Manager.I_YF_Params _params = Activator.CreateInstance(userControlType) as YF_Manager.I_YF_Params;
                             UserControl userControl = Activator.CreateInstance(userControlType) as UserControl;
                             if (detail != null)
                             {
                                 // 将读取的插件信息保存
-                                UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID);
+                                UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID, _params.Parameters);
                             }
                             else
                             {

@@ -96,7 +96,7 @@
                                                         
                                                     </Button>
                                                 </Grid>
-                                                 </Border>
+                                            </Border>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -158,13 +158,40 @@
                                 Background="Transparent" Foreground="{DynamicResource TextBrush}"/>
                             </TabItem>
                             <TabItem Header="{DynamicResource key_Param}">
-                                <DataGrid ItemsSource="{Binding Parameters}" AutoGenerateColumns="False"
-                                  Background="Transparent" Foreground="{DynamicResource TextBrush}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*"/>
-                                        <DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="2*"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBlock Grid.Column="0" 
+                                      Text="{Binding Key}" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+                                                        <TextBox Grid.Column="1" 
+                                    Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
+                                        <Button Content="添加参数" Margin="5,0"/>
+                                        <Button Content="删除参数" Margin="5,0"/>
+                                    </StackPanel>
+                                </Grid>
                             </TabItem>
                         </TabControl>
                     </DockPanel>

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace YF_Manager
 {
-    public class YF_Manager : IDetail
+    public class YF_Manager : I_YF_Detail
     {
         public string YF_ID => "YF_Manager";
 
