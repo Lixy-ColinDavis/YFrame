@@ -26,7 +26,11 @@ namespace YF_Manager
 
         // log锁
         private static readonly object _fileLock = new();
-        public void DebugInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\DebugLog"), _name + ": " + msg);
+        public void DebugInfo(string msg)
+        {
+            Write(CheckPath(@$"{Config.LogPath}\DebugLog"), _name + ": " + msg);
+            LogInfo(msg, "[Error]");
+        }
 
         public void ErrorInfo(string functionName, string msg)
         {
