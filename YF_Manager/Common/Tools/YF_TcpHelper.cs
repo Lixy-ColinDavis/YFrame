@@ -11,6 +11,10 @@ namespace YF_Manager
 {
     public class YF_TcpHelper
     {
+        /// <summary>
+        /// 获取默认网关IP
+        /// </summary>
+        /// <returns></returns>
         public static IPAddress GetDefaultGatewayIP()
         {
             try
@@ -42,6 +46,10 @@ namespace YF_Manager
             return null;
         }
 
+        /// <summary>
+        /// 读取本机默认IP
+        /// </summary>
+        /// <returns></returns>
         public static string GetLocalIP()
         {
             return Dns.GetHostEntry(Dns.GetHostName())

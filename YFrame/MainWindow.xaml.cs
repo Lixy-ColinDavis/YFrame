@@ -12,9 +12,6 @@ using YF_Manager;
 
 namespace YFrame
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window, IDetail
     {
         public string YF_ID => "YF_Frame";

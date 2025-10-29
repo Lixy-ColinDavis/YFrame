@@ -8,7 +8,8 @@ namespace YF_Manager
 {
     public class DelegateFunctionModel
     {
-        public delegate void dvFunc_s(string str1);
-        public delegate void dvFunc_s_s(string str1, string str2);
+        // 委托类型声明
+        public delegate void dvFunc_Vs(string str1);
+        public delegate void dvFunc_Vs_s(string str1, string str2);
     }
 }

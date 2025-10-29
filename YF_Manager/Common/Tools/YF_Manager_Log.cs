@@ -10,7 +10,7 @@ namespace YF_Manager
     public class YF_Manager_Log
     {
         // log回调，界面输出
-        public static DelegateFunctionModel.dvFunc_s d_LogWrite;
+        public static DelegateFunctionModel.dvFunc_Vs d_LogWrite;
 
         // 初始化的log对象信息
         private string _name = "Default";

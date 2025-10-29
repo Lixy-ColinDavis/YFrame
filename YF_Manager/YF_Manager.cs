@@ -12,8 +12,7 @@ namespace YF_Manager
 
         public string YF_Name => "YF工具类";
 
-        public static YF_Manager_Log logger
-            ;
+        public static YF_Manager_Log logger;
 
         YF_Manager()
         {

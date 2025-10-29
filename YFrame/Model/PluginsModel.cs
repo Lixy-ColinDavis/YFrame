@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace YFrame.Model
 {
+    /// <summary>
+    /// 插件-数据类型
+    /// </summary>
     public class PluginsModel: INotifyPropertyChanged
     {
         #region INotifyPropertyChanged接口实现

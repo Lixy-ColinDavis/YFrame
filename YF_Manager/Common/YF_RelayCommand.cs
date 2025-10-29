@@ -7,6 +7,9 @@ using System.Windows.Input;
 
 namespace YF_Manager
 {
+    /// <summary>
+    /// 中继命令,无参版本
+    /// </summary>
     public class YF_RelayCommand : ICommand
     {
         private readonly Action _execute;
@@ -29,6 +32,9 @@ namespace YF_Manager
         public void Execute(object parameter) => _execute();
     }
 
+    /// <summary>
+    /// 中继命令,泛型参数版本
+    /// </summary>
     public class YF_RelayCommand<T> : ICommand
     {
         private readonly Action<T> _execute;
