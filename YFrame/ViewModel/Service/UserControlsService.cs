@@ -18,30 +18,8 @@ namespace YFrame
         private static readonly Lazy<UserControlsService> _instance = new Lazy<UserControlsService>(() => new UserControlsService());
         public static UserControlsService Instance => _instance.Value;
 
-        // 插件库
-        private List<UserControl> ChildControls = new List<UserControl>();
-
         // <ID, Name> => <YF_AIHelper, AI 助手>
         public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();   
-
-        /// <summary>
-        /// 读取并返回插件
-        /// </summary>
-        /// <param name="name">插件名称 AI 助手</param>
-        /// <returns></returns>
-        public UserControl GetControl(string name)
-        {
-            try
-            {
-                // 查询对应的插件
-                return ChildControls.Find(x => (x as YF_Manager.I_YF_Detail).YF_Name == name);
-            }
-            catch (Exception ex)
-            {
-                MainWindow.logger.ErrorInfo("UserControlsService", ex.Message);
-            }
-            return null;
-        }
 
         /// <summary>
         ///  添加插件
@@ -49,16 +27,16 @@ namespace YFrame
         /// <param name="ctrl">插件-用户控件</param>
         /// <param name="Name">插件名称</param>
         /// <param name="ID">插件ID</param>
-        public void AddControl(UserControl ctrl, string name, string ID, Dictionary<string, object> p)
+        public void AddControl(UserControl ctrl, string name, string ID, I_YF_Command i_YF_Command)
         {
             MainWindow.logger.DebugInfo($"加载模块：{name}, {ID}");
             // 插件添加
-            ChildControls.Add(ctrl);
             // 插件添加<ID, 名称>
             DctControls.Add(ID, new CtrlDataModel() 
             { 
-                Name = name, 
-                Parameters = p 
+                Name = name,
+                CommandHandler = i_YF_Command,
+                userControl = ctrl,
             });
         }
 
@@ -91,19 +69,26 @@ namespace YFrame
                         if (s == "YF_Manager")
                             continue;
                         MainWindow.logger.DebugInfo($"读取到插件: {s}");
-                        string assemblyPath = @$"{item}\{s}.dll"; // 修改为实际路径或使用 Assembly.LoadFile 或 Assembly.LoadFrom 等方法加载已编译的程序集。
-                        Assembly assembly = Assembly.LoadFrom(assemblyPath); // 使用Assembly.LoadFile或Assembly.Load也可以，取决于你的需求。
+                        string assemblyPath = @$"{item}\{s}.dll"; 
+                        Assembly assembly = Assembly.LoadFrom(assemblyPath); 
+
                         Type userControlType = assembly.GetType($"{s}.MainControl"); // 确保命名空间和类型名正确。
+                        Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
+
                         if (userControlType != null)
                         {
                             // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
-                            YF_Manager.I_YF_Detail detail = Activator.CreateInstance(userControlType) as YF_Manager.I_YF_Detail;
-                            YF_Manager.I_YF_Params _params = Activator.CreateInstance(userControlType) as YF_Manager.I_YF_Params;
+                            I_YF_Detail detail = Activator.CreateInstance(ViewModelType) as YF_Manager.I_YF_Detail;
+                            I_YF_Command commandHandler = Activator.CreateInstance(ViewModelType) as YF_Manager.I_YF_Command;
                             UserControl userControl = Activator.CreateInstance(userControlType) as UserControl;
                             if (detail != null)
                             {
                                 // 将读取的插件信息保存
-                                UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID, _params.Parameters);
+                                UserControlsService.Instance.AddControl(userControl, detail.YF_Name, detail.YF_ID, commandHandler);
+                                commandHandler.OnPluginCallback += (sender, e) =>
+                                {
+                                    HandlePluginCallback(detail.YF_ID, e);
+                                };
                             }
                             else
                             {
@@ -119,6 +104,23 @@ namespace YFrame
             {
                 MainWindow.logger.ErrorInfo("LoadAndShowUserControl", ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 插件回调
+        /// </summary>
+        /// <param name="pluginId"></param>
+        /// <param name="e"></param>
+        private void HandlePluginCallback(string pluginId, PluginEventArgs e)
+        {
+            // 处理插件回调
+            MainWindow.logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
+
+            // 在主线程中更新UI
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                // 更新UI或执行其他操作
+            });
         }
     }
 }

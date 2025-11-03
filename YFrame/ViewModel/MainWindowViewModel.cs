@@ -98,17 +98,6 @@ namespace YFrame
             }
         }
 
-        private ObservableCollection<ParameterItem> _parameters;
-        public ObservableCollection<ParameterItem> Parameters
-        {
-            get => _parameters;
-            set
-            {
-                _parameters = value;
-                OnPropertyChanged(nameof(Parameters));
-            }
-        }
-
 
 
         private UserControl _performance_Monitor_View;  // 性能监视器
@@ -154,7 +143,8 @@ namespace YFrame
         public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
 
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
-        
+
+        CtrlDataModel CurrentUcDate { get; set; } // 当前显示的插件信息
 
         public MainWindowViewModel()
         {
@@ -195,19 +185,11 @@ namespace YFrame
                 }
 
                 // 读取并加载、显示目标插件
-                var v = UserControlsService.Instance.DctControls.FirstOrDefault().Value;
-                UserControl uc = UserControlsService.Instance.GetControl(v.Name);
+                CurrentUcDate = UserControlsService.Instance.DctControls.FirstOrDefault().Value;
+                UserControl uc = CurrentUcDate.userControl;
                 Grid_Show_Array.Children.Add(uc);
 
-                //Parameters = new ObservableCollection<ParameterItem>();
-                //// 初始化一些默认参数
-                //Parameters.Add(new ParameterItem { Name = "参数1", Value = "" });
-                //Parameters.Add(new ParameterItem { Name = "参数2", Value = "" });
-                //foreach (var item in v.Parameters)
-                //{
-                //    _parameters.Add(new KeyValuePair<string, string>(item.Key, item.Value.ToString()));
-                //}
-
+                SendCommand("TestCommand_HelloWorld!");
             }
             catch (Exception ex)
             {
@@ -318,43 +300,24 @@ namespace YFrame
             {
                 MainWindow.logger.ErrorInfo("Show_Log", ex.Message);
             }
-            
         }
-    }
 
-    public class ParameterItem : INotifyPropertyChanged
-    {
-        private string _name;
-        private string _value;
 
-        public string Name
+        /// <summary>
+        /// 发送命令
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="parameter"></param>
+        public void SendCommand(string command, object parameter = null)
         {
-            get => _name;
-            set
+            try
             {
-                _name = value;
-                OnPropertyChanged(_name);
+                CurrentUcDate.CommandHandler.ExecuteCommand(command, parameter);
+            }
+            catch (Exception ex)
+            {
+                MainWindow.logger.ErrorInfo("SendCommand", ex.Message);
             }
         }
-
-        public string Value
-        {
-            get => _value;
-            set
-            {
-                _value = value;
-                OnPropertyChanged(_value);
-            }
-        }
-
-        #region INotifyPropertyChanged接口实现
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
     }
 }

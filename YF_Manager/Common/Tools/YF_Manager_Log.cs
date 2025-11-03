@@ -29,7 +29,7 @@ namespace YF_Manager
         public void DebugInfo(string msg)
         {
             Write(CheckPath(@$"{Config.LogPath}\DebugLog"), _name + ": " + msg);
-            LogInfo(msg, "[Error]");
+            LogInfo(msg, "[Debug]");
         }
 
         public void ErrorInfo(string functionName, string msg)

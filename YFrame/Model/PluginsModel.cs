@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace YFrame.Model
+namespace YFrame
 {
     /// <summary>
     /// 插件-数据类型
