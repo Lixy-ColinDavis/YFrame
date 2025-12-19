@@ -22,4 +22,6 @@
     <sys:String x:Key="key_Log">Log</sys:String>
     <sys:String x:Key="key_Param">Param</sys:String>
     <sys:String x:Key="key_Stay">Stay</sys:String>
+    <sys:String x:Key="key_Show">Show</sys:String>
+    
 </ResourceDictionary>

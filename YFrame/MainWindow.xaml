@@ -91,9 +91,15 @@
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Grid.Column="0" HorizontalAlignment="Left" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                                                     <!--<MenuItem Header="{DynamicResource key_Stay}" BorderThickness="0" BorderBrush="{DynamicResource ToolWindowBrush}" Grid.Column="1" Foreground="{DynamicResource TextBrush}" Background="{DynamicResource ToolWindowBrush}"/>-->
-                                                    <Button Content="{DynamicResource key_Stay}" BorderThickness="0" Background="{DynamicResource ToolWindowBrush}" 
-                                                            Foreground="{DynamicResource TextBrush}" Width="40" Margin="0,0,5,0" Grid.Column="1" HorizontalAlignment="Right">
-                                                        
+                                                    <Button Content="{DynamicResource key_Show}" BorderThickness="0" Background="{DynamicResource ToolWindowBrush}" 
+                                                            Foreground="{DynamicResource TextBrush}" Width="40" Margin="0,0,5,0" Grid.Column="1" HorizontalAlignment="Right"
+                                                            Command="{Binding DataContext.Btn_Plugin_Show_Command, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                                            CommandParameter="{Binding ID}">
+                                                        <!-- 在ItemsControl中，command会寻找上下文对象PluginsModel的Btn_Plugin_Show_Command，
+                                                             而不是viewModel.DataContext中的Btn_Plugin_Show_Command，
+                                                             由于默认源是ViewModel.DataContext,默认源发生修改后，手动改回去需要标注DataContext.Btn_Plugin_Show_Command，
+                                                             否则寻找位置是ViewModel.Btn_Plugin_Show_Command
+                                                        -->
                                                     </Button>
                                                 </Grid>
                                             </Border>
@@ -104,7 +110,7 @@
                         </TabItem>
                         <TabItem Header="{DynamicResource key_Stay}" >
                             <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins_Stay}">
-                                <!-- 绑定到你的数据源 -->
+                                <!-- 绑定到数据源 -->
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">

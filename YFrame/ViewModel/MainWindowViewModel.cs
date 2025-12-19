@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
 using YFrame.Model;
+using System.Reflection.Metadata;
 
 namespace YFrame
 {
@@ -135,10 +136,12 @@ namespace YFrame
         public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
         public ICommand ToggleLightThemeCommand { get; set; }           // 亮主题事件
         public ICommand ToggleDarkThemeCommand { get; set; }            // 暗主题事件
-        public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动
-        public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化
-        public ICommand ToggleChineseCommand { get; set; }              // 中文切换
-        public ICommand ToggleEnglishCommand { get; set; }              // 中文切换
+        public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动事件
+        public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化事件
+        public ICommand ToggleChineseCommand { get; set; }              // 中文切换事件
+        public ICommand ToggleEnglishCommand { get; set; }              // 中文切换事件
+        public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
+
 
         public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
 
@@ -184,12 +187,15 @@ namespace YFrame
                     lsPlugins.Add(new PluginsModel() { Name = item.Value.Name, ID = item.Key, Status = 0 });
                 }
 
-                // 读取并加载、显示目标插件
-                CurrentUcDate = UserControlsService.Instance.DctControls.FirstOrDefault().Value;
-                UserControl uc = CurrentUcDate.userControl;
-                Grid_Show_Array.Children.Add(uc);
 
-                SendCommand("TestCommand_HelloWorld!");
+                //var v = UserControlsService.Instance.DctControls.FirstOrDefault();
+                ////// 读取并加载、显示目标插件
+                //CurrentUcDate = v.Value;
+                //UserControlsService.Instance.ShowUserControl(v.Key);
+                //UserControl uc = CurrentUcDate.userControl;
+                //Grid_Show_Array.Children.Add(uc);
+
+                //SendCommand("TestCommand_HelloWorld!");
             }
             catch (Exception ex)
             {
@@ -235,6 +241,18 @@ namespace YFrame
                 ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); MainWindow.logger.LogInfo("语言切换-中文"); });
                 // 英文按钮
                 ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
+                // 插件显示
+                Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => {
+
+                    Grid_Show_Array.Children.Clear();
+
+                    var v = UserControlsService.Instance.DctControls.First(x => x.Key == parameter);
+                    //// 读取并加载、显示目标插件
+                    CurrentUcDate = v.Value;
+                    UserControlsService.Instance.ShowUserControl(v.Key);
+                    UserControl uc = CurrentUcDate.userControl;
+                    Grid_Show_Array.Children.Add(uc);
+                });
 
 
                 // 委托绑定
@@ -312,7 +330,15 @@ namespace YFrame
         {
             try
             {
-                CurrentUcDate.CommandHandler.ExecuteCommand(command, parameter);
+                if(CurrentUcDate == null)
+                {
+                    MainWindow.logger.CommandInfo("[命令无目标插件] : " + command);
+                }
+                else
+                {
+                    CurrentUcDate.CommandHandler.ExecuteCommand(command, parameter);
+                    MainWindow.logger.CommandInfo(command);
+                }
             }
             catch (Exception ex)
             {

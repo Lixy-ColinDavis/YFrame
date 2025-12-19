@@ -16,7 +16,7 @@ namespace YFrame
         // 插件名称
         public string Name { get; set; }
 
-        // 插件
+        // 插件对象
         public UserControl userControl { get; set; }
 
         // 命令

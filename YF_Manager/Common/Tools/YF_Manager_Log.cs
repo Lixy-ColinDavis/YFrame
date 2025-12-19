@@ -38,6 +38,12 @@ namespace YF_Manager
             LogInfo(functionName + ": " + msg, "[Error]");
         }
 
+        public void CommandInfo(string msg)
+        {
+            Write(CheckPath(@$"{Config.LogPath}\CommandLog"), _name + ": " + msg);
+            LogInfo(msg, "[Command]");
+        }
+
         public void TcpInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\TcpLog"), _name + ": " + msg);
 
         public void LogInfo(string msg, string type = "[Info]")
