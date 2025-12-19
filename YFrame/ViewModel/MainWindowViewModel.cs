@@ -29,6 +29,8 @@ namespace YFrame
         }
         #endregion
 
+        #region 绑定属性
+
         private bool _leftVisible;  // 左抽屉显示状态
         public bool LeftVisible
         {
@@ -129,7 +131,9 @@ namespace YFrame
             }
         }
 
+        #endregion
 
+        #region 绑定命令
 
         public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
         public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
@@ -142,12 +146,21 @@ namespace YFrame
         public ICommand ToggleEnglishCommand { get; set; }              // 中文切换事件
         public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
 
+        #endregion
 
+        #region 全局变量
+
+        // 委托-显示CPU、内存信息
         public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
 
+        #endregion
+
+        #region 成员变量
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
 
         CtrlDataModel CurrentUcDate { get; set; } // 当前显示的插件信息
+
+        #endregion
 
         public MainWindowViewModel()
         {
@@ -186,16 +199,6 @@ namespace YFrame
                 {
                     lsPlugins.Add(new PluginsModel() { Name = item.Value.Name, ID = item.Key, Status = 0 });
                 }
-
-
-                //var v = UserControlsService.Instance.DctControls.FirstOrDefault();
-                ////// 读取并加载、显示目标插件
-                //CurrentUcDate = v.Value;
-                //UserControlsService.Instance.ShowUserControl(v.Key);
-                //UserControl uc = CurrentUcDate.userControl;
-                //Grid_Show_Array.Children.Add(uc);
-
-                //SendCommand("TestCommand_HelloWorld!");
             }
             catch (Exception ex)
             {
@@ -226,15 +229,22 @@ namespace YFrame
                 // 移动事件
                 Title_Move_Command = new YF_RelayCommand<object>(param =>
                 {
-                    if (param is Border border)
+                    try
                     {
-                        var window = Window.GetWindow(border);
-                        window?.DragMove();
+                        if (param is Border border)
+                        {
+                            var window = Window.GetWindow(border);
+                            window?.DragMove();
+                        }
+                        else if (param is FrameworkElement element)
+                        {
+                            var window = Window.GetWindow(element);
+                            window?.DragMove();
+                        }
                     }
-                    else if (param is FrameworkElement element)
+                    catch (Exception ex)
                     {
-                        var window = Window.GetWindow(element);
-                        window?.DragMove();
+                        MainWindow.logger.ErrorInfo("Title_Move_Command", ex.Message);
                     }
                 });
                 // 中文按钮
@@ -243,15 +253,21 @@ namespace YFrame
                 ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
                 // 插件显示
                 Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => {
+                    try
+                    {
+                        Grid_Show_Array.Children.Clear();
 
-                    Grid_Show_Array.Children.Clear();
-
-                    var v = UserControlsService.Instance.DctControls.First(x => x.Key == parameter);
-                    //// 读取并加载、显示目标插件
-                    CurrentUcDate = v.Value;
-                    UserControlsService.Instance.ShowUserControl(v.Key);
-                    UserControl uc = CurrentUcDate.userControl;
-                    Grid_Show_Array.Children.Add(uc);
+                        var v = UserControlsService.Instance.DctControls.First(x => x.Key == parameter);
+                        //// 读取并加载、显示目标插件
+                        CurrentUcDate = v.Value;
+                        UserControlsService.Instance.ShowUserControl(v.Key);
+                        UserControl uc = CurrentUcDate.userControl;
+                        Grid_Show_Array.Children.Add(uc);
+                    }
+                    catch (Exception ex)
+                    {
+                        MainWindow.logger.ErrorInfo("Btn_Plugin_Show_Command", ex.Message);
+                    }
                 });
 
 

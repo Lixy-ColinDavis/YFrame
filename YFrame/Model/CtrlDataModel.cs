@@ -16,10 +16,10 @@ namespace YFrame
         // 插件名称
         public string Name { get; set; }
 
-        // 插件对象
+        // 插件对象-默认不保存，只存加载的那个，节省性能
         public UserControl userControl { get; set; }
 
-        // 命令
+        // 命令对象-默认不保存，只存加载的那个，节省性能
         public I_YF_Command CommandHandler { get; set; }
 
         public Dictionary<string, object> Parameters = new Dictionary<string, object>();
