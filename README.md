@@ -2,6 +2,23 @@
 
 YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，抽屉界面风格设计，可根据需求自定义添加和修改插件，持续开发中...如发现此项目，欢迎点评指导！(20250819)
 
+### 项目结构
+- YFrame.sln
+- YF_Manager	(框架通用管理库)
+  - Common	(通用工具库)
+  - Interface	(接口库)
+  - YF_Manager.cs
+- YFrame	(框架主体)
+  - Common	(工具库)
+    - Language	(语言类)
+    - Themes	(主题类)
+  - Model	（模型类）
+  - View	(视图类)
+  - ViewModel (视图模型类)
+    - Service	(服务类)
+  - MainWindow.xaml</span>
+
+
 ### 主框架功能列表
 
 1. CPU内存性能监视器
