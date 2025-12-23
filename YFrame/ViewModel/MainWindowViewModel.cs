@@ -262,6 +262,7 @@ namespace YFrame
                         CurrentUcDate = v.Value;
                         UserControlsService.Instance.ShowUserControl(v.Key);
                         UserControl uc = CurrentUcDate.userControl;
+                        //CurrentUcDate.CommandHandler.ExecuteCommand("加载...");
                         Grid_Show_Array.Children.Add(uc);
                     }
                     catch (Exception ex)

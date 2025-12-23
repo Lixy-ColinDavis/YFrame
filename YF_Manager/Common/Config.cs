@@ -16,5 +16,11 @@ namespace YF_Manager
 
         // 插件路径
         public const string PluginPath = @"Plugins";
+
+        // 服务端端口
+        public const string TcpHelper_Port_Server = "8021";
+
+        // 客户端端口
+        public const string TcpHelper_Port_Client = "8022"; 
     }
 }
