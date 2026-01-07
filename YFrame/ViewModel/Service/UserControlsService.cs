@@ -22,13 +22,12 @@ namespace YFrame
         public static UserControlsService Instance => _instance.Value;
 
         // <ID, Name> => <YF_AIHelper, AI 助手>
-        public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();   
+        public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();
 
         /// <summary>
         ///  添加插件
         /// </summary>
-        /// <param name="ctrl">插件-用户控件</param>
-        /// <param name="Name">插件名称</param>
+        /// <param name="name">插件名称</param>
         /// <param name="ID">插件ID</param>
         public void AddControl(string name, string ID)
         {
