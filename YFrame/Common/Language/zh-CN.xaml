@@ -26,4 +26,12 @@
     <sys:String x:Key="key_Stay">驻留</sys:String>
     <sys:String x:Key="key_Show">显示</sys:String>
     
+    <!--AI助手-->
+    <sys:String x:Key="key_Ai_Send">发送</sys:String>
+
+    <!--HTTP服务器-->
+    <sys:String x:Key="key_Http_FilePath">文件路径</sys:String>
+    <sys:String x:Key="key_Http_StartServer">开启服务器</sys:String>
+    <sys:String x:Key="key_Http_CloseServer">关闭服务器</sys:String>
+
 </ResourceDictionary>

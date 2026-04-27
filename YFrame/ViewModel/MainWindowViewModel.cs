@@ -14,6 +14,7 @@ using System.Windows.Input;
 using YF_Manager;
 using YFrame.Model;
 using System.Reflection.Metadata;
+using Castle.DynamicProxy;
 
 namespace YFrame
 {
@@ -171,6 +172,9 @@ namespace YFrame
             YF_Manager_Log.d_LogWrite = Show_Log;
             MainWindow.logger.LogInfo("主框架初始化-完成");
         }
+
+            
+        
 
         /// <summary>
         /// 初始化UI

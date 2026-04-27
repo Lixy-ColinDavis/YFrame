@@ -8,7 +8,7 @@ namespace YF_Manager
 {
     public interface I_YF_Command
     {
-        // 发送命令到插件
+        [Log(Level = LogLevel.Info, Message = "发送命令到插件")]
         void ExecuteCommand(string command, object parameter = null);
 
         // 插件事件回调

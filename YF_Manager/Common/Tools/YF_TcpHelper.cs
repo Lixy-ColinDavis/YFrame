@@ -11,15 +11,19 @@ namespace YF_Manager
 {
     public class YF_TcpHelper
     {
+        // 单例实例
+        public static YF_TcpHelper Instance { get; } = new YF_TcpHelper();
+
+        public YF_TcpHelper() { }  // 私有构造函数
+
         /// <summary>
         /// 获取默认网关IP
         /// </summary>
-        /// <returns></returns>
-        public static IPAddress GetDefaultGatewayIP()
+        [Log(Level = LogLevel.Info, Message = "获取默认网关IP")]
+        public virtual IPAddress GetDefaultGatewayIP()  // 改为实例方法，加 virtual
         {
             try
             {
-
                 var process = new Process();
                 process.StartInfo.FileName = "route.exe";
                 process.StartInfo.Arguments = "print";
@@ -30,7 +34,6 @@ namespace YF_Manager
                 string output = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
 
-                // 匹配默认网关对应的本地IP
                 Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
                 if (match.Success)
                 {
@@ -40,7 +43,7 @@ namespace YF_Manager
             }
             catch (Exception ex)
             {
-                YF_Manager.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
+                YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
             }
 
             return null;
@@ -49,8 +52,8 @@ namespace YF_Manager
         /// <summary>
         /// 读取本机默认IP
         /// </summary>
-        /// <returns></returns>
-        public static string GetLocalIP()
+        [Log(Level = LogLevel.Info, Message = "读取本机默认IP")]
+        public virtual string GetLocalIP()  // 改为实例方法，加 virtual
         {
             return Dns.GetHostEntry(Dns.GetHostName())
                 .AddressList.First(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)

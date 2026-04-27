@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Castle.DynamicProxy;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,8 +18,12 @@ namespace YFrame
 {
     public class UserControlsService
     {
-        // 替代双重检查锁定模式，简化线程安全单例实现‌
-        private static readonly Lazy<UserControlsService> _instance = new Lazy<UserControlsService>(() => new UserControlsService());
+        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
+        // 单例模式+日志拦截器
+        public static readonly Lazy<UserControlsService> _instance = new Lazy<UserControlsService>(
+            () => new ProxyGenerator().CreateClassProxy<UserControlsService>(new LogInterceptor())
+            );
+
         public static UserControlsService Instance => _instance.Value;
 
         // <ID, Name> => <YF_AIHelper, AI 助手>
@@ -29,7 +34,8 @@ namespace YFrame
         /// </summary>
         /// <param name="name">插件名称</param>
         /// <param name="ID">插件ID</param>
-        public void AddControl(string name, string ID)
+        [Log(Level = LogLevel.Info, Message = "添加插件")]
+        public virtual void AddControl(string name, string ID)
         {
             MainWindow.logger.DebugInfo($"加载模块：{name}, {ID}");
             // 插件添加
@@ -44,7 +50,8 @@ namespace YFrame
         /// <summary>
         /// 自动识别并读取插件
         /// </summary>
-        public void LoadAndShowUserControl()
+        [Log(Level = LogLevel.Info, Message = "自动识别并读取插件")]
+        public virtual void LoadAndShowUserControl()
         {
             try
             {
@@ -119,7 +126,8 @@ namespace YFrame
         /// 显示指定的插件
         /// </summary>
         /// <param name="plugin_Id">插件ID</param>
-        public void ShowUserControl(string plugin_Id)
+        [Log(Level = LogLevel.Info, Message = "显示指定的插件")]
+        public virtual void ShowUserControl(string plugin_Id)
         {
             string path = "plugins\\" + plugin_Id;
             // 读取插件主dll
@@ -131,7 +139,7 @@ namespace YFrame
             {
                 if (s == "YF_Manager")
                     continue;
-                MainWindow.logger.DebugInfo($"读取到插件: {s}");
+                MainWindow.logger.DebugInfo($"准备显示插件: {s}");
                 string assemblyPath = @$"{path}\{s}.dll";
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
 
@@ -179,7 +187,8 @@ namespace YFrame
         /// </summary>
         /// <param name="pluginId"></param>
         /// <param name="e"></param>
-        private void HandlePluginCallback(string pluginId, PluginEventArgs e)
+        [Log(Level = LogLevel.Info, Message = "插件回调")]
+        public virtual void HandlePluginCallback(string pluginId, PluginEventArgs e)
         {
             // 处理插件回调
             MainWindow.logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");

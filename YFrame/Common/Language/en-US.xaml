@@ -23,5 +23,14 @@
     <sys:String x:Key="key_Param">Param</sys:String>
     <sys:String x:Key="key_Stay">Stay</sys:String>
     <sys:String x:Key="key_Show">Show</sys:String>
+
+    <!--AI助手-->
+    <sys:String x:Key="key_Ai_Send">Send</sys:String>
+
+    <!--HTTP服务器-->
+    <sys:String x:Key="key_Http_FilePath">FilePath</sys:String>
+    <sys:String x:Key="key_Http_StartServer">StartServer</sys:String>
+    <sys:String x:Key="key_Http_CloseServer">CloseServer</sys:String>
+    
     
 </ResourceDictionary>
