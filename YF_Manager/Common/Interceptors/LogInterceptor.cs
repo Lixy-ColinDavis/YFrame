@@ -102,7 +102,7 @@ namespace YF_Manager
             stopwatch.Stop();
 
             YF_Manager_Main.logger.InterceptorsLog(
-                $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds} | 函数位置：" + 
+                $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | 函数位置：" + 
                 methodName, logAttr.Level.ToString());
         }
 
