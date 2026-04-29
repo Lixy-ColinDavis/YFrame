@@ -39,7 +39,7 @@ namespace YF_Manager
 
             // 初始化计时器和获取方法名
             var stopwatch = Stopwatch.StartNew();
-            var methodName = $"{invocation.Method.DeclaringType?.Name}.{invocation.Method.Name}";
+            var methodName = $"{invocation.Method.DeclaringType?.FullName}.{invocation.Method.Name}";
 
             // 记录开始
             YF_Manager_Main.logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
