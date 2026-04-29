@@ -1,11 +1,13 @@
 # YFrame
 
-YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，抽屉界面风格设计，可根据需求自定义添加和修改插件，持续开发中...如发现此项目，欢迎点评指导！(20250819)
+YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，AOP面向切片设计，抽屉界面风格设计，可根据需求自定义添加和修改插件，持续开发中...
 
 ### 项目结构
 - YFrame.sln
 - YF_Manager	(框架通用管理库)
   - Common	(通用工具库)
+    - Attributes (特性）
+    - Intercepterceptor (拦截器）
   - Interface	(接口库)
   - YF_Manager.cs
 - YFrame	(框架主体)
@@ -31,6 +33,8 @@ YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，抽屉界面�
 
 5. 反射灵活加载插件、回调等避免额外性能占用
 
+6. 特性+拦截器日志自动化
+
 ### 已开发插件
 
 1. AI对话助手本地部署
@@ -48,3 +52,5 @@ YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，抽屉界面�
 ![image.png](https://raw.gitcode.com/user-images/assets/7353928/5a980432-55f8-4750-a4ff-e94b8c5f1e04/image.png 'image.png')
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7353928/577dc5ad-0813-4415-afbb-c52faa5b4334/image.png 'image.png')
+
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/e8d596bf-c80e-42cf-9606-5c0973524c4c/image.png 'image.png')
