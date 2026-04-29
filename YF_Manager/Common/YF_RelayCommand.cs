@@ -42,10 +42,13 @@ namespace YF_Manager
 
         public YF_RelayCommand(Action<T> execute, Func<T, bool> canExecute = null)
         {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
+            // 控件点击事件的函数
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute)); 
+            // 获取控件enable状态的函数
+            _canExecute = canExecute;  
         }
 
+        
         public bool CanExecute(object parameter) =>
             _canExecute?.Invoke((T)parameter) ?? true;
 
