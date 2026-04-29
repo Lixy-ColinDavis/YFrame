@@ -54,6 +54,12 @@ namespace YF_Manager
                     d_LogWrite(_name + ": " + msg);
         }
 
+        public void InterceptorsLog(string msg, string type)
+        {
+            Write(CheckPath(@$"{Config.LogPath}\InterceptorsLog"), _name + $": [{type}]" + msg);
+            LogInfo(msg);
+        }
+
         /// <summary>
         /// log路径可用检查,自动创建
         /// </summary>

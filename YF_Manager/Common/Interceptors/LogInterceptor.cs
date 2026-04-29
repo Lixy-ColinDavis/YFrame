@@ -42,14 +42,14 @@ namespace YF_Manager
             var methodName = $"{invocation.Method.DeclaringType?.Name}.{invocation.Method.Name}";
 
             // 记录开始
-            YF_Manager_Main.logger.LogInfo($"开始执行 | {logAttr.Message} | 函数位置：" + methodName);
+            YF_Manager_Main.logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
 
             // 记录参数
             var parameters = invocation.Method.GetParameters();
             if (parameters.Length > 0)
             {
                 var paramInfo = parameters.Zip(invocation.Arguments, (p, a) => $"{p.Name}={a ?? "null"}");
-                YF_Manager_Main.logger.LogInfo( $"执行记录 | {logAttr.Message} 参数: {string.Join(", ", paramInfo)} | 函数位置：" + methodName);
+                YF_Manager_Main.logger.InterceptorsLog( $"执行记录 | {logAttr.Message} 参数: {string.Join(", ", paramInfo)} | 函数位置：" + methodName, logAttr.Level.ToString());
             }
 
             try
@@ -70,17 +70,17 @@ namespace YF_Manager
                     invocation.Proceed();
                     stopwatch.Stop();
 
-                    YF_Manager_Main.logger.LogInfo(
-                        $"执行成功 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 返回值: {invocation.ReturnValue ?? "null"} | 函数位置：" +
-                        methodName);
+                    YF_Manager_Main.logger.InterceptorsLog(
+                        $"执行完成 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 返回值: {invocation.ReturnValue ?? "null"} | 函数位置：" +
+                        methodName, logAttr.Level.ToString());
                 }
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                YF_Manager_Main.logger.LogInfo(
+                YF_Manager_Main.logger.InterceptorsLog(
                     $"执行失败 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 错误: {ex.Message} | 函数位置：" +
-                    methodName);
+                    methodName, logAttr.Level.ToString());
                 throw;
             }
         }
@@ -101,9 +101,9 @@ namespace YF_Manager
             await task.ConfigureAwait(false);
             stopwatch.Stop();
 
-            YF_Manager_Main.logger.LogInfo(
-                $"执行成功 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds} | 函数位置：" + 
-                methodName);
+            YF_Manager_Main.logger.InterceptorsLog(
+                $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds} | 函数位置：" + 
+                methodName, logAttr.Level.ToString());
         }
 
         /// <summary>
@@ -123,9 +123,9 @@ namespace YF_Manager
             var result = await task.ConfigureAwait(false);
             stopwatch.Stop();
 
-            YF_Manager_Main.logger.LogInfo(
-                $"执行成功 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | 返回值: {result} | 函数位置：" + 
-                methodName);
+            YF_Manager_Main.logger.InterceptorsLog(
+                $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | 返回值: {result} | 函数位置：" + 
+                methodName, logAttr.Level.ToString());
 
             return result;
         }

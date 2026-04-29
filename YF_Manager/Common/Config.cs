@@ -9,7 +9,7 @@ namespace YF_Manager
     public class Config
     {
         // PaddlOCR 模型根路径
-        public const string Paddlepath = @"Config\\Paddle\\inference";
+        public const string Paddlepath = @"plugins\YF_ScreenOCRTranslate\inference";
 
         // 日志路径
         public const string LogPath = @"Log";
