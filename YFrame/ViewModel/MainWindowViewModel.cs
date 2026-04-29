@@ -154,6 +154,14 @@ namespace YFrame
         // 委托-显示CPU、内存信息
         public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
 
+        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
+        // 单例模式+日志拦截器
+        public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
+            () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor())
+            );
+
+        public static MainWindowViewModel Instance => _instance.Value;
+
         #endregion
 
         #region 成员变量
@@ -173,15 +181,16 @@ namespace YFrame
             MainWindow.logger.LogInfo("主框架初始化-完成");
         }
 
-            
-        
+
+
 
         /// <summary>
         /// 初始化UI
         /// </summary>
         /// <remarks>
         /// </remarks>
-        private void InitUI()
+        [Log(Level = LogLevel.Info, Message = "初始化UI")]
+        public virtual void InitUI()
         {
             try
             {
@@ -213,7 +222,8 @@ namespace YFrame
         /// <summary>
         /// 初始化命令绑定
         /// </summary>
-        private void InitCommond()
+        [Log(Level = LogLevel.Info, Message = "初始化命令绑定")]
+        public virtual void InitCommond()
         {
             try 
             { 
@@ -290,7 +300,8 @@ namespace YFrame
         /// <summary>
         /// 窗体移动事件
         /// </summary>
-        private void Move_Window(object sender, MouseButtonEventArgs e)
+        [Log(Level = LogLevel.Info, Message = "窗体移动")]
+        public virtual void Move_Window(object sender, MouseButtonEventArgs e)
         {
             try
             {
@@ -311,7 +322,7 @@ namespace YFrame
         /// </summary>
         /// <param name="cpu"></param>
         /// <param name="memory"></param>
-        public void Show_Cpu_Memory(string cpu, string memory)
+        public virtual void Show_Cpu_Memory(string cpu, string memory)
         {
             try
             {
@@ -322,14 +333,13 @@ namespace YFrame
             {
                 MainWindow.logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
             }
-            
         }
 
         /// <summary>
         /// 委托 刷新界面log信息
         /// </summary>
         /// <param name="msg"></param>
-        public void Show_Log(string msg)
+        public virtual void Show_Log(string msg)
         {
             try
             {
@@ -347,7 +357,8 @@ namespace YFrame
         /// </summary>
         /// <param name="command"></param>
         /// <param name="parameter"></param>
-        public void SendCommand(string command, object parameter = null)
+        [Log(Level = LogLevel.Info, Message = "发送命令")]
+        public virtual void SendCommand(string command, object parameter = null)
         {
             try
             {

@@ -25,7 +25,7 @@ namespace YFrame
         {
             logger = new YF_Manager_Log(YF_Name, YF_ID);
             YF_Manager_Main a = new YF_Manager_Main();
-            DataContext = new MainWindowViewModel();
+            DataContext = MainWindowViewModel.Instance;
 
             InitializeComponent();
         }
