@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 米白主题 — "素火明昼" · 温润素白底色，赤焰橙勾勒星火轮廓 -->
+    <!-- 主内容区背景 -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#FFF5F5F8"/>
+    <!-- 菜单栏 / 面板 / 卡片背景 -->
+    <SolidColorBrush x:Key="MenuBarBrush" Color="#FFFFFFFF"/>
+    <!-- 侧边栏 / 工具箱面板 -->
+    <SolidColorBrush x:Key="ToolWindowBrush" Color="#FFFFFFFF"/>
+    <!-- 边框 / 分隔线 -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#FFE2E2EA"/>
+    <!-- 主文字色 -->
+    <SolidColorBrush x:Key="TextBrush" Color="#FF18182B"/>
+
+    <!-- === 列表项交互色 === -->
+    <SolidColorBrush x:Key="TreeItemHoverBackground" Color="#FFFAFAFA"/>
+    <SolidColorBrush x:Key="TreeItemSelectedBackground" Color="#FFFDEDE5"/>
+    <SolidColorBrush x:Key="TreeItemAccent" Color="#FFD94A1A"/>
+    <SolidColorBrush x:Key="TreeItemSecondaryText" Color="#FF6A6A82"/>
+
+    <!-- === 图表色 === -->
+    <SolidColorBrush x:Key="ChartLine1" Color="#FFD94A1A"/>
+    <SolidColorBrush x:Key="ChartLine2" Color="#FFE8783A"/>
+    <SolidColorBrush x:Key="ChartFill1" Color="#0FD94A1A"/>
+    <SolidColorBrush x:Key="ChartFill2" Color="#0DE8783A"/>
+    <SolidColorBrush x:Key="ChartGrid" Color="#0D000000"/>
+
+    <!-- === 状态栏 === -->
+    <SolidColorBrush x:Key="StatusBarBg" Color="#FFFFFFFF"/>
+
+    <!-- === 日志色 === -->
+    <SolidColorBrush x:Key="LogTimeBrush" Color="#FF9A9AB0"/>
+    <SolidColorBrush x:Key="LogSourceBrush" Color="#FFC45A28"/>
+</ResourceDictionary>

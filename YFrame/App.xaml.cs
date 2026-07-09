@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 using System.Data;
 using System.Windows;
 using YF_Manager;
@@ -11,6 +11,11 @@ namespace YFrame
     public partial class App : Application
     {
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
+
+        /// <summary>
+        /// 切换语言
+        /// </summary>
+        /// <param name="lang">zh / en</param>
         public static void ChangeLanguage(string lang)
         {
             try
@@ -28,8 +33,8 @@ namespace YFrame
                 if (oldDict == null)
                     oldDict = Current.Resources.MergedDictionaries
                         .FirstOrDefault(d => d.Source?.ToString().Contains("zh-CN") == true);
-                Current.Resources.MergedDictionaries.Remove(oldDict);
-
+                if (oldDict != null)
+                    Current.Resources.MergedDictionaries.Remove(oldDict);
 
                 // 添加新的语言资源
                 Current.Resources.MergedDictionaries.Add(dict);
@@ -38,19 +43,17 @@ namespace YFrame
             {
                 logger.ErrorInfo("ChangeLanguage", ex.Message);
             }
-            
         }
-
 
         /// <summary>
         /// 切换主题
         /// </summary>
-        /// <param name="themePath"></param>
+        /// <param name="themePath">主题文件相对路径，如 "Common/Themes/DarkGrayTheme.xaml"</param>
         public static void ChangeTheme(string themePath)
         {
             try
             {
-                // 移除旧的主题资源
+                // 移除旧的主题资源（查找文件名含 "Theme" 的字典）
                 var oldDict = Application.Current.Resources.MergedDictionaries
                     .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
                 if (oldDict != null)
@@ -69,5 +72,4 @@ namespace YFrame
             }
         }
     }
-
 }

@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="YF Tools" Height="800" Width="1200"
+        Icon="Common/Images/Logo.png"
         xmlns:local="clr-namespace:YFrame"
         Background="{DynamicResource BackgroundBrush}" 
         WindowStyle="None" AllowsTransparency="True">
@@ -13,6 +14,8 @@
     <DockPanel LastChildFill="True">
         <!-- 菜单栏 -->
         <Menu DockPanel.Dock="Top" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}" Height="34">
+            <!-- Logo -->
+            <Image Source="Common/Images/Logo.png" Width="20" Height="20" Margin="3,0,5,0" VerticalAlignment="Center"/>
             <MenuItem Header="{DynamicResource key_File}" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
                 <MenuItem Header="{DynamicResource key_New}"/>
                 <MenuItem Header="{DynamicResource key_Open}"/>
@@ -22,8 +25,10 @@
             <MenuItem Header="{DynamicResource key_View}" Foreground="{DynamicResource TextBrush}" >
                 <MenuItem Header="{DynamicResource key_Left sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
                 <MenuItem Header="{DynamicResource key_Right sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
-                <MenuItem Header="{DynamicResource key_Bright theme}" Command="{Binding ToggleLightThemeCommand}" CommandParameter="Light"/>
-                <MenuItem Header="{DynamicResource key_Dark theme}" Command="{Binding ToggleDarkThemeCommand}" CommandParameter="Dark"/>
+                <MenuItem Header="{DynamicResource key_DarkGray theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/DarkGrayTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_CreamWhite theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/CreamWhiteTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_LightBlue theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/LightBlueTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_GreenWhite theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/GreenWhiteTheme.xaml"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Language}">
                 <MenuItem Header="中文"  Command="{Binding ToggleChineseCommand}"/>
@@ -36,7 +41,7 @@
             <MenuItem Header="{DynamicResource key_Help}"/>
             <MenuItem IsEnabled="False"/>
             <!-- 右侧可拖拽区域 -->
-            <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="806" Margin="-20,-6,-20,-11">
+            <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="750" Margin="-20,-6,-20,-11">
                 <Border.InputBindings>
                     <MouseBinding MouseAction="LeftClick" Command="{Binding Title_Move_Command}" CommandParameter="{Binding ElementName=Title_Border}"/>
                 </Border.InputBindings>
@@ -50,17 +55,32 @@
         </Menu>
 
         <!-- 状态栏 -->
-        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource MenuBarBrush}" Height="25">
+        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBg}" Height="28"
+                   FontFamily="Consolas" FontSize="11"
+                   Foreground="{DynamicResource TreeItemSecondaryText}">
             <StatusBarItem>
-                <TextBlock Text="就绪" Foreground="{DynamicResource TextBrush}"/>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="6" Height="6" Fill="#FF34D399" Margin="0,0,6,0"/>
+                    <TextBlock Text="运行中" Foreground="{DynamicResource TextBrush}"/>
+                </StackPanel>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <TextBlock Text="{Binding Txt_Cpu}" Foreground="{DynamicResource TextBrush}"/>
+                <TextBlock Foreground="{DynamicResource TextBrush}">
+                    <Run Text="CPU: "/><Run Text="{Binding Txt_Cpu, Mode=OneWay}"/>
+                </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <TextBlock Text="{Binding Txt_Memory}" Foreground="{DynamicResource TextBrush}"/>
+                <TextBlock Foreground="{DynamicResource TextBrush}">
+                    <Run Text="内存: "/><Run Text="{Binding Txt_Memory, Mode=OneWay}"/>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock>
+                    <Run Text="插件: "/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text=" 已加载"/>
+                </TextBlock>
             </StatusBarItem>
         </StatusBar>
 
@@ -71,76 +91,148 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+            </Grid.RowDefinitions>
 
-            <!-- 左侧工具栏抽屉 -->
-            <Border Grid.Column="0" Width="200" Background="{DynamicResource ToolWindowBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 1 0" Visibility="{Binding LeftVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                <DockPanel>
-                    <TabControl Background="{DynamicResource ToolWindowBrush}">
-                        <TabItem Header="{DynamicResource key_Plug-in}" >
-                            <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins}">
-                                <!-- 绑定到你的数据源 -->
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border CornerRadius="5" Height="33" Width="180" Margin="5,5,5,0" Background="{DynamicResource ToolWindowBrush}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="60"/>
-                                                        <ColumnDefinition Width="5"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Grid.Column="0" HorizontalAlignment="Left" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                                                    <!--<MenuItem Header="{DynamicResource key_Stay}" BorderThickness="0" BorderBrush="{DynamicResource ToolWindowBrush}" Grid.Column="1" Foreground="{DynamicResource TextBrush}" Background="{DynamicResource ToolWindowBrush}"/>-->
-                                                    <Button Content="{DynamicResource key_Show}" BorderThickness="0" Background="{DynamicResource ToolWindowBrush}" 
-                                                            Foreground="{DynamicResource TextBrush}" Width="40" Margin="0,0,5,0" Grid.Column="1" HorizontalAlignment="Right"
-                                                            Command="{Binding DataContext.Btn_Plugin_Show_Command, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                                                            CommandParameter="{Binding ID}">
-                                                        <!-- 在ItemsControl中，command会寻找上下文对象PluginsModel的Btn_Plugin_Show_Command，
-                                                             而不是viewModel.DataContext中的Btn_Plugin_Show_Command，
-                                                             由于默认源是ViewModel.DataContext,默认源发生修改后，手动改回去需要标注DataContext.Btn_Plugin_Show_Command，
-                                                             否则寻找位置是ViewModel.Btn_Plugin_Show_Command
-                                                        -->
-                                                    </Button>
-                                                </Grid>
-                                            </Border>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </TabItem>
-                        <TabItem Header="{DynamicResource key_Stay}" >
-                            <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins_Stay}">
-                                <!-- 绑定到数据源 -->
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border CornerRadius="5" Height="33" Width="180" Margin="5,5,5,0" Background="{DynamicResource ToolWindowBrush}">
-                                                <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                                            </Border>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </TabItem>
-                    </TabControl>
-                </DockPanel>
+            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{DynamicResource ToolWindowBrush}">
+                
+            </Grid>
+
+            <!-- 左侧工具栏抽屉（VS 风格：竖排标签 + 内容面板） -->
+            <Border Grid.Column="0" Grid.RowSpan="2"
+                    Background="{DynamicResource MenuBarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 1 0"
+                    Visibility="{Binding LeftVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28"/>
+                        <ColumnDefinition Width="200"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 竖排标签栏 -->
+                    <Border Grid.Column="0" Background="{DynamicResource MenuBarBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 1 0">
+                        <StackPanel>
+                            <!-- 插件列表 标签 -->
+                            <Border x:Name="TabPlugins" Height="80" Cursor="Hand"
+                                    Background="{DynamicResource MenuBarBrush}"
+                                    ToolTip="插件列表">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding SwitchLeftPanelCommand}"
+                                                  CommandParameter="0"/>
+                                </Border.InputBindings>
+                                <TextBlock Text="插&#10;件&#10;列&#10;表"
+                                           FontSize="11" TextAlignment="Center"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+                            <!-- 分隔线 -->
+                            <Rectangle Height="1" Fill="{DynamicResource BorderBrush}"
+                                       Margin="4,0"/>
+                            <!-- 工具箱 标签 -->
+                            <Border x:Name="TabToolbox" Height="60" Cursor="Hand"
+                                    Background="{DynamicResource MenuBarBrush}"
+                                    ToolTip="工具箱">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding SwitchLeftPanelCommand}"
+                                                  CommandParameter="1"/>
+                                </Border.InputBindings>
+                                <TextBlock Text="工&#10;具&#10;箱"
+                                           FontSize="11" TextAlignment="Center"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 内容面板 -->
+                    <Border Grid.Column="1" Background="{DynamicResource MenuBarBrush}">
+                        <DockPanel>
+                            <!-- 面板标题栏 -->
+                            <Border DockPanel.Dock="Top" Height="28"
+                                    Background="{DynamicResource MenuBarBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
+                                <TextBlock FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="0">
+                                                    <Setter Property="Text" Value="插件列表"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
+                                                    <Setter Property="Text" Value="工具箱"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            <!-- 面板内容：插件列表 -->
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <ListBox Style="{StaticResource VsPluginListBox}"
+                                         ItemContainerStyle="{StaticResource VsPluginListItem}"
+                                         ItemsSource="{Binding lsPlugins}"
+                                         SelectedItem="{Binding SelectedPlugin, Mode=TwoWay}"
+                                         Margin="0,2,0,0"/>
+                            </Grid>
+                            <!-- 面板内容：工具箱（预留） -->
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <TextBlock Text="工具箱内容（待添加）"
+                                           Foreground="{DynamicResource TreeItemSecondaryText}"
+                                           FontSize="12" VerticalAlignment="Top"
+                                           Margin="14,14,0,0"/>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                </Grid>
             </Border>
 
             <!-- 主工作区 -->
-            <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
+            <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
                  HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 
-            <!--<ContentControl Grid.Column="1" Content="{Binding CurrentPluginContent}"
-                   Background="{DynamicResource BackgroundBrush}"/>-->
-            <Grid x:Name="DynamicContentHost" Grid.Column="1" Margin="5" Background="{DynamicResource BackgroundBrush}">
+            <Grid x:Name="DynamicContentHost" Grid.Row="1"  Grid.Column="1" Margin="5" Background="{DynamicResource BackgroundBrush}">
                 <ContentControl Content="{Binding Grid_Show_Array}" Margin="5"/>
             </Grid>
 
-            <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderBrush}" 
+            <GridSplitter Grid.Column="1" Grid.Row="1" Width="3" Background="{DynamicResource BorderBrush}" 
                  HorizontalAlignment="Right" VerticalAlignment="Stretch"/>
 
             <!-- 右侧工具栏抽屉 -->
-            <Border Grid.Column="2" Width="250" Background="{DynamicResource ToolWindowBrush}" 
+            <Border Grid.Column="2" Width="250" Grid.Row="1"
+                    Background="{DynamicResource MenuBarBrush}"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1 0 0 0"
                     Visibility="{Binding RightVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid>
@@ -150,69 +242,151 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 上部抽屉 -->
-                    <DockPanel Grid.Row="0">
-                        <!--<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
-                            <ToggleButton Content="日志" IsChecked="{Binding IsLogViewVisible}"/>
-                            <ToggleButton Content="参数" IsChecked="{Binding IsParameterViewVisible}"/>
-                        </StackPanel>-->
+                    <!-- 上部面板（VS 风格：内容 + 竖排标签） -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="28"/>
+                        </Grid.ColumnDefinitions>
 
-                        <TabControl Background="{DynamicResource BackgroundBrush}">
-                            <TabItem Header="{DynamicResource key_Log}" >
-                                <TextBox TextWrapping="Wrap" AcceptsReturn="True" IsReadOnly="True"
-                                Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
-                                Background="Transparent" Foreground="{DynamicResource TextBrush}"/>
-                            </TabItem>
-                            <TabItem Header="{DynamicResource key_Param}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                        <!-- 内容面板 -->
+                        <DockPanel Grid.Column="0">
+                            <!-- 标题栏 -->
+                            <Border DockPanel.Dock="Top" Height="28"
+                                    Background="{DynamicResource MenuBarBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
+                                <TextBlock FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                    <Setter Property="Text" Value="日志"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                    <Setter Property="Text" Value="参数"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            <!-- 日志面板 -->
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <TextBox TextWrapping="Wrap" AcceptsReturn="True"
+                                         IsReadOnly="True" Focusable="False"
+                                         Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" Foreground="{DynamicResource TextBrush}"
+                                         BorderThickness="0"/>
+                            </Grid>
+                                    <!-- 参数面板 -->
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="2*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="{Binding Key}"
+                                                                       VerticalAlignment="Center" Margin="5,0"/>
+                                                            <TextBox Grid.Column="1"
+                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Margin="5,0"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
+                                            <Button Content="添加参数" Margin="5,0"/>
+                                            <Button Content="删除参数" Margin="5,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DockPanel>
 
-                                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,2">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="2*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <TextBlock Grid.Column="0" 
-                                      Text="{Binding Key}" 
-                                      VerticalAlignment="Center"
-                                      Margin="5,0"/>
-                                                        <TextBox Grid.Column="1" 
-                                    Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Margin="5,0"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
-
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
-                                        <Button Content="添加参数" Margin="5,0"/>
-                                        <Button Content="删除参数" Margin="5,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </TabItem>
-                        </TabControl>
-                    </DockPanel>
+                            <!-- 竖排标签栏（右边缘） -->
+                            <Border Grid.Column="1" Background="{DynamicResource MenuBarBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1 0 0 0">
+                                <StackPanel>
+                                    <!-- 日志 标签 -->
+                                    <Border Height="60" Cursor="Hand"
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="日志">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding SwitchRightPanelCommand}"
+                                                          CommandParameter="0"/>
+                                        </Border.InputBindings>
+                                        <TextBlock Text="日&#10;志" FontSize="11"
+                                                   TextAlignment="Center"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="4,0"/>
+                                    <!-- 参数 标签 -->
+                                    <Border Height="60" Cursor="Hand"
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="参数">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding SwitchRightPanelCommand}"
+                                                          CommandParameter="1"/>
+                                        </Border.InputBindings>
+                                        <TextBlock Text="参&#10;数" FontSize="11"
+                                                   TextAlignment="Center"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
                     <GridSplitter Grid.Row="1" Background="{DynamicResource BorderBrush}" HorizontalAlignment="Stretch"/>
 
                     <!-- 下部抽屉 - 性能监视器 -->
-                    <DockPanel Grid.Row="2">
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
-                            <TextBlock Text="{DynamicResource key_Performance monitor}" Margin="5" Foreground="{DynamicResource TextBrush}"/>
-                        </StackPanel>
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource TextBrush}" BorderThickness="1" Margin="0,0,2,0">
+                        <DockPanel  >
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
+                                <TextBlock Text="{DynamicResource key_Performance monitor}" Margin="5" Foreground="{DynamicResource TextBrush}"/>
+                            </StackPanel>
 
-                        <!--<local:PerformanceMonitor/>-->
-                        <ContentControl Content="{Binding Performance_Monitor_View}" />
-                    </DockPanel>
+                            <!--<local:PerformanceMonitor/>-->
+                            <Border BorderBrush="{DynamicResource TextBrush}" BorderThickness="0.5"
+                                    Margin="4" Background="{DynamicResource BackgroundBrush}">
+                                <ContentControl Content="{Binding Performance_Monitor_View}" Margin="4"/>
+                            </Border>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>
