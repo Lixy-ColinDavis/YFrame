@@ -195,6 +195,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- 默认加载深色主题 -->
                 <ResourceDictionary Source="Common/Themes/DarkGrayTheme.xaml"/>
+                <ResourceDictionary Source="Common/Themes/ControlStyles.xaml"/>
                 <ResourceDictionary Source="Common/Language/zh-CN.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -22,7 +22,9 @@
 
     <!--抽屉-->
     <sys:String x:Key="key_Log">Log</sys:String>
-    <sys:String x:Key="key_Param">Param</sys:String>
+    <sys:String x:Key="key_Param">Params</sys:String>
+    <sys:String x:Key="key_Toolbox">Toolbox</sys:String>
+    <sys:String x:Key="key_PluginList">Plugins</sys:String>
     <sys:String x:Key="key_Stay">Stay</sys:String>
     <sys:String x:Key="key_Show">Show</sys:String>
 

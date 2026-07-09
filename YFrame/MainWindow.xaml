@@ -124,17 +124,21 @@
                                                   Command="{Binding SwitchLeftPanelCommand}"
                                                   CommandParameter="0"/>
                                 </Border.InputBindings>
-                                <TextBlock Text="插&#10;件&#10;列&#10;表"
+                                <TextBlock Text="{DynamicResource key_PluginList}"
                                            FontSize="11" TextAlignment="Center"
                                            Foreground="{DynamicResource TextBrush}"
                                            VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"/>
+                                           HorizontalAlignment="Center">
+                                    <TextBlock.LayoutTransform>
+                                        <RotateTransform Angle="90"/>
+                                    </TextBlock.LayoutTransform>
+                                </TextBlock>
                             </Border>
                             <!-- 分隔线 -->
                             <Rectangle Height="1" Fill="{DynamicResource BorderBrush}"
                                        Margin="4,0"/>
                             <!-- 工具箱 标签 -->
-                            <Border x:Name="TabToolbox" Height="60" Cursor="Hand"
+                            <Border x:Name="TabToolbox" Height="70" Cursor="Hand"
                                     Background="{DynamicResource MenuBarBrush}"
                                     ToolTip="工具箱">
                                 <Border.InputBindings>
@@ -142,11 +146,15 @@
                                                   Command="{Binding SwitchLeftPanelCommand}"
                                                   CommandParameter="1"/>
                                 </Border.InputBindings>
-                                <TextBlock Text="工&#10;具&#10;箱"
+                                <TextBlock Text="{DynamicResource key_Toolbox}"
                                            FontSize="11" TextAlignment="Center"
                                            Foreground="{DynamicResource TextBrush}"
                                            VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"/>
+                                           HorizontalAlignment="Center">
+                                    <TextBlock.LayoutTransform>
+                                        <RotateTransform Angle="90"/>
+                                    </TextBlock.LayoutTransform>
+                                </TextBlock>
                             </Border>
                         </StackPanel>
                     </Border>
@@ -158,22 +166,38 @@
                             <Border DockPanel.Dock="Top" Height="28"
                                     Background="{DynamicResource MenuBarBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
-                                <TextBlock FontSize="12" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="0">
-                                                    <Setter Property="Text" Value="插件列表"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
-                                                    <Setter Property="Text" Value="工具箱"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                <Grid>
+                                    <TextBlock Text="{DynamicResource key_PluginList}"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{DynamicResource key_Toolbox}"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
                             </Border>
                             <!-- 面板内容：插件列表 -->
                             <Grid>
@@ -255,22 +279,38 @@
                             <Border DockPanel.Dock="Top" Height="28"
                                     Background="{DynamicResource MenuBarBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
-                                <TextBlock FontSize="12" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
-                                                    <Setter Property="Text" Value="日志"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
-                                                    <Setter Property="Text" Value="参数"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                <Grid>
+                                    <TextBlock Text="{DynamicResource key_Log}"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{DynamicResource key_Param}"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"
+                                               Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
                             </Border>
                             <!-- 日志面板 -->
                             <Grid>
@@ -348,10 +388,14 @@
                                                           Command="{Binding SwitchRightPanelCommand}"
                                                           CommandParameter="0"/>
                                         </Border.InputBindings>
-                                        <TextBlock Text="日&#10;志" FontSize="11"
+                                        <TextBlock Text="{DynamicResource key_Log}" FontSize="11"
                                                    TextAlignment="Center"
                                                    Foreground="{DynamicResource TextBrush}"
-                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <TextBlock.LayoutTransform>
+                                                <RotateTransform Angle="90"/>
+                                            </TextBlock.LayoutTransform>
+                                        </TextBlock>
                                     </Border>
                                     <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="4,0"/>
                                     <!-- 参数 标签 -->
@@ -362,10 +406,14 @@
                                                           Command="{Binding SwitchRightPanelCommand}"
                                                           CommandParameter="1"/>
                                         </Border.InputBindings>
-                                        <TextBlock Text="参&#10;数" FontSize="11"
+                                        <TextBlock Text="{DynamicResource key_Param}" FontSize="11"
                                                    TextAlignment="Center"
                                                    Foreground="{DynamicResource TextBrush}"
-                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <TextBlock.LayoutTransform>
+                                                <RotateTransform Angle="90"/>
+                                            </TextBlock.LayoutTransform>
+                                        </TextBlock>
                                     </Border>
                                 </StackPanel>
                             </Border>

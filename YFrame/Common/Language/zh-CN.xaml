@@ -25,6 +25,8 @@
     <!--抽屉-->
     <sys:String x:Key="key_Log">日志</sys:String>
     <sys:String x:Key="key_Param">参数</sys:String>
+    <sys:String x:Key="key_Toolbox">工具箱</sys:String>
+    <sys:String x:Key="key_PluginList">插件列表</sys:String>
     <sys:String x:Key="key_Stay">驻留</sys:String>
     <sys:String x:Key="key_Show">显示</sys:String>
     
