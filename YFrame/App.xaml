@@ -150,6 +150,50 @@
                 </Setter>
             </Style>
 
+            <!-- 全局滚动条样式（细条现代风格） -->
+            <Style TargetType="{x:Type ScrollBar}">
+                <Setter Property="Width" Value="5"/>
+                <Setter Property="MinWidth" Value="5"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollBar}">
+                            <Grid x:Name="Root">
+                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageUpCommand"
+                                                      Style="{x:Null}" Opacity="0"/>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageDownCommand"
+                                                      Style="{x:Null}" Opacity="0"/>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb x:Name="Thumb"
+                                               Opacity="0.35"
+                                               Cursor="Hand">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="{x:Type Thumb}">
+                                                    <Border x:Name="ThumbBorder"
+                                                            Background="{DynamicResource TreeItemSecondaryText}"
+                                                            CornerRadius="3"
+                                                            Margin="0,2"/>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Thumb" Property="Opacity" Value="0.65"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <ResourceDictionary.MergedDictionaries>
                 <!-- 默认加载深色主题 -->
                 <ResourceDictionary Source="Common/Themes/DarkGrayTheme.xaml"/>
