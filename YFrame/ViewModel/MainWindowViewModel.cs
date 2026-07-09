@@ -22,7 +22,7 @@ namespace YFrame
     {
         #region INotifyPropertyChanged接口实现
         public event PropertyChangedEventHandler? PropertyChanged;
-        
+
 
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -44,7 +44,7 @@ namespace YFrame
                     OnPropertyChanged(nameof(LeftVisible));
                 }
             }
-        }   
+        }
 
         private bool _rightVisible; // 右抽屉显示状态
         public bool RightVisible
@@ -176,11 +176,15 @@ namespace YFrame
         // 日志对象
         public YF_Manager_Log logger;
 
+
+        private readonly StringBuilder _logBuilder = new StringBuilder(); // 日志显示字符串
+        private const int MaxLogLines = 500;    // 日志最大行数
+
         #endregion
 
         public MainWindowViewModel()
         {
-            
+
         }
 
         public void Init()
@@ -237,8 +241,8 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "初始化命令绑定")]
         public virtual void InitCommond()
         {
-            try 
-            { 
+            try
+            {
                 // 初始化命令
                 // 左抽屉
                 ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
@@ -249,7 +253,7 @@ namespace YFrame
                 // 亮色主题
                 ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); logger.LogInfo("主题切换-亮"); });
                 // 暗色主题
-                ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
+                ToggleDarkThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
                 // 最小化
                 Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; logger.LogInfo("窗体最小化"); });
                 // 移动事件
@@ -306,7 +310,7 @@ namespace YFrame
             {
                 logger.ErrorInfo("InitCommond", ex.Message);
             }
-            
+
         }
 
         /// <summary>
@@ -347,6 +351,8 @@ namespace YFrame
             }
         }
 
+
+
         /// <summary>
         /// 委托 刷新界面log信息
         /// </summary>
@@ -355,23 +361,23 @@ namespace YFrame
         {
             try
             {
-                // 确保UI更新在Dispatcher线程上执行
+                _logBuilder.AppendLine(msg);
+
+                // 限制最大行数（从头部裁剪）
+                var text = _logBuilder.ToString();
+                var lines = text.Split('\n');
+                if (lines.Length > MaxLogLines)
+                {
+                    _logBuilder.Clear();
+                    _logBuilder.AppendJoin("\n", lines.Skip(lines.Length - MaxLogLines));
+                }
+
                 if (Application.Current?.Dispatcher.CheckAccess() == true)
-                {
-                    LogText += msg + "\n";
-                }
+                    LogText = _logBuilder.ToString();
                 else
-                {
-                    Application.Current?.Dispatcher.Invoke(() =>
-                    {
-                        LogText += msg + "\n";
-                    });
-                }
+                    Application.Current?.Dispatcher.Invoke(() => LogText = _logBuilder.ToString());
             }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("Show_Log", ex.Message);
-            }
+            catch (Exception ex) { logger.ErrorInfo("Show_Log", ex.Message); }
         }
 
 
@@ -385,7 +391,7 @@ namespace YFrame
         {
             try
             {
-                if(CurrentUcDate == null)
+                if (CurrentUcDate == null)
                 {
                     logger.CommandInfo("[命令无目标插件] : " + command);
                 }

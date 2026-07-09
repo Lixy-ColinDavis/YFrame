@@ -52,11 +52,26 @@ namespace YF_Manager
         /// 读取本机默认IP
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "读取本机默认IP")]
-        public virtual string GetLocalIP()  // 改为实例方法，加 virtual
+        public virtual string GetLocalIP()
         {
-            return Dns.GetHostEntry(Dns.GetHostName())
-                .AddressList.First(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                .ToString();
+            try
+            {
+                var localIP = Dns.GetHostEntry(Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily ==
+                        System.Net.Sockets.AddressFamily.InterNetwork);
+
+                if (localIP != null)
+                    return localIP.ToString();
+
+                YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", "未找到 IPv4 地址，使用回退地址");
+                return "127.0.0.1";
+            }
+            catch (Exception ex)
+            {
+                YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", ex.Message);
+                return "127.0.0.1";
+            }
         }
     }
 }
