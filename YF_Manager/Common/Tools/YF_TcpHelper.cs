@@ -20,32 +20,35 @@ namespace YF_Manager
         /// 获取默认网关IP
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "获取默认网关IP")]
-        public virtual IPAddress GetDefaultGatewayIP()  // 改为实例方法，加 virtual
+        public virtual IPAddress? GetDefaultGatewayIP()
         {
             try
             {
-                var process = new Process();
+                using var process = new Process();
                 process.StartInfo.FileName = "route.exe";
                 process.StartInfo.Arguments = "print";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
                 process.Start();
-
                 string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
+                string error = process.StandardError.ReadToEnd();
+                if (!process.WaitForExit(5000))
+                {
+                    process.Kill();
+                    YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", "route.exe 执行超时");
+                    return null;
+                }
 
                 Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
                 if (match.Success)
-                {
                     return IPAddress.Parse(match.Groups[^1].Value);
-                }
                 return null;
             }
             catch (Exception ex)
             {
                 YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
             }
-
             return null;
         }
 
@@ -53,11 +56,26 @@ namespace YF_Manager
         /// 读取本机默认IP
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "读取本机默认IP")]
-        public virtual string GetLocalIP()  // 改为实例方法，加 virtual
+        public virtual string GetLocalIP()
         {
-            return Dns.GetHostEntry(Dns.GetHostName())
-                .AddressList.First(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                .ToString();
+            try
+            {
+                var localIP = Dns.GetHostEntry(Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily ==
+                        System.Net.Sockets.AddressFamily.InterNetwork);
+
+                if (localIP != null)
+                    return localIP.ToString();
+
+                YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", "未找到 IPv4 地址，使用回退地址");
+                return "127.0.0.1";
+            }
+            catch (Exception ex)
+            {
+                YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", ex.Message);
+                return "127.0.0.1";
+            }
         }
     }
 }

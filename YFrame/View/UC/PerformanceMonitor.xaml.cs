@@ -54,22 +54,17 @@ namespace YFrame
             MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-开始");
             InitializeComponent();
 
-            
-
+            // UI 线程：初始化图表（6个初始数据点，5秒采样间隔，共30秒窗口）
             SeriesCollection = new SeriesCollection
             {
-                
                 new LineSeries
                 {
                     Title = "CPU",
                     Values = new ChartValues<ObservableValue>
                     {
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0)
+                        new ObservableValue(0), new ObservableValue(0),
+                        new ObservableValue(0), new ObservableValue(0),
+                        new ObservableValue(0), new ObservableValue(0)
                     },
                     PointGeometry = DefaultGeometries.Circle,
                     PointGeometrySize = 10
@@ -79,71 +74,69 @@ namespace YFrame
                     Title = "内存",
                     Values = new ChartValues<ObservableValue>
                     {
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0),
-                        new ObservableValue(0)
+                        new ObservableValue(0), new ObservableValue(0),
+                        new ObservableValue(0), new ObservableValue(0),
+                        new ObservableValue(0), new ObservableValue(0)
                     },
                     PointGeometry = DefaultGeometries.Square,
                     PointGeometrySize = 10
                 }
-            }; 
-
-            Labels = new[] { "1分钟前", "50秒前", "40秒前", "30秒前", "20秒前", "现在" };
+            };
+            Labels = new[] { "25秒前", "20秒前", "15秒前", "10秒前", "5秒前", "现在" };
             YFormatter = value => value.ToString("N0");
-
             DataContext = this;
-            DispatcherTimer timer = new DispatcherTimer();
 
-            Thread thread = new Thread(() => {
-                //// 获取可用内存（MB）
-                //float availableMB = new PerformanceCounter("Memory", "Available MBytes").NextValue();
+            // 后台线程：仅执行耗时的 WMI 和 PerformanceCounter 初始化
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                InitializeCounters();
 
-                //// 获取内存使用率（%）
-                //float usedPercentage = new PerformanceCounter("Memory", "% Committed Bytes In Use").NextValue();
+                // 初始化完成后回到 UI 线程启动 Timer
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    var timer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromSeconds(5)
+                    };
+                    timer.Tick += UpdatePerformanceData;
+                    timer.Start();
 
-                //// 估算总物理内存（MB）
-                //totalMemoryMB = availableMB / (1 -(usedPercentage) / 100);
+                    MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-完成");
+                });
+            });
+        }
 
-                var query = new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
-                var searcher = new ManagementObjectSearcher(query);
+        private void InitializeCounters()
+        {
+            using (var searcher = new ManagementObjectSearcher(
+                new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")))
+            {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    totalMemoryMB =  Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024); // 转为MB
+                    using (obj)
+                    {
+                        totalMemoryMB = Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024);
+                    }
                 }
+            }
+            MainWindowViewModel.Instance.logger.LogInfo(
+                $"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
 
-                MainWindowViewModel.Instance.logger.LogInfo($"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
+            cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+            ramCounter = new PerformanceCounter("Memory", "Available MBytes");
 
-                // 初始化CPU计数器（全局CPU使用率）
-                cpuCounter = new PerformanceCounter(
-                    "Processor",         // 类别（处理器）
-                    "% Processor Time",  // 计数器名称（CPU时间百分比）
-                    "_Total"             // 实例名称（_Total表示所有核心）
-                );
-
-                // 初始化内存计数器（可用内存百分比）
-                ramCounter = new PerformanceCounter(
-                    "Memory",           // 类别（内存）
-                    "Available MBytes"   // 计数器名称（可用内存MB）
-                );
-
-                // 启动定时器刷新数据（每1秒更新一次）
-                
-                timer.Interval = TimeSpan.FromSeconds(5);
-                timer.Tick += UpdatePerformanceData;
-                timer.Start();
-            });
-            thread.IsBackground = true;
-            thread.Start();
-            MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-完成");
+            // 预热：丢弃首次无效采样
+            cpuCounter.NextValue();
+            ramCounter.NextValue();
+            Thread.Sleep(100);
+            cpuCounter.NextValue();
+            ramCounter.NextValue();
         }
 
         // 刷新性能数据
         private void UpdatePerformanceData(object sender, EventArgs e)
         {
-            
+
             try
             {
                 // 获取CPU使用率（取当前值）
@@ -159,12 +152,11 @@ namespace YFrame
                 UpdateChartData(cpuUsage, memoryUsagePercent);
 
                 // 更新标签（可选：显示最新数据）
-                Labels = new[] { "25秒前", "20秒前", "15秒前", "10秒前", "5秒前", "现在" };
                 OnPropertyChanged(nameof(Labels)); // 通知UI更新
 
                 MainWindowViewModel.dlg_Show_Cpu_Memory(cpuUsage.ToString("0.0"), $"{(usedMemoryMB / 1024).ToString("0.0")}/{(totalMemoryMB / 1024).ToString("0.0")}");
 
-                if(CounterTimes++ % 12 == 0)
+                if (CounterTimes++ % 12 == 0)
                     MainWindowViewModel.Instance.logger.LogInfo($"" +
                         $"CPU:{cpuUsage.ToString("0.0")}%  " +
                         $"内存:{(usedMemoryMB / 1024).ToString("0.0")}GB/{(totalMemoryMB / 1024).ToString("0.0")}GB"
@@ -173,13 +165,16 @@ namespace YFrame
             catch (Exception ex)
             {
                 // 由于 Windows 性能计数器损坏 => cmd lodctr / R
-                MainWindowViewModel.Instance.logger.ErrorInfo("UpdatePerformanceData" , ex.Message);
+                MainWindowViewModel.Instance.logger.ErrorInfo("UpdatePerformanceData", ex.Message);
             }
         }
 
         // 更新图表数据
         private void UpdateChartData(float cpuUsage, float memoryUsage)
         {
+            if (SeriesCollection == null || SeriesCollection.Count < 2)
+                return;
+
             try
             {
                 // 获取当前CPU和内存的数据序列

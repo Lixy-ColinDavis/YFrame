@@ -16,11 +16,9 @@ namespace YFrame
     {
         public MainWindow()
         {
-            YF_Manager_Main a = new YF_Manager_Main();
+            InitializeComponent();
             DataContext = MainWindowViewModel.Instance;
             MainWindowViewModel.Instance.Init();
-
-            InitializeComponent();
         }
     }
 }

@@ -50,13 +50,13 @@ namespace YFrame
         {
             try
             {
-                // 移除旧的语言资源
+                // 移除旧的主题资源
                 var oldDict = Application.Current.Resources.MergedDictionaries
                     .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
-                if (oldDict == null)
-                    oldDict = Application.Current.Resources.MergedDictionaries
-                        .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
-                Application.Current.Resources.MergedDictionaries.Remove(oldDict);
+                if (oldDict != null)
+                {
+                    Application.Current.Resources.MergedDictionaries.Remove(oldDict);
+                }
 
                 // 加载新主题
                 var newTheme = new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) };
@@ -64,8 +64,8 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-
                 logger.ErrorInfo("ChangeTheme", ex.Message);
+                MessageBox.Show($"主题切换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

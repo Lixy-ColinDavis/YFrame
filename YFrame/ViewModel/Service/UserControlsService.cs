@@ -30,6 +30,34 @@ namespace YFrame
         public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();
 
         /// <summary>
+        /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例
+        /// </summary>
+        /// <param name="assemblyPath">插件 DLL 完整路径</param>
+        /// <param name="pluginName">插件名称（命名空间前缀）</param>
+        /// <param name="userControl">创建的 UserControl 实例</param>
+        /// <param name="detail">创建的 ViewModel 对应的 I_YF_Detail 接口</param>
+        /// <param name="commandHandler">创建的 ViewModel 对应的 I_YF_Command 接口</param>
+        /// <returns>加载成功返回 true，类型解析失败返回 false</returns>
+        private static bool TryLoadPlugin(string assemblyPath, string pluginName,
+    out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
+        {
+            userControl = null; detail = null; commandHandler = null;
+            Assembly assembly = Assembly.LoadFrom(assemblyPath);
+            Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
+            Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
+            if (userControlType == null || viewModelType == null)
+                return false;
+            if (!typeof(UserControl).IsAssignableFrom(userControlType))
+                return false;
+            var viewModel = Activator.CreateInstance(viewModelType);
+            object uc = Activator.CreateInstance(userControlType);
+            detail = viewModel as I_YF_Detail;
+            commandHandler = viewModel as I_YF_Command;
+            userControl = uc as UserControl;
+            return userControl != null;
+        }
+
+        /// <summary>
         ///  添加插件
         /// </summary>
         /// <param name="name">插件名称</param>
@@ -77,35 +105,11 @@ namespace YFrame
                             continue;
                         MainWindowViewModel.Instance.logger.DebugInfo($"读取到插件: {s}");
                         string assemblyPath = @$"{item}\{s}.dll";
-                        // 将程序集读入内存，释放文件锁
-                        byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
-                        Assembly assembly = Assembly.Load(assemblyBytes);
-
-                        Type userControlType = assembly.GetType($"{s}.MainControl");        // 确保命名空间和类型名正确。
-                        Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
-
-                        if (userControlType != null && ViewModelType != null)
+                        if (TryLoadPlugin(assemblyPath, s, out _, out var detail, out _))
                         {
-                            // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
-                            I_YF_Detail detail = Activator.CreateInstance(ViewModelType) as YF_Manager.I_YF_Detail;
-                            //I_YF_Command commandHandler = Activator.CreateInstance(ViewModelType) as YF_Manager.I_YF_Command;
-                            //UserControl userControl = Activator.CreateInstance(userControlType) as UserControl;
                             if (detail != null)
                             {
-                                // 将读取的插件信息保存
                                 UserControlsService.Instance.AddControl(detail.YF_Name.ToString(), detail.YF_ID.ToString());
-                                //userControl = null;
-                                //commandHandler = null;
-                                detail = null;
-                                ViewModelType = null;
-                                userControlType = null;
-                                //// 将读取的插件信息保存
-                                //UserControlsService.Instance.AddControl(userControl, detail.YF_Name.ToString(), detail.YF_ID.ToString(), commandHandler);
-                                
-                                //commandHandler.OnPluginCallback += (sender, e) =>
-                                //{
-                                //    HandlePluginCallback(detail.YF_ID, e);
-                                //};
                             }
                             else
                             {
@@ -114,14 +118,7 @@ namespace YFrame
                         }
                         else
                         {
-                            if (userControlType == null)
-                            {
-                                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl 加载失败");
-                            }
-                            if (ViewModelType == null)
-                            {
-                                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControlViewModel 加载失败");
-                            }
+                            MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl/MainControlViewModel 加载失败");
                         }
 
                     }
@@ -155,43 +152,28 @@ namespace YFrame
                 MainWindowViewModel.Instance.logger.DebugInfo($"准备显示插件: {s}");
 
                 string assemblyPath = @$"{path}\{s}.dll";
-                byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
-                Assembly assembly = Assembly.Load(assemblyBytes);       // 避免锁定插件 DLL，阻止运行时更新
-
-                Type userControlType = assembly.GetType($"{s}.MainControl");        // 确保命名空间和类型名正确。
-                Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
-
-                if (userControlType != null)
+                if (TryLoadPlugin(assemblyPath, s, out var userControl, out var detail, out var commandHandler))
                 {
-                    var viewModel = Activator.CreateInstance(ViewModelType);
-                    object uc = Activator.CreateInstance(userControlType);
-
-                    // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
-                    I_YF_Detail detail = viewModel as YF_Manager.I_YF_Detail;
-                    I_YF_Command commandHandler = viewModel as YF_Manager.I_YF_Command;
-                    UserControl userControl = uc as UserControl;
-
-                    viewModel = null;
-                    uc = null;
-
                     if (detail != null)
                     {
-                        //将读取的插件信息保存
-                        UserControlsService.Instance.DctControls[plugin_Id].userControl = userControl;
-                        UserControlsService.Instance.DctControls[plugin_Id].CommandHandler = commandHandler;
-
-
-                        // 将读取的插件信息保存
-                        //UserControlsService.Instance.AddControl(userControl, detail.YF_Name.ToString(), detail.YF_ID.ToString(), commandHandler);
-
-                        commandHandler.OnPluginCallback += (sender, e) =>
+                        if (UserControlsService.Instance.DctControls.TryGetValue(plugin_Id, out var ctrlData))
                         {
-                            HandlePluginCallback(detail.YF_ID, e);
-                        };
-                    }
-                    else
-                    {
-                        MainWindowViewModel.Instance.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                            ctrlData.userControl = userControl;
+                            ctrlData.CommandHandler = commandHandler;
+                        }
+                        else
+                        {
+                            MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl",
+                                $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
+                        }
+
+                        if (commandHandler != null)
+                        {
+                            commandHandler.OnPluginCallback += (sender, e) =>
+                            {
+                                HandlePluginCallback(detail.YF_ID, e);
+                            };
+                        }
                     }
                 }
 

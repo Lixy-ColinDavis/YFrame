@@ -50,8 +50,11 @@ namespace YF_Manager
         {
             Write(CheckPath(@$"{Config.LogPath}\InfoLog"), _name + $": {type}" + msg);
             if (d_LogWrite != null)
-                if(_name != YF_Manager_Main.logger._name)   // 主控类日志不输出到主界面（拦截器日志）
+            {
+                var mainLogger = YF_Manager_Main.logger;
+                if (mainLogger == null || _name != mainLogger._name)
                     d_LogWrite(_name + ": " + msg);
+            }
         }
 
         public void InterceptorsLog(string msg, string type)
@@ -114,6 +117,11 @@ namespace YF_Manager
                 }
                 catch (Exception ex)
                 {
+                    // 日志系统自身出错时至少输出到调试器
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[YF_Manager_Log] 日志操作失败: {ex.Message}");
+                    System.Diagnostics.Trace.TraceError(
+                        $"[YF_Manager_Log] 日志操作失败: {ex.Message}");
                 }
             }
 
@@ -136,14 +144,19 @@ namespace YF_Manager
                     else
                     {
                         File.Move(strPath, logDirectory.Replace(".htm", $"_{i}.htm"));
-                        using (File.Create(logDirectory)) { };
+                        using (File.Create(logDirectory)) { }
+                        ;
                         return;
                     }
                 }
             }
             catch (Exception ex)
             {
-
+                // 日志系统自身出错时至少输出到调试器
+                System.Diagnostics.Debug.WriteLine(
+                    $"[YF_Manager_Log] 日志操作失败: {ex.Message}");
+                System.Diagnostics.Trace.TraceError(
+                    $"[YF_Manager_Log] 日志操作失败: {ex.Message}");
             }
 
         }

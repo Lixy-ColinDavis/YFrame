@@ -22,7 +22,7 @@ namespace YFrame
     {
         #region INotifyPropertyChanged接口实现
         public event PropertyChangedEventHandler? PropertyChanged;
-        
+
 
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -44,7 +44,7 @@ namespace YFrame
                     OnPropertyChanged(nameof(LeftVisible));
                 }
             }
-        }   
+        }
 
         private bool _rightVisible; // 右抽屉显示状态
         public bool RightVisible
@@ -176,11 +176,16 @@ namespace YFrame
         // 日志对象
         public YF_Manager_Log logger;
 
+        private readonly StringBuilder _logBuilder = new StringBuilder(); // 日志显示字符串
+        private const int MaxLogLines = 500;    // 日志最大行数
+        private readonly object _logLock = new();   // 日志锁
+        private int _logLineCount = 0;
+
         #endregion
 
         public MainWindowViewModel()
         {
-            
+
         }
 
         public void Init()
@@ -237,19 +242,19 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "初始化命令绑定")]
         public virtual void InitCommond()
         {
-            try 
-            { 
+            try
+            {
                 // 初始化命令
                 // 左抽屉
                 ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
                 // 右抽屉
-                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (RightVisible == true ? "开" : "关")); });
                 // 关闭按钮
-                Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); logger.LogInfo("退出程序"); });
+                Btn_Exit_Command = new YF_RelayCommand(() => { logger.LogInfo("退出程序"); Environment.Exit(0); });
                 // 亮色主题
                 ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); logger.LogInfo("主题切换-亮"); });
                 // 暗色主题
-                ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
+                ToggleDarkThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
                 // 最小化
                 Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; logger.LogInfo("窗体最小化"); });
                 // 移动事件
@@ -283,13 +288,19 @@ namespace YFrame
                     {
                         Grid_Show_Array.Children.Clear();
 
-                        var v = UserControlsService.Instance.DctControls.First(x => x.Key == parameter);
-                        //// 读取并加载、显示目标插件
-                        CurrentUcDate = v.Value;
-                        UserControlsService.Instance.ShowUserControl(v.Key);
-                        UserControl uc = CurrentUcDate.userControl;
-                        //CurrentUcDate.CommandHandler.ExecuteCommand("加载...");
-                        Grid_Show_Array.Children.Add(uc);
+                        if (!UserControlsService.Instance.DctControls.TryGetValue(parameter, out var ctrlData))
+                        {
+                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 未找到");
+                            return;
+                        }
+
+                        CurrentUcDate = ctrlData;
+                        UserControlsService.Instance.ShowUserControl(parameter);
+                        UserControl? uc = CurrentUcDate.userControl;
+                        if (uc != null)
+                            Grid_Show_Array.Children.Add(uc);
+                        else
+                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 加载失败");
                     }
                     catch (Exception ex)
                     {
@@ -306,7 +317,7 @@ namespace YFrame
             {
                 logger.ErrorInfo("InitCommond", ex.Message);
             }
-            
+
         }
 
         /// <summary>
@@ -320,7 +331,7 @@ namespace YFrame
                 if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
                 {
                     var window = Window.GetWindow((DependencyObject)sender);
-                    window.DragMove();
+                    window?.DragMove();
                 }
             }
             catch (Exception ex)
@@ -347,6 +358,8 @@ namespace YFrame
             }
         }
 
+
+
         /// <summary>
         /// 委托 刷新界面log信息
         /// </summary>
@@ -355,23 +368,31 @@ namespace YFrame
         {
             try
             {
-                // 确保UI更新在Dispatcher线程上执行
-                if (Application.Current?.Dispatcher.CheckAccess() == true)
+                lock (_logLock)
                 {
-                    LogText += msg + "\n";
-                }
-                else
-                {
-                    Application.Current?.Dispatcher.Invoke(() =>
+                    _logBuilder.AppendLine(msg);
+                    _logLineCount++;
+
+                    // 从头部裁剪超出行数
+                    while (_logLineCount > MaxLogLines)
                     {
-                        LogText += msg + "\n";
-                    });
+                        var text = _logBuilder.ToString();
+                        var newlineIdx = text.IndexOf('\n');
+                        if (newlineIdx < 0) break;
+                        _logBuilder.Remove(0, newlineIdx + 1);
+                        _logLineCount--;
+                    }
                 }
+
+                var currentText = "";
+                lock (_logLock) { currentText = _logBuilder.ToString(); }
+
+                if (Application.Current?.Dispatcher.CheckAccess() == true)
+                    LogText = currentText;
+                else
+                    Application.Current?.Dispatcher.Invoke(() => LogText = currentText);
             }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("Show_Log", ex.Message);
-            }
+            catch (Exception ex) { logger.ErrorInfo("Show_Log", ex.Message); }
         }
 
 
@@ -385,7 +406,7 @@ namespace YFrame
         {
             try
             {
-                if(CurrentUcDate == null)
+                if (CurrentUcDate == null || CurrentUcDate.CommandHandler == null)
                 {
                     logger.CommandInfo("[命令无目标插件] : " + command);
                 }
