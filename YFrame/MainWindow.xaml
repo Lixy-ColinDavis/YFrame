@@ -228,7 +228,8 @@
                  HorizontalAlignment="Right" VerticalAlignment="Stretch"/>
 
             <!-- 右侧工具栏抽屉 -->
-            <Border Grid.Column="2" Width="250" Grid.Row="1"  Background="{DynamicResource ToolWindowBrush}" 
+            <Border Grid.Column="2" Width="250" Grid.Row="1"
+                    Background="{DynamicResource MenuBarBrush}"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1 0 0 0"
                     Visibility="{Binding RightVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid>
@@ -238,57 +239,134 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 上部抽屉 -->
-                    <DockPanel Grid.Row="0">
-                        <!--<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
-                            <ToggleButton Content="日志" IsChecked="{Binding IsLogViewVisible}"/>
-                            <ToggleButton Content="参数" IsChecked="{Binding IsParameterViewVisible}"/>
-                        </StackPanel>-->
+                    <!-- 上部面板（VS 风格：内容 + 竖排标签） -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="28"/>
+                        </Grid.ColumnDefinitions>
 
-                        <TabControl Background="{DynamicResource BackgroundBrush}">
-                            <TabItem Header="{DynamicResource key_Log}" >
-                                <TextBox TextWrapping="Wrap" AcceptsReturn="True" IsReadOnly="True"
-                                Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
-                                Background="Transparent" Foreground="{DynamicResource TextBrush}"/>
-                            </TabItem>
-                            <TabItem Header="{DynamicResource key_Param}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                        <!-- 内容面板 -->
+                        <DockPanel Grid.Column="0">
+                            <!-- 标题栏 -->
+                            <Border DockPanel.Dock="Top" Height="28"
+                                    Background="{DynamicResource MenuBarBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
+                                <TextBlock FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                    <Setter Property="Text" Value="日志"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                    <Setter Property="Text" Value="参数"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            <!-- 日志面板 -->
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <TextBox TextWrapping="Wrap" AcceptsReturn="True"
+                                         IsReadOnly="True" Focusable="False"
+                                         Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" Foreground="{DynamicResource TextBrush}"
+                                         BorderThickness="0"/>
+                            </Grid>
+                                    <!-- 参数面板 -->
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="2*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="{Binding Key}"
+                                                                       VerticalAlignment="Center" Margin="5,0"/>
+                                                            <TextBox Grid.Column="1"
+                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Margin="5,0"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
+                                            <Button Content="添加参数" Margin="5,0"/>
+                                            <Button Content="删除参数" Margin="5,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DockPanel>
 
-                                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,2">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="2*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <TextBlock Grid.Column="0" 
-                                      Text="{Binding Key}" 
-                                      VerticalAlignment="Center"
-                                      Margin="5,0"/>
-                                                        <TextBox Grid.Column="1" 
-                                    Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Margin="5,0"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
-
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
-                                        <Button Content="添加参数" Margin="5,0"/>
-                                        <Button Content="删除参数" Margin="5,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </TabItem>
-                        </TabControl>
-                    </DockPanel>
+                            <!-- 竖排标签栏（右边缘） -->
+                            <Border Grid.Column="1" Background="{DynamicResource MenuBarBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1 0 0 0">
+                                <StackPanel>
+                                    <!-- 日志 标签 -->
+                                    <Border Height="60" Cursor="Hand"
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="日志">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding SwitchRightPanelCommand}"
+                                                          CommandParameter="0"/>
+                                        </Border.InputBindings>
+                                        <TextBlock Text="日&#10;志" FontSize="11"
+                                                   TextAlignment="Center"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="4,0"/>
+                                    <!-- 参数 标签 -->
+                                    <Border Height="60" Cursor="Hand"
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="参数">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding SwitchRightPanelCommand}"
+                                                          CommandParameter="1"/>
+                                        </Border.InputBindings>
+                                        <TextBlock Text="参&#10;数" FontSize="11"
+                                                   TextAlignment="Center"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
                     <GridSplitter Grid.Row="1" Background="{DynamicResource BorderBrush}" HorizontalAlignment="Stretch"/>
 

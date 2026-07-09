@@ -146,6 +146,7 @@ namespace YFrame
         public ICommand ToggleEnglishCommand { get; set; }              // 中文切换事件
         public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
         public ICommand SwitchLeftPanelCommand { get; set; }            // 左侧面板切换事件
+        public ICommand SwitchRightPanelCommand { get; set; }           // 右侧面板切换事件
 
         #endregion
 
@@ -202,6 +203,23 @@ namespace YFrame
                 {
                     _activeLeftPanel = value;
                     OnPropertyChanged(nameof(ActiveLeftPanel));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 右侧面板激活页：0=日志, 1=参数
+        /// </summary>
+        private int _activeRightPanel;
+        public int ActiveRightPanel
+        {
+            get => _activeRightPanel;
+            set
+            {
+                if (_activeRightPanel != value)
+                {
+                    _activeRightPanel = value;
+                    OnPropertyChanged(nameof(ActiveRightPanel));
                 }
             }
         }
@@ -341,7 +359,12 @@ namespace YFrame
                     if (int.TryParse(panelIndex, out var idx))
                         ActiveLeftPanel = idx;
                 });
-
+                // 右侧面板切换
+                SwitchRightPanelCommand = new YF_RelayCommand<string>(panelIndex =>
+                {
+                    if (int.TryParse(panelIndex, out var idx))
+                        ActiveRightPanel = idx;
+                });
 
                 // 委托绑定
                 // 显示CPU-Memory
