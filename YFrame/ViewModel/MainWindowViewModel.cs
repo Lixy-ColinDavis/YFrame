@@ -139,8 +139,7 @@ namespace YFrame
         public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
         public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
         public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
-        public ICommand ToggleLightThemeCommand { get; set; }           // 亮主题事件
-        public ICommand ToggleDarkThemeCommand { get; set; }            // 暗主题事件
+        public ICommand SetThemeCommand { get; set; }                    // 主题切换事件（参数为主题路径）
         public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动事件
         public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化事件
         public ICommand ToggleChineseCommand { get; set; }              // 中文切换事件
@@ -166,6 +165,28 @@ namespace YFrame
 
         #region 成员变量
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
+
+        private PluginsModel _selectedPlugin;
+        /// <summary>
+        /// 当前在插件列表中选中的插件（VS 风格列表交互）
+        /// </summary>
+        public PluginsModel SelectedPlugin
+        {
+            get => _selectedPlugin;
+            set
+            {
+                if (_selectedPlugin != value)
+                {
+                    _selectedPlugin = value;
+                    OnPropertyChanged(nameof(SelectedPlugin));
+                    // 选中时自动显示对应插件
+                    if (value != null)
+                    {
+                        ShowPlugin(value.ID);
+                    }
+                }
+            }
+        }
 
         CtrlDataModel CurrentUcDate { get; set; } // 当前显示的插件信息
 
@@ -251,10 +272,22 @@ namespace YFrame
                 ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (RightVisible == true ? "开" : "关")); });
                 // 关闭按钮
                 Btn_Exit_Command = new YF_RelayCommand(() => { logger.LogInfo("退出程序"); Environment.Exit(0); });
-                // 亮色主题
-                ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); logger.LogInfo("主题切换-亮"); });
-                // 暗色主题
-                ToggleDarkThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
+                // 主题切换（通过参数传入主题文件路径）
+                SetThemeCommand = new YF_RelayCommand<string>(themePath =>
+                {
+                    // 从路径提取主题名称用于日志（如 "DarkGrayTheme" → "黑灰"）
+                    var fileName = System.IO.Path.GetFileNameWithoutExtension(themePath);
+                    var themeDisplayName = fileName switch
+                    {
+                        "DarkGrayTheme" => "黑灰",
+                        "CreamWhiteTheme" => "米白",
+                        "LightBlueTheme" => "浅蓝",
+                        "GreenWhiteTheme" => "绿白",
+                        _ => fileName
+                    };
+                    App.ChangeTheme(themePath);
+                    logger.LogInfo("主题切换-" + themeDisplayName);
+                });
                 // 最小化
                 Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; logger.LogInfo("窗体最小化"); });
                 // 移动事件
@@ -283,30 +316,7 @@ namespace YFrame
                 // 英文按钮
                 ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); logger.LogInfo("语言切换-英文"); });
                 // 插件显示
-                Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => {
-                    try
-                    {
-                        Grid_Show_Array.Children.Clear();
-
-                        if (!UserControlsService.Instance.DctControls.TryGetValue(parameter, out var ctrlData))
-                        {
-                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 未找到");
-                            return;
-                        }
-
-                        CurrentUcDate = ctrlData;
-                        UserControlsService.Instance.ShowUserControl(parameter);
-                        UserControl? uc = CurrentUcDate.userControl;
-                        if (uc != null)
-                            Grid_Show_Array.Children.Add(uc);
-                        else
-                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 加载失败");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.ErrorInfo("Btn_Plugin_Show_Command", ex.Message);
-                    }
-                });
+                Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => ShowPlugin(parameter));
 
 
                 // 委托绑定
@@ -395,6 +405,36 @@ namespace YFrame
             catch (Exception ex) { logger.ErrorInfo("Show_Log", ex.Message); }
         }
 
+
+        /// <summary>
+        /// 显示指定 ID 的插件到主内容区
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "显示插件")]
+        public virtual void ShowPlugin(string pluginId)
+        {
+            try
+            {
+                Grid_Show_Array.Children.Clear();
+
+                if (!UserControlsService.Instance.DctControls.TryGetValue(pluginId, out var ctrlData))
+                {
+                    logger.ErrorInfo("ShowPlugin", $"插件 {pluginId} 未找到");
+                    return;
+                }
+
+                CurrentUcDate = ctrlData;
+                UserControlsService.Instance.ShowUserControl(pluginId);
+                UserControl? uc = CurrentUcDate.userControl;
+                if (uc != null)
+                    Grid_Show_Array.Children.Add(uc);
+                else
+                    logger.ErrorInfo("ShowPlugin", $"插件 {pluginId} 加载失败");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ShowPlugin", ex.Message);
+            }
+        }
 
         /// <summary>
         /// 发送命令

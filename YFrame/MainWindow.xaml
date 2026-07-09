@@ -22,8 +22,10 @@
             <MenuItem Header="{DynamicResource key_View}" Foreground="{DynamicResource TextBrush}" >
                 <MenuItem Header="{DynamicResource key_Left sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
                 <MenuItem Header="{DynamicResource key_Right sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
-                <MenuItem Header="{DynamicResource key_Bright theme}" Command="{Binding ToggleLightThemeCommand}" CommandParameter="Light"/>
-                <MenuItem Header="{DynamicResource key_Dark theme}" Command="{Binding ToggleDarkThemeCommand}" CommandParameter="Dark"/>
+                <MenuItem Header="{DynamicResource key_DarkGray theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/DarkGrayTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_CreamWhite theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/CreamWhiteTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_LightBlue theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/LightBlueTheme.xaml"/>
+                <MenuItem Header="{DynamicResource key_GreenWhite theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/GreenWhiteTheme.xaml"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Language}">
                 <MenuItem Header="中文"  Command="{Binding ToggleChineseCommand}"/>
@@ -77,36 +79,10 @@
                 <DockPanel>
                     <TabControl Background="{DynamicResource ToolWindowBrush}">
                         <TabItem Header="{DynamicResource key_Plug-in}" >
-                            <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins}">
-                                <!-- 绑定到你的数据源 -->
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border CornerRadius="5" Height="33" Width="180" Margin="5,5,5,0" Background="{DynamicResource ToolWindowBrush}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="60"/>
-                                                        <ColumnDefinition Width="5"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Name}" Margin="10,0,0,0" Grid.Column="0" HorizontalAlignment="Left" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                                                    <!--<MenuItem Header="{DynamicResource key_Stay}" BorderThickness="0" BorderBrush="{DynamicResource ToolWindowBrush}" Grid.Column="1" Foreground="{DynamicResource TextBrush}" Background="{DynamicResource ToolWindowBrush}"/>-->
-                                                    <Button Content="{DynamicResource key_Show}" BorderThickness="0" Background="{DynamicResource ToolWindowBrush}" 
-                                                            Foreground="{DynamicResource TextBrush}" Width="40" Margin="0,0,5,0" Grid.Column="1" HorizontalAlignment="Right"
-                                                            Command="{Binding DataContext.Btn_Plugin_Show_Command, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                                                            CommandParameter="{Binding ID}">
-                                                        <!-- 在ItemsControl中，command会寻找上下文对象PluginsModel的Btn_Plugin_Show_Command，
-                                                             而不是viewModel.DataContext中的Btn_Plugin_Show_Command，
-                                                             由于默认源是ViewModel.DataContext,默认源发生修改后，手动改回去需要标注DataContext.Btn_Plugin_Show_Command，
-                                                             否则寻找位置是ViewModel.Btn_Plugin_Show_Command
-                                                        -->
-                                                    </Button>
-                                                </Grid>
-                                            </Border>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <ListBox Style="{StaticResource VsPluginListBox}"
+                                     ItemContainerStyle="{StaticResource VsPluginListItem}"
+                                     ItemsSource="{Binding lsPlugins}"
+                                     SelectedItem="{Binding SelectedPlugin, Mode=TwoWay}"/>
                         </TabItem>
                         <TabItem Header="{DynamicResource key_Stay}" >
                             <ItemsControl Grid.Row="3" Margin="0,0,0,20"  Background="{DynamicResource BackgroundBrush}" ItemsSource="{Binding lsPlugins_Stay}">
@@ -205,14 +181,19 @@
                     <GridSplitter Grid.Row="1" Background="{DynamicResource BorderBrush}" HorizontalAlignment="Stretch"/>
 
                     <!-- 下部抽屉 - 性能监视器 -->
-                    <DockPanel Grid.Row="2">
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
-                            <TextBlock Text="{DynamicResource key_Performance monitor}" Margin="5" Foreground="{DynamicResource TextBrush}"/>
-                        </StackPanel>
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource TextBrush}" BorderThickness="1">
+                        <DockPanel  >
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{DynamicResource MenuBarBrush}">
+                                <TextBlock Text="{DynamicResource key_Performance monitor}" Margin="5" Foreground="{DynamicResource TextBrush}"/>
+                            </StackPanel>
 
-                        <!--<local:PerformanceMonitor/>-->
-                        <ContentControl Content="{Binding Performance_Monitor_View}" />
-                    </DockPanel>
+                            <!--<local:PerformanceMonitor/>-->
+                            <Border BorderBrush="{DynamicResource TextBrush}" BorderThickness="0.5"
+            Margin="4" Background="{DynamicResource BackgroundBrush}">
+                                <ContentControl Content="{Binding Performance_Monitor_View}" Margin="4"/>
+                            </Border>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

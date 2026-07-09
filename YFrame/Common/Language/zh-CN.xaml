@@ -16,8 +16,10 @@
     <sys:String x:Key="key_Exit">退出</sys:String>
     <sys:String x:Key="key_Left sidebar">左侧边栏</sys:String>
     <sys:String x:Key="key_Right sidebar">右侧边栏</sys:String>
-    <sys:String x:Key="key_Bright theme">亮色主题</sys:String>
-    <sys:String x:Key="key_Dark theme">暗色主题</sys:String>
+    <sys:String x:Key="key_DarkGray theme">黑灰主题</sys:String>
+    <sys:String x:Key="key_CreamWhite theme">米白主题</sys:String>
+    <sys:String x:Key="key_LightBlue theme">浅蓝主题</sys:String>
+    <sys:String x:Key="key_GreenWhite theme">绿白主题</sys:String>
     <sys:String x:Key="key_About">关于</sys:String>
     
     <!--抽屉-->

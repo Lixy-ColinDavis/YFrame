@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 绿白主题 — 参照微信桌面版配色，清新自然的绿色调 -->
+    <!-- 主内容区：微信聊天背景 #F2F4F2 -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#FFF2F4F2"/>
+    <!-- 菜单栏 / 状态栏：微信顶部导航栏 #E6EBE6 -->
+    <SolidColorBrush x:Key="MenuBarBrush" Color="#FFE6EBE6"/>
+    <!-- 侧边栏 / 工具箱面板：微信联系人面板色调 -->
+    <SolidColorBrush x:Key="ToolWindowBrush" Color="#FFDAE2DA"/>
+    <!-- 边框 / 分隔线：微信分割线色调 -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#FFC8D2C8"/>
+    <!-- 主文字色：微信主文字色 #353535 -->
+    <SolidColorBrush x:Key="TextBrush" Color="#FF353535"/>
+    <!-- === 列表项交互色（VS 2022 风格树形列表）=== -->
+    <!-- 鼠标悬停背景 -->
+    <SolidColorBrush x:Key="TreeItemHoverBackground" Color="#FFE5EBE5"/>
+    <!-- 选中项背景 -->
+    <SolidColorBrush x:Key="TreeItemSelectedBackground" Color="#FFCDD9CD"/>
+    <!-- 选中项左侧指示条 / 强调色 -->
+    <SolidColorBrush x:Key="TreeItemAccent" Color="#FF2DC100"/>
+    <!-- 列表项次级文字色 -->
+    <SolidColorBrush x:Key="TreeItemSecondaryText" Color="#FF8A8A8A"/>
+</ResourceDictionary>

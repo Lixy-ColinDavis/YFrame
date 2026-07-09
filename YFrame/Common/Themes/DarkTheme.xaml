@@ -1,8 +1,0 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <SolidColorBrush x:Key="BackgroundBrush" Color="#FF303030"/>
-    <SolidColorBrush x:Key="MenuBarBrush" Color="#FF505050"/>
-    <SolidColorBrush x:Key="ToolWindowBrush" Color="#FF909090"/>
-    <SolidColorBrush x:Key="BorderBrush" Color="#FF101010"/>
-    <SolidColorBrush x:Key="TextBrush" Color="#FFF0F0F0"/>
-</ResourceDictionary> 

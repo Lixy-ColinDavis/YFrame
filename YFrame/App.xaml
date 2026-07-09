@@ -62,9 +62,89 @@
                 <Setter Property="FontSize" Value="14"/>
             </Style>
 
+            <!-- VS 2022 Solution Explorer 风格插件列表 -->
+            <Style x:Key="VsPluginListBox" TargetType="{x:Type ListBox}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            </Style>
+
+            <Style x:Key="VsPluginListItem" TargetType="{x:Type ListBoxItem}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                            <Border x:Name="Root" Background="Transparent" Padding="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!-- 左侧选中指示条 -->
+                                    <Border x:Name="SelectionBar" Grid.Column="0"
+                                            Background="Transparent" CornerRadius="0"/>
+                                    <!-- 主内容区 -->
+                                    <Border x:Name="ContentHost" Grid.Column="1"
+                                            Background="Transparent" Padding="10,5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- 文件图标 (Segoe MDL2 Assets 插件图标) -->
+                                            <TextBlock x:Name="Icon"
+                                                       Text="&#xE9D4;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="14"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"
+                                                       Foreground="{DynamicResource TreeItemAccent}"/>
+                                            <!-- 插件名称 -->
+                                            <TextBlock Text="{Binding Name}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{TemplateBinding Foreground}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <!-- 鼠标悬停 -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ContentHost" Property="Background"
+                                            Value="{DynamicResource TreeItemHoverBackground}"/>
+                                </Trigger>
+                                <!-- 选中 -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="SelectionBar" Property="Background"
+                                            Value="{DynamicResource TreeItemAccent}"/>
+                                    <Setter TargetName="ContentHost" Property="Background"
+                                            Value="{DynamicResource TreeItemSelectedBackground}"/>
+                                </Trigger>
+                                <!-- 选中 + 悬停 -->
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="SelectionBar" Property="Background"
+                                            Value="{DynamicResource TreeItemAccent}"/>
+                                    <Setter TargetName="ContentHost" Property="Background"
+                                            Value="{DynamicResource TreeItemSelectedBackground}"/>
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <ResourceDictionary.MergedDictionaries>
                 <!-- 默认加载深色主题 -->
-                <ResourceDictionary Source="Common/Themes/DarkTheme.xaml"/>
+                <ResourceDictionary Source="Common/Themes/DarkGrayTheme.xaml"/>
                 <ResourceDictionary Source="Common/Language/zh-CN.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
