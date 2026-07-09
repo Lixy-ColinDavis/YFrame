@@ -14,10 +14,10 @@
     <sys:String x:Key="key_Exit">Exit</sys:String>
     <sys:String x:Key="key_Left sidebar">Left sidebar</sys:String>
     <sys:String x:Key="key_Right sidebar">Right sidebar</sys:String>
-    <sys:String x:Key="key_DarkGray theme">Dark Gray</sys:String>
-    <sys:String x:Key="key_CreamWhite theme">Cream White</sys:String>
-    <sys:String x:Key="key_LightBlue theme">Light Blue</sys:String>
-    <sys:String x:Key="key_GreenWhite theme">Green White</sys:String>
+    <sys:String x:Key="key_DarkGray theme">Ember Night</sys:String>
+    <sys:String x:Key="key_CreamWhite theme">Plain Fire</sys:String>
+    <sys:String x:Key="key_LightBlue theme">Ice Deep Blue</sys:String>
+    <sys:String x:Key="key_GreenWhite theme">Emerald Fire</sys:String>
     <sys:String x:Key="key_About">About</sys:String>
 
     <!--抽屉-->

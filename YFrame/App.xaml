@@ -9,7 +9,7 @@
             <Style TargetType="{x:Type Menu}">
                 <Setter Property="Background" Value="{DynamicResource MenuBarBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-                <Setter Property="Height" Value="30"/>
+                <Setter Property="Height" Value="36"/>
             </Style>
 
             <Style TargetType="{x:Type MenuItem}">
@@ -94,10 +94,10 @@
                                             Background="Transparent" CornerRadius="0"/>
                                     <!-- 主内容区 -->
                                     <Border x:Name="ContentHost" Grid.Column="1"
-                                            Background="Transparent" Padding="10,5">
+                                            Background="Transparent" Padding="6,3">
                                         <StackPanel Orientation="Horizontal">
-                                            <!-- 文件图标（仿 VS 文件/插件图标样式） -->
-                                            <Viewbox Width="14" Height="14" Margin="0,0,7,0" VerticalAlignment="Center">
+                                            <!-- 文件图标 -->
+                                            <Viewbox Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center">
                                                 <Canvas Width="16" Height="16">
                                                     <!-- 文件主体填充 -->
                                                     <Path Data="M2,1 H10 L14,5 V14 H2 Z"
@@ -106,7 +106,7 @@
                                                     <Path Data="M2,1 H10 L14,5 V14 H2 Z M10,1 V5 L14,5"
                                                           Stroke="{DynamicResource TreeItemAccent}" StrokeThickness="0.9"
                                                           StrokeLineJoin="Round" Fill="Transparent"/>
-                                                    <!-- 代码行（3 条横线，表示插件/代码文件） -->
+                                                    <!-- 代码行 -->
                                                     <Path Data="M4.5,7 L10.5,7 M4.5,9.5 L8,9.5 M4.5,12 L10,12"
                                                           Stroke="{DynamicResource TreeItemAccent}" StrokeThickness="0.8"
                                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>

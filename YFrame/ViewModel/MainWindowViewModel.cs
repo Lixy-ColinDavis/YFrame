@@ -145,6 +145,7 @@ namespace YFrame
         public ICommand ToggleChineseCommand { get; set; }              // 中文切换事件
         public ICommand ToggleEnglishCommand { get; set; }              // 中文切换事件
         public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
+        public ICommand SwitchLeftPanelCommand { get; set; }            // 左侧面板切换事件
 
         #endregion
 
@@ -184,6 +185,23 @@ namespace YFrame
                     {
                         ShowPlugin(value.ID);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 左侧面板激活页：0=插件列表, 1=工具箱
+        /// </summary>
+        private int _activeLeftPanel;
+        public int ActiveLeftPanel
+        {
+            get => _activeLeftPanel;
+            set
+            {
+                if (_activeLeftPanel != value)
+                {
+                    _activeLeftPanel = value;
+                    OnPropertyChanged(nameof(ActiveLeftPanel));
                 }
             }
         }
@@ -275,14 +293,14 @@ namespace YFrame
                 // 主题切换（通过参数传入主题文件路径）
                 SetThemeCommand = new YF_RelayCommand<string>(themePath =>
                 {
-                    // 从路径提取主题名称用于日志（如 "DarkGrayTheme" → "黑灰"）
+                    // 从路径提取主题名称用于日志
                     var fileName = System.IO.Path.GetFileNameWithoutExtension(themePath);
                     var themeDisplayName = fileName switch
                     {
-                        "DarkGrayTheme" => "黑灰",
-                        "CreamWhiteTheme" => "米白",
-                        "LightBlueTheme" => "浅蓝",
-                        "GreenWhiteTheme" => "绿白",
+                        "DarkGrayTheme" => "炭火暗夜",
+                        "CreamWhiteTheme" => "素火明昼",
+                        "LightBlueTheme" => "冰火深蓝",
+                        "GreenWhiteTheme" => "翠火青绿",
                         _ => fileName
                     };
                     App.ChangeTheme(themePath);
@@ -317,6 +335,12 @@ namespace YFrame
                 ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); logger.LogInfo("语言切换-英文"); });
                 // 插件显示
                 Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => ShowPlugin(parameter));
+                // 左侧面板切换
+                SwitchLeftPanelCommand = new YF_RelayCommand<string>(panelIndex =>
+                {
+                    if (int.TryParse(panelIndex, out var idx))
+                        ActiveLeftPanel = idx;
+                });
 
 
                 // 委托绑定

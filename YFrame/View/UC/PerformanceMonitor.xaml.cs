@@ -55,6 +55,12 @@ namespace YFrame
             InitializeComponent();
 
             // UI 线程：初始化图表（6个初始数据点，5秒采样间隔，共30秒窗口）
+            // 从主题资源获取图表颜色
+            var chartLine1 = (SolidColorBrush)TryFindResource("ChartLine1") ?? new SolidColorBrush(Colors.Orange);
+            var chartLine2 = (SolidColorBrush)TryFindResource("ChartLine2") ?? new SolidColorBrush(Colors.DodgerBlue);
+            var chartFill1 = (SolidColorBrush)TryFindResource("ChartFill1") ?? new SolidColorBrush(Color.FromArgb(0x15, 0xFF, 0xA5, 0x00));
+            var chartFill2 = (SolidColorBrush)TryFindResource("ChartFill2") ?? new SolidColorBrush(Color.FromArgb(0x0F, 0x00, 0x90, 0xFF));
+
             SeriesCollection = new SeriesCollection
             {
                 new LineSeries
@@ -66,8 +72,11 @@ namespace YFrame
                         new ObservableValue(0), new ObservableValue(0),
                         new ObservableValue(0), new ObservableValue(0)
                     },
+                    Stroke = chartLine1,
+                    Fill = chartFill1,
                     PointGeometry = DefaultGeometries.Circle,
-                    PointGeometrySize = 10
+                    PointGeometrySize = 10,
+                    PointForeground = chartLine1
                 },
                 new LineSeries
                 {
@@ -78,8 +87,11 @@ namespace YFrame
                         new ObservableValue(0), new ObservableValue(0),
                         new ObservableValue(0), new ObservableValue(0)
                     },
+                    Stroke = chartLine2,
+                    Fill = chartFill2,
                     PointGeometry = DefaultGeometries.Square,
-                    PointGeometrySize = 10
+                    PointGeometrySize = 10,
+                    PointForeground = chartLine2
                 }
             };
             Labels = new[] { "25秒前", "20秒前", "15秒前", "10秒前", "5秒前", "现在" };
