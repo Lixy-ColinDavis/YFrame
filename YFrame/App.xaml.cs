@@ -53,17 +53,24 @@ namespace YFrame
         {
             try
             {
-                // 移除旧的主题资源（查找文件名含 "Theme" 的字典）
-                var oldDict = Application.Current.Resources.MergedDictionaries
-                    .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
-                if (oldDict != null)
+                // 移除旧的主题资源（仅匹配 /Themes/*Theme.xaml，避免误删 ControlStyles.xaml）
+                var merged = Application.Current.Resources.MergedDictionaries;
+                int oldIndex = -1;
+                for (int i = 0; i < merged.Count; i++)
                 {
-                    Application.Current.Resources.MergedDictionaries.Remove(oldDict);
+                    var src = merged[i].Source?.ToString();
+                    if (src != null && src.Contains("/Themes/") && src.EndsWith("Theme.xaml"))
+                    {
+                        oldIndex = i;
+                        break;
+                    }
                 }
+                if (oldIndex >= 0)
+                    merged.RemoveAt(oldIndex);
 
-                // 加载新主题
+                // 在原位置插入新主题，保持 MergedDictionaries 顺序不变
                 var newTheme = new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) };
-                Application.Current.Resources.MergedDictionaries.Add(newTheme);
+                merged.Insert(oldIndex >= 0 ? oldIndex : 0, newTheme);
             }
             catch (Exception ex)
             {
