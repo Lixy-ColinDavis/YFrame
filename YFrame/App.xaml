@@ -126,12 +126,10 @@
                                     <Setter TargetName="ContentHost" Property="Background"
                                             Value="{DynamicResource TreeItemHoverBackground}"/>
                                 </Trigger>
-                                <!-- 选中 -->
+                                <!-- 选中：仅保留左侧指示条 -->
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="SelectionBar" Property="Background"
                                             Value="{DynamicResource TreeItemAccent}"/>
-                                    <Setter TargetName="ContentHost" Property="Background"
-                                            Value="{DynamicResource TreeItemSelectedBackground}"/>
                                 </Trigger>
                                 <!-- 选中 + 悬停 -->
                                 <MultiTrigger>
@@ -142,7 +140,7 @@
                                     <Setter TargetName="SelectionBar" Property="Background"
                                             Value="{DynamicResource TreeItemAccent}"/>
                                     <Setter TargetName="ContentHost" Property="Background"
-                                            Value="{DynamicResource TreeItemSelectedBackground}"/>
+                                            Value="{DynamicResource TreeItemHoverBackground}"/>
                                 </MultiTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
