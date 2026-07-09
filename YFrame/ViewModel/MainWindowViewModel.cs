@@ -406,7 +406,7 @@ namespace YFrame
         {
             try
             {
-                if (CurrentUcDate == null)
+                if (CurrentUcDate == null || CurrentUcDate.CommandHandler == null)
                 {
                     logger.CommandInfo("[命令无目标插件] : " + command);
                 }
