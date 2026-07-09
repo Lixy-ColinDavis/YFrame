@@ -37,7 +37,7 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "添加插件")]
         public virtual void AddControl(string name, string ID)
         {
-            MainWindow.logger.DebugInfo($"加载模块：{name}, {ID}");
+            MainWindowViewModel.Instance.logger.DebugInfo($"加载模块：{name}, {ID}");
             // 插件添加
             // 插件添加<ID, 名称>
             DctControls.Add(ID, new CtrlDataModel() 
@@ -75,14 +75,16 @@ namespace YFrame
                     {
                         if (s == "YF_Manager")
                             continue;
-                        MainWindow.logger.DebugInfo($"读取到插件: {s}");
-                        string assemblyPath = @$"{item}\{s}.dll"; 
-                        Assembly assembly = Assembly.LoadFrom(assemblyPath); 
+                        MainWindowViewModel.Instance.logger.DebugInfo($"读取到插件: {s}");
+                        string assemblyPath = @$"{item}\{s}.dll";
+                        // 将程序集读入内存，释放文件锁
+                        byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
+                        Assembly assembly = Assembly.Load(assemblyBytes);
 
-                        Type userControlType = assembly.GetType($"{s}.MainControl"); // 确保命名空间和类型名正确。
+                        Type userControlType = assembly.GetType($"{s}.MainControl");        // 确保命名空间和类型名正确。
                         Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
 
-                        if (userControlType != null)
+                        if (userControlType != null && ViewModelType != null)
                         {
                             // 2025.7.5 更新接口IDetail，插件继承实现ID、Name
                             I_YF_Detail detail = Activator.CreateInstance(ViewModelType) as YF_Manager.I_YF_Detail;
@@ -107,7 +109,18 @@ namespace YFrame
                             }
                             else
                             {
-                                MainWindow.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                                MainWindowViewModel.Instance.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                            }
+                        }
+                        else
+                        {
+                            if (userControlType == null)
+                            {
+                                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl 加载失败");
+                            }
+                            if (ViewModelType == null)
+                            {
+                                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControlViewModel 加载失败");
                             }
                         }
 
@@ -117,7 +130,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("LoadAndShowUserControl", ex.Message);
+                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", ex.Message);
             }
         }
 
@@ -139,11 +152,13 @@ namespace YFrame
             {
                 if (s == "YF_Manager")
                     continue;
-                MainWindow.logger.DebugInfo($"准备显示插件: {s}");
-                string assemblyPath = @$"{path}\{s}.dll";
-                Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                MainWindowViewModel.Instance.logger.DebugInfo($"准备显示插件: {s}");
 
-                Type userControlType = assembly.GetType($"{s}.MainControl"); // 确保命名空间和类型名正确。
+                string assemblyPath = @$"{path}\{s}.dll";
+                byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
+                Assembly assembly = Assembly.Load(assemblyBytes);       // 避免锁定插件 DLL，阻止运行时更新
+
+                Type userControlType = assembly.GetType($"{s}.MainControl");        // 确保命名空间和类型名正确。
                 Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
 
                 if (userControlType != null)
@@ -176,7 +191,7 @@ namespace YFrame
                     }
                     else
                     {
-                        MainWindow.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                        MainWindowViewModel.Instance.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
                     }
                 }
 
@@ -191,7 +206,7 @@ namespace YFrame
         public virtual void HandlePluginCallback(string pluginId, PluginEventArgs e)
         {
             // 处理插件回调
-            MainWindow.logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
+            MainWindowViewModel.Instance.logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
 
             // 在主线程中更新UI
             Application.Current.Dispatcher.Invoke(() =>

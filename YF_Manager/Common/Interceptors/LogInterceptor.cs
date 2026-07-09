@@ -41,15 +41,25 @@ namespace YF_Manager
             var stopwatch = Stopwatch.StartNew();
             var methodName = $"{invocation.Method.DeclaringType?.FullName}.{invocation.Method.Name}";
 
+            // 使用 YF_Manager_Main 的静态 logger（由静态构造函数保证初始化）
+            var logger = YF_Manager_Main.logger;
+            if (logger == null)
+            {
+                // 极端情况下的 fallback：直接执行原方法，不记录日志
+                invocation.Proceed();
+                return;
+            }
+
+
             // 记录开始
-            YF_Manager_Main.logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
+            logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
 
             // 记录参数
             var parameters = invocation.Method.GetParameters();
             if (parameters.Length > 0)
             {
                 var paramInfo = parameters.Zip(invocation.Arguments, (p, a) => $"{p.Name}={a ?? "null"}");
-                YF_Manager_Main.logger.InterceptorsLog( $"执行记录 | {logAttr.Message} 参数: {string.Join(", ", paramInfo)} | 函数位置：" + methodName, logAttr.Level.ToString());
+                logger.InterceptorsLog( $"执行记录 | {logAttr.Message} 参数: {string.Join(", ", paramInfo)} | 函数位置：" + methodName, logAttr.Level.ToString());
             }
 
             try
@@ -63,14 +73,14 @@ namespace YF_Manager
                     // 异步下执行原方法
                     invocation.Proceed();
                     invocation.ReturnValue = InterceptAsync((dynamic)invocation.ReturnValue,
-                        invocation, stopwatch, logAttr, methodName);
+                        invocation, stopwatch, logAttr, methodName, logger);
                 }
                 else
                 {
                     invocation.Proceed();
                     stopwatch.Stop();
 
-                    YF_Manager_Main.logger.InterceptorsLog(
+                    logger.InterceptorsLog(
                         $"执行完成 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 返回值: {invocation.ReturnValue ?? "null"} | 函数位置：" +
                         methodName, logAttr.Level.ToString());
                 }
@@ -78,7 +88,7 @@ namespace YF_Manager
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                YF_Manager_Main.logger.InterceptorsLog(
+                logger.InterceptorsLog(
                     $"执行失败 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 错误: {ex.Message} | 函数位置：" +
                     methodName, logAttr.Level.ToString());
                 throw;
@@ -95,13 +105,14 @@ namespace YF_Manager
         /// <param name="methodName">方法名称</param>
         /// <returns></returns>
         private async Task InterceptAsync(Task task, IInvocation invocation,
-            Stopwatch stopwatch, LogAttribute logAttr, string methodName)
+            Stopwatch stopwatch, LogAttribute logAttr, string methodName,
+            YF_Manager_Log logger)
         {
             // 等待原方法执行完成
             await task.ConfigureAwait(false);
             stopwatch.Stop();
 
-            YF_Manager_Main.logger.InterceptorsLog(
+            logger.InterceptorsLog(
                 $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | 函数位置：" + 
                 methodName, logAttr.Level.ToString());
         }
@@ -117,13 +128,14 @@ namespace YF_Manager
         /// <param name="methodName">方法名称</param>
         /// <returns></returns>
         private async Task<T> InterceptAsync<T>(Task<T> task, IInvocation invocation,
-            Stopwatch stopwatch, LogAttribute logAttr, string methodName)
+            Stopwatch stopwatch, LogAttribute logAttr, string methodName,
+            YF_Manager_Log logger)
         {
             // 等待原方法执行完成
             var result = await task.ConfigureAwait(false);
             stopwatch.Stop();
 
-            YF_Manager_Main.logger.InterceptorsLog(
+            logger.InterceptorsLog(
                 $"执行完成 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | 返回值: {result} | 函数位置：" + 
                 methodName, logAttr.Level.ToString());
 

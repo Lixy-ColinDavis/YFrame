@@ -14,9 +14,13 @@ namespace YF_Manager
 
         public static YF_Manager_Log logger;
 
-        public YF_Manager_Main()
+        /// <summary>
+        /// 静态构造函数确保 logger 在类首次被引用时就初始化，
+        /// 避免 AOP 拦截器在实例构造前访问 null 的 logger
+        /// </summary>
+        static YF_Manager_Main()
         {
-            logger = new YF_Manager_Log(YF_Name.ToString(), YF_ID);
+            logger = new YF_Manager_Log("主控类", "YF_Manager");
         }
     }
 }

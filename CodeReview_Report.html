@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YFrame 项目代码审查报告</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #282840;
+    --border: #3a3a55;
+    --text: #cdd6f4;
+    --text-secondary: #a6adc8;
+    --critical: #f38ba8;
+    --high: #fab387;
+    --medium: #f9e2af;
+    --low: #a6e3a1;
+    --accent: #89b4fa;
+    --code-bg: #181825;
+    --diff-add-bg: #1a3a2a;
+    --diff-del-bg: #3a1a2a;
+    --diff-add-line: #2a5a3a;
+    --diff-del-line: #5a2a3a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0;
+  }
+  .report-header {
+    background: linear-gradient(135deg, #2a2a4a 0%, #1e1e3a 100%);
+    border-bottom: 3px solid var(--accent);
+    padding: 40px 60px 30px;
+  }
+  .report-header h1 {
+    font-size: 2.2em;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .report-header .subtitle {
+    color: var(--text-secondary);
+    font-size: 1.05em;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .meta-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .meta-item .label { font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta-item .value { font-size: 1.15em; color: #fff; margin-top: 2px; }
+  .container { max-width: 1300px; margin: 0 auto; padding: 30px 40px; }
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .summary-card {
+    border-radius: 12px;
+    padding: 22px 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .summary-card .count { font-size: 2.8em; font-weight: 700; }
+  .summary-card .label { font-size: 0.95em; color: var(--text-secondary); margin-top: 4px; }
+  .summary-card.critical { border-color: var(--critical); }
+  .summary-card.critical .count { color: var(--critical); }
+  .summary-card.high { border-color: var(--high); }
+  .summary-card.high .count { color: var(--high); }
+  .summary-card.medium { border-color: var(--medium); }
+  .summary-card.medium .count { color: var(--medium); }
+  .summary-card.low { border-color: var(--low); }
+  .summary-card.low .count { color: var(--low); }
+
+  .section-title {
+    font-size: 1.5em;
+    color: #fff;
+    margin: 40px 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .issue {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .issue-header {
+    padding: 18px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+  }
+  .issue-number {
+    font-size: 1.6em;
+    font-weight: 700;
+    min-width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .severity-critical .issue-number { background: rgba(243,139,168,0.18); color: var(--critical); }
+  .severity-high .issue-number     { background: rgba(250,179,135,0.18); color: var(--high); }
+  .severity-medium .issue-number   { background: rgba(249,226,175,0.18); color: var(--medium); }
+  .severity-low .issue-number      { background: rgba(166,227,161,0.18); color: var(--low); }
+
+  .issue-header .info { flex: 1; }
+  .issue-header .title { font-size: 1.15em; font-weight: 600; color: #fff; }
+  .issue-header .meta-line { font-size: 0.85em; color: var(--text-secondary); margin-top: 3px; }
+  .severity-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.78em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge-critical { background: rgba(243,139,168,0.25); color: var(--critical); }
+  .badge-high     { background: rgba(250,179,135,0.25); color: var(--high); }
+  .badge-medium   { background: rgba(249,226,175,0.25); color: var(--medium); }
+  .badge-low      { background: rgba(166,227,161,0.25); color: var(--low); }
+
+  .issue-body { padding: 20px 24px; }
+  .issue-body .desc { margin-bottom: 16px; color: var(--text); }
+  .issue-body h4 { font-size: 0.9em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .code-block .code-label {
+    font-size: 0.78em;
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+  }
+  .code-block .code-label.original { color: var(--critical); }
+  .code-block .code-label.suggested { color: var(--low); }
+  .code-block pre {
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 0.88em;
+    line-height: 1.65;
+    margin: 0;
+    white-space: pre;
+  }
+  .code-block .line { display: block; }
+  .code-block .line.del { background: var(--diff-del-line); }
+  .code-block .line.add { background: var(--diff-add-line); }
+  .code-block .line-num {
+    display: inline-block;
+    width: 42px;
+    text-align: right;
+    margin-right: 12px;
+    color: #555;
+    user-select: none;
+  }
+  .diff-view .del-line { background: var(--diff-del-bg); display: block; padding: 1px 16px; }
+  .diff-view .add-line { background: var(--diff-add-bg); display: block; padding: 1px 16px; }
+  .toc { list-style: none; columns: 2; column-gap: 40px; }
+  .toc li { margin-bottom: 6px; break-inside: avoid; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 0.92em; }
+  .toc a:hover { text-decoration: underline; }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    margin-right: 4px;
+    background: rgba(137,180,250,0.12);
+    color: var(--accent);
+  }
+  .footer {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+  @media (max-width: 768px) {
+    .report-header { padding: 24px 20px; }
+    .container { padding: 16px; }
+    .toc { columns: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="report-header">
+  <h1>🔍 YFrame 项目代码审查报告</h1>
+  <div class="subtitle">WPF 插件化桌面应用框架 — 全面代码质量评估</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="label">项目</div><div class="value">YFrame</div></div>
+    <div class="meta-item"><div class="label">平台</div><div class="value">.NET 8.0 / WPF</div></div>
+    <div class="meta-item"><div class="label">审查日期</div><div class="value">2026-07-09</div></div>
+    <div class="meta-item"><div class="label">审查范围</div><div class="value">17 个源文件</div></div>
+    <div class="meta-item"><div class="label">项目分支</div><div class="value">main</div></div>
+    <div class="meta-item"><div class="label">最新提交</div><div class="value">d885ae9</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ======== SUMMARY ======== -->
+<h2 style="color:#fff; font-size:1.6em; margin-bottom:18px;">📊 问题总览</h2>
+<div class="summary-cards">
+  <div class="summary-card critical">
+    <div class="count">4</div>
+    <div class="label">🔴 严重 (Critical)</div>
+  </div>
+  <div class="summary-card high">
+    <div class="count">7</div>
+    <div class="label">🟠 高危 (High)</div>
+  </div>
+  <div class="summary-card medium">
+    <div class="count">10</div>
+    <div class="label">🟡 中危 (Medium)</div>
+  </div>
+  <div class="summary-card low">
+    <div class="count">8</div>
+    <div class="label">🟢 低危 (Low)</div>
+  </div>
+</div>
+
+<!-- ======== TABLE OF CONTENTS ======== -->
+<h2 style="color:#fff; font-size:1.6em; margin-bottom:14px;">📋 问题目录</h2>
+<ul class="toc">
+  <li><a href="#issue-01">#01 🔴 跨线程UI更新导致未定义行为</a></li>
+  <li><a href="#issue-02">#02 🔴 LogInterceptor空引用崩溃风险</a></li>
+  <li><a href="#issue-03">#03 🔴 Assembly.LoadFrom 锁定插件DLL文件</a></li>
+  <li><a href="#issue-04">#04 🔴 重复代码逻辑检查，异常静默吞没</a></li>
+  <li><a href="#issue-05">#05 🟠 右侧边栏日志使用错误的属性</a></li>
+  <li><a href="#issue-06">#06 🟠 Environment.Exit之后的代码永不执行</a></li>
+  <li><a href="#issue-07">#07 🟠 DispatcherTimer在非UI线程创建</a></li>
+  <li><a href="#issue-08">#08 🟠 Dictionary键不存在时抛出异常</a></li>
+  <li><a href="#issue-09">#09 🟠 ShowUserControl中ViewModelType为null直接崩溃</a></li>
+  <li><a href="#issue-10">#10 🟠 Process对象未释放导致资源泄漏</a></li>
+  <li><a href="#issue-11">#11 🟠 泛型RelayCommand强制类型转换异常</a></li>
+  <li><a href="#issue-12">#12 🟡 LogText字符串拼接导致性能与内存问题</a></li>
+  <li><a href="#issue-13">#13 🟡 LoadAndShowUserControl/ShowUserControl代码重复</a></li>
+  <li><a href="#issue-14">#14 🟡 YF_Manager_Log空catch静默吞没异常</a></li>
+  <li><a href="#issue-15">#15 🟡 PerformanceCounter初始化返回无效首值</a></li>
+  <li><a href="#issue-16">#16 🟡 MainWindow中无用的实例化</a></li>
+  <li><a href="#issue-17">#17 🟡 接口方法上的[Log]特性无效</a></li>
+  <li><a href="#issue-18">#18 🟡 PerformanceMonitor中WMI对象未释放</a></li>
+  <li><a href="#issue-19">#19 🟡 Magic Number与标签文字误导</a></li>
+  <li><a href="#issue-20">#20 🟡 CtrlParamModel空类 - 死代码</a></li>
+  <li><a href="#issue-21">#21 🟡 GetLocalIP缺少异常处理</a></li>
+  <li><a href="#issue-22">#22 🟢 命名不规范 (C#约定)</a></li>
+  <li><a href="#issue-23">#23 🟢 公有字段应改用属性</a></li>
+  <li><a href="#issue-24">#23 🟢 状态值应使用枚举替代魔法数字</a></li>
+  <li><a href="#issue-25">#24 🟢 端口号应使用int类型</a></li>
+  <li><a href="#issue-26">#25 🟢 委托容器类应为静态类</a></li>
+  <li><a href="#issue-27">#26 🟢 Init调用应在InitializeComponent之后</a></li>
+  <li><a href="#issue-28">#27 🟢 不必要的ToString()调用</a></li>
+  <li><a href="#issue-29">#28 🟢 不必要的变量置null</a></li>
+</ul>
+
+<!-- ============================================================ -->
+<!-- CRITICAL ISSUES -->
+<!-- ============================================================ -->
+
+<h2 class="section-title">🔴 严重问题 (Critical)</h2>
+
+<!-- Issue 01 -->
+<div id="issue-01" class="issue severity-critical">
+<div class="issue-header">
+  <div class="issue-number">01</div>
+  <div class="info">
+    <div class="title">跨线程UI更新导致未定义行为</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-critical">Critical</span>
+      <span class="tag">线程安全</span><span class="tag">WPF</span>
+      文件: <code>MainWindowViewModel.cs:354-363</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>Show_Log</code> 方法通过静态委托 <code>YF_Manager_Log.d_LogWrite</code> 被调用，该委托可能从任意线程（后台工作线程、日志线程、插件线程）触发。
+    方法直接更新 <code>LogText</code> 属性，该属性绑定到UI元素。WPF 严格要求所有UI绑定属性的更新必须在UI（Dispatcher）线程上执行，从非UI线程更新会导致不可预测的行为或 <code>InvalidOperationException</code>。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindowViewModel.cs — Show_Log 方法</div>
+    <pre>public virtual void Show_Log(string msg)
+{
+    try
+    {
+        LogText += msg + "\n";
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("Show_Log", ex.Message);
+    }
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindowViewModel.cs — 使用 Dispatcher 封送UI更新</div>
+    <pre>public virtual void Show_Log(string msg)
+{
+    try
+    {
+        // 确保UI更新在Dispatcher线程上执行
+        if (Application.Current?.Dispatcher.CheckAccess() == true)
+        {
+            LogText += msg + "\n";
+        }
+        else
+        {
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                LogText += msg + "\n";
+            });
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("Show_Log", ex.Message);
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 02 -->
+<div id="issue-02" class="issue severity-critical">
+<div class="issue-header">
+  <div class="issue-number">02</div>
+  <div class="info">
+    <div class="title">LogInterceptor 中静态 logger 可能为 null 导致 NullReferenceException</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-critical">Critical</span>
+      <span class="tag">空引用</span><span class="tag">AOP</span>
+      文件: <code>LogInterceptor.cs:45</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>LogInterceptor.Intercept()</code> 直接使用 <code>YF_Manager_Main.logger</code> 静态字段记录日志。
+    但是 <code>YF_Manager_Main.logger</code> 只在 <code>YF_Manager_Main</code> 的构造函数中被初始化。
+    如果AOP代理的方法在 <code>YF_Manager_Main</code> 实例化之前被调用（例如 <code>MainWindowViewModel.Instance.Init()</code> 中设置了 <code>[Log]</code> 特性的 <code>InitUI()</code> 和 <code>InitCommond()</code>），
+    此时 <code>YF_Manager_Main.logger</code> 可能仍为 <code>null</code>，将抛出 <code>NullReferenceException</code>。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">LogInterceptor.cs — Intercept 方法</div>
+    <pre>public void Intercept(IInvocation invocation)
+{
+    var logAttr = invocation.Method.GetCustomAttributes(typeof(LogAttribute), true)
+        .FirstOrDefault() as LogAttribute;
+
+    if (logAttr == null)
+    {
+        invocation.Proceed();
+        return;
+    }
+
+    var stopwatch = Stopwatch.StartNew();
+    var methodName = $"{invocation.Method.DeclaringType?.FullName}.{invocation.Method.Name}";
+
+    // ⚠️ YF_Manager_Main.logger 可能为 null！
+    YF_Manager_Main.logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
+    // ... 后续代码同样直接使用 YF_Manager_Main.logger
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">LogInterceptor.cs — 添加空值保护与降级日志</div>
+    <pre>public void Intercept(IInvocation invocation)
+{
+    var logAttr = invocation.Method.GetCustomAttributes(typeof(LogAttribute), true)
+        .FirstOrDefault() as LogAttribute;
+
+    if (logAttr == null)
+    {
+        invocation.Proceed();
+        return;
+    }
+
+    var stopwatch = Stopwatch.StartNew();
+    var methodName = $"{invocation.Method.DeclaringType?.FullName}.{invocation.Method.Name}";
+
+    // 通过 invocation 获取被代理的目标对象，如果它有 logger 成员则使用
+    var logger = (invocation.Proxy as dynamic)?.logger as YF_Manager_Log
+                 ?? YF_Manager_Main.logger;
+
+    if (logger == null)
+    {
+        // fallback: 如果没有可用的 logger，直接执行原方法，不记录日志
+        invocation.Proceed();
+        return;
+    }
+
+    logger.InterceptorsLog($"执行开始 | {logAttr.Message} | 函数位置：" + methodName, logAttr.Level.ToString());
+    // ... (后续中将 YF_Manager_Main.logger 替换为 logger)
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 03 -->
+<div id="issue-03" class="issue severity-critical">
+<div class="issue-header">
+  <div class="issue-number">03</div>
+  <div class="info">
+    <div class="title">Assembly.LoadFrom 锁定插件 DLL，阻止运行时更新</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-critical">Critical</span>
+      <span class="tag">插件系统</span><span class="tag">资源管理</span>
+      文件: <code>UserControlsService.cs:80,155</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>Assembly.LoadFrom(string path)</code> 会锁定磁盘上的 DLL 文件，直到应用程序域卸载。
+    这意味着在应用程序运行期间，插件 DLL 无法被替换、更新或删除。对于插件化框架而言，这是一个严重的设计缺陷——用户无法在不重启应用的情况下热更新插件。
+    <br><br>
+    推荐使用 <code>Assembly.Load(byte[])</code> 配合 <code>File.ReadAllBytes()</code> 加载程序集（读取到内存后释放文件锁），
+    或者为每个插件使用独立的 <code>AssemblyLoadContext</code>（.NET Core 3.0+）以支持卸载。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">UserControlsService.cs — LoadAndShowUserControl 方法（ShowUserControl 中相同）</div>
+    <pre>string assemblyPath = @$"{item}\{s}.dll";
+Assembly assembly = Assembly.LoadFrom(assemblyPath);  // ⚠️ 锁定DLL文件
+
+Type userControlType = assembly.GetType($"{s}.MainControl");
+Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">UserControlsService.cs — 使用 Assembly.Load(byte[]) 避免文件锁</div>
+    <pre>string assemblyPath = @$"{item}\{s}.dll";
+// 将程序集读入内存，释放文件锁
+byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
+Assembly assembly = Assembly.Load(assemblyBytes);
+
+Type userControlType = assembly.GetType($"{s}.MainControl");
+Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 04 -->
+<div id="issue-04" class="issue severity-critical">
+<div class="issue-header">
+  <div class="issue-number">04</div>
+  <div class="info">
+    <div class="title">ChangeTheme 中存在完全重复的条件判断与异常静默吞没</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-critical">Critical</span>
+      <span class="tag">逻辑错误</span><span class="tag">异常处理</span>
+      文件: <code>App.xaml.cs:54-59</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>App.ChangeTheme()</code> 中第 54-58 行的两段代码完全相同：查询 <code>FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true)</code>。
+    第一个查询的结果赋值给 <code>oldDict</code>，如果为 <code>null</code>，第二个查询用完全相同的条件再次查询，结果必然仍为 <code>null</code>。
+    这是无意义的重复代码，表明代码是从 <code>ChangeLanguage</code> 方法复制过来但未正确调整。
+    <br><br>
+    此外，<code>ChangeLanguage()</code> 和 <code>ChangeTheme()</code> 中的 catch 块只记录了异常消息，但没有重新抛出或通知用户，导致切换失败时用户完全无感知。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">App.xaml.cs — ChangeTheme 方法</div>
+    <pre>public static void ChangeTheme(string themePath)
+{
+    try
+    {
+        // 移除旧的语言资源
+        var oldDict = Application.Current.Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
+        if (oldDict == null)                          // ⚠️ 如果为null
+            oldDict = Application.Current.Resources.MergedDictionaries
+                .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);  // ⚠️ 完全相同的查询，结果必然仍为null
+        Application.Current.Resources.MergedDictionaries.Remove(oldDict);
+
+        var newTheme = new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) };
+        Application.Current.Resources.MergedDictionaries.Add(newTheme);
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("ChangeTheme", ex.Message);  // ⚠️ 静默吞没，用户不知道切换失败
+    }
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">App.xaml.cs — 修正 ChangeTheme 逻辑</div>
+    <pre>public static void ChangeTheme(string themePath)
+{
+    try
+    {
+        // 移除旧的主题资源
+        var oldDict = Application.Current.Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source?.ToString().Contains("Theme") == true);
+        if (oldDict != null)
+        {
+            Application.Current.Resources.MergedDictionaries.Remove(oldDict);
+        }
+
+        // 加载新主题
+        var newTheme = new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) };
+        Application.Current.Resources.MergedDictionaries.Add(newTheme);
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("ChangeTheme", ex.Message);
+        MessageBox.Show($"主题切换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- HIGH SEVERITY -->
+<!-- ============================================================ -->
+
+<h2 class="section-title">🟠 高危问题 (High)</h2>
+
+<!-- Issue 05 -->
+<div id="issue-05" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">05</div>
+  <div class="info">
+    <div class="title">右侧边栏日志使用了错误的属性（LeftVisible 而非 RightVisible）</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">逻辑Bug</span>
+      文件: <code>MainWindowViewModel.cs:246</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>在 <code>ToggleRightToolWindowCommand</code> 中，日志输出右侧边栏开关状态时，错误地使用了 <code>LeftVisible</code> 而不是 <code>RightVisible</code>。
+    这意味着右抽屉的日志始终输出的是左抽屉的开关状态，导致日志记录错误，给调试带来误导。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindowViewModel.cs — InitCommond 方法</div>
+    <pre>// 右抽屉
+ToggleRightToolWindowCommand = new YF_RelayCommand(() => {
+    RightVisible = !RightVisible;
+    logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关"));  // ⚠️ 应是 RightVisible！
+});</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindowViewModel.cs — 修正为 RightVisible</div>
+    <pre>// 右抽屉
+ToggleRightToolWindowCommand = new YF_RelayCommand(() => {
+    RightVisible = !RightVisible;
+    logger.LogInfo("右侧边栏-" + (RightVisible ? "开" : "关"));
+});</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 06 -->
+<div id="issue-06" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">06</div>
+  <div class="info">
+    <div class="title">Environment.Exit 之后的日志代码永远无法执行</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">死代码</span><span class="tag">逻辑错误</span>
+      文件: <code>MainWindowViewModel.cs:248</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>Environment.Exit(0)</code> 会立即终止进程，其后的任何代码都不会被执行。
+    <code>logger.LogInfo("退出程序")</code> 放在它之后，这行日志永远不会写入。应该将日志记录放在 <code>Environment.Exit()</code> 之前。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindowViewModel.cs</div>
+    <pre>Btn_Exit_Command = new YF_RelayCommand(() => {
+    Environment.Exit(0);
+    logger.LogInfo("退出程序");    // ⚠️ 这行永远不会被执行！
+});</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindowViewModel.cs</div>
+    <pre>Btn_Exit_Command = new YF_RelayCommand(() => {
+    logger.LogInfo("退出程序");
+    Environment.Exit(0);
+});</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 07 -->
+<div id="issue-07" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">07</div>
+  <div class="info">
+    <div class="title">DispatcherTimer 在非 UI 线程创建，Tick 事件无法触发</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">线程安全</span><span class="tag">WPF</span>
+      文件: <code>PerformanceMonitor.xaml.cs:98-136</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>DispatcherTimer</code> 必须在拥有 Dispatcher 的线程（即 UI 线程）上创建。代码中在一个 new <code>Thread</code> 内创建 <code>DispatcherTimer</code>，该后台线程没有 Dispatcher。这会导致 <code>Tick</code> 事件可能永远不会触发，或抛出异常。
+    同时 <code>UpdatePerformanceData</code> 回调中调用 <code>OnPropertyChanged</code>（触发 UI 更新）也需要在 UI 线程上执行。
+    <br><br>
+    正确的做法是：后台线程仅用于初始化 WMI 查询和 PerformanceCounter，然后使用 <code>Application.Current.Dispatcher.BeginInvoke</code> 将 <code>DispatcherTimer</code> 的创建和启动封送到 UI 线程执行。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">PerformanceMonitor.xaml.cs — 构造函数</div>
+    <pre>DispatcherTimer timer = new DispatcherTimer();
+
+Thread thread = new Thread(() => {
+    // ... WMI 查询 ...
+    // ... PerformanceCounter 初始化 ...
+
+    // ⚠️ timer 在非 UI 线程上创建和启动！Tick 可能永远不会触发
+    timer.Interval = TimeSpan.FromSeconds(5);
+    timer.Tick += UpdatePerformanceData;
+    timer.Start();
+});
+thread.IsBackground = true;
+thread.Start();</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">PerformanceMonitor.xaml.cs — 后台线程仅做初始化，Timer在UI线程创建</div>
+    <pre>public PerformanceMonitor()
+{
+    MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-开始");
+    InitializeComponent();
+
+    // UI线程：初始化图表数据
+    SeriesCollection = new SeriesCollection { /* ... */ };
+    Labels = new[] { "25秒前", "20秒前", "15秒前", "10秒前", "5秒前", "现在" };
+    YFormatter = value => value.ToString("N0");
+    DataContext = this;
+
+    // 后台线程：初始化WMI和PerformanceCounter（这些操作可能耗时）
+    ThreadPool.QueueUserWorkItem(_ =>
+    {
+        InitializeCounters();
+
+        // 将 Timer 的创建封送到 UI 线程
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            timer.Tick += UpdatePerformanceData;
+            timer.Start();
+        });
+    });
+
+    MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-完成");
+}
+
+private void InitializeCounters()
+{
+    // WMI 查询系统总内存
+    using (var searcher = new ManagementObjectSearcher(
+        new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")))
+    {
+        foreach (ManagementObject obj in searcher.Get())
+        {
+            totalMemoryMB = Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024);
+        }
+    }
+
+    MainWindowViewModel.Instance.logger.LogInfo(
+        $"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
+
+    cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+    ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 08 -->
+<div id="issue-08" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">08</div>
+  <div class="info">
+    <div class="title">Dictionary 索引器访问不存在键时抛出 KeyNotFoundException</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">异常处理</span>
+      文件: <code>UserControlsService.cs:176-177</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>ShowUserControl</code> 中直接使用 <code>DctControls[plugin_Id]</code> 索引器访问字典。
+    如果传入的 <code>plugin_Id</code> 在字典中不存在（例如插件尚未被扫描发现），将抛出 <code>KeyNotFoundException</code> 且没有任何 try-catch 保护。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">UserControlsService.cs — ShowUserControl 方法</div>
+    <pre>//将读取的插件信息保存
+UserControlsService.Instance.DctControls[plugin_Id].userControl = userControl;       // ⚠️ 可能 KeyNotFoundException
+UserControlsService.Instance.DctControls[plugin_Id].CommandHandler = commandHandler;  // ⚠️ 可能 KeyNotFoundException</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">UserControlsService.cs — 使用 TryGetValue 安全访问</div>
+    <pre>// 使用 TryGetValue 安全访问字典
+if (UserControlsService.Instance.DctControls.TryGetValue(plugin_Id, out var ctrlData))
+{
+    ctrlData.userControl = userControl;
+    ctrlData.CommandHandler = commandHandler;
+
+    if (commandHandler != null)
+    {
+        commandHandler.OnPluginCallback += (sender, e) =>
+        {
+            HandlePluginCallback(detail.YF_ID, e);
+        };
+    }
+}
+else
+{
+    MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl",
+        $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 09 -->
+<div id="issue-09" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">09</div>
+  <div class="info">
+    <div class="title">ShowUserControl 中 ViewModelType 为 null 时直接崩溃</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">空引用</span>
+      文件: <code>UserControlsService.cs:162</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>ShowUserControl</code> 方法中，只检查了 <code>userControlType != null</code>，但未检查 <code>ViewModelType</code>。
+    如果插件的 ViewModel 类型不存在，第 162 行 <code>Activator.CreateInstance(null)</code> 将抛出 <code>ArgumentNullException</code>。
+    相比之下，<code>LoadAndShowUserControl</code> 方法正确检查了两种情况。这是一个不一致的错误处理。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">UserControlsService.cs — ShowUserControl 方法</div>
+    <pre>Type userControlType = assembly.GetType($"{s}.MainControl");
+Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");
+
+if (userControlType != null)     // ⚠️ 只检查了 userControlType
+{
+    var viewModel = Activator.CreateInstance(ViewModelType);  // ⚠️ ViewModelType 可能为 null！
+    object uc = Activator.CreateInstance(userControlType);
+    // ...
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">UserControlsService.cs — 同步检查两个类型</div>
+    <pre>Type userControlType = assembly.GetType($"{s}.MainControl");
+Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");
+
+if (userControlType != null && ViewModelType != null)
+{
+    var viewModel = Activator.CreateInstance(ViewModelType);
+    object uc = Activator.CreateInstance(userControlType);
+    // ... 后续逻辑
+}
+else
+{
+    if (userControlType == null)
+        MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl", s + " MainControl 加载失败");
+    if (ViewModelType == null)
+        MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl", s + " MainControlViewModel 加载失败");
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 10 -->
+<div id="issue-10" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">10</div>
+  <div class="info">
+    <div class="title">Process 对象未释放导致资源泄漏</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">资源泄漏</span>
+      文件: <code>YF_TcpHelper.cs:27-35</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>GetDefaultGatewayIP()</code> 中创建了 <code>Process</code> 对象但未调用 <code>Dispose()</code>。
+    <code>Process</code> 类实现了 <code>IDisposable</code>，持有非托管资源（进程句柄）。不释放会导致句柄泄漏，累积后可造成系统资源耗尽。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">YF_TcpHelper.cs — GetDefaultGatewayIP</div>
+    <pre>public virtual IPAddress GetDefaultGatewayIP()
+{
+    try
+    {
+        var process = new Process();               // ⚠️ 未使用 using，资源未释放
+        process.StartInfo.FileName = "route.exe";
+        process.StartInfo.Arguments = "print";
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.Start();
+
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
+        if (match.Success)
+        {
+            return IPAddress.Parse(match.Groups[^1].Value);
+        }
+        return null;
+    }
+    catch (Exception ex)
+    {
+        YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
+    }
+    return null;
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">YF_TcpHelper.cs — 使用 using 语句确保资源释放</div>
+    <pre>public virtual IPAddress GetDefaultGatewayIP()
+{
+    try
+    {
+        using var process = new Process();
+        process.StartInfo.FileName = "route.exe";
+        process.StartInfo.Arguments = "print";
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.Start();
+
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
+        if (match.Success)
+        {
+            return IPAddress.Parse(match.Groups[^1].Value);
+        }
+        return null;
+    }
+    catch (Exception ex)
+    {
+        YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
+    }
+    return null;
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 11 -->
+<div id="issue-11" class="issue severity-high">
+<div class="issue-header">
+  <div class="issue-number">11</div>
+  <div class="info">
+    <div class="title">泛型 RelayCommand 强制类型转换导致 InvalidCastException</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-high">High</span>
+      <span class="tag">类型安全</span>
+      文件: <code>YF_RelayCommand.cs:52-56</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>YF_RelayCommand&lt;T&gt;</code> 的 <code>CanExecute</code> 和 <code>Execute</code> 方法中直接使用 <code>(T)parameter</code> 强制类型转换。
+    如果 XAML 绑定传递的参数类型与 <code>T</code> 不匹配（例如 CommandParameter 绑定了不同类型的值），将抛出 <code>InvalidCastException</code>，这在 WPF 中会导致未处理的异常。
+    应使用安全类型转换（<code>parameter is T t ? t : default</code>）并提供友好的错误信息。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">YF_RelayCommand.cs — 泛型版本</div>
+    <pre>public bool CanExecute(object parameter) =>
+    _canExecute?.Invoke((T)parameter) ?? true;       // ⚠️ InvalidCastException
+
+public void Execute(object parameter) =>
+    _execute((T)parameter);                            // ⚠️ InvalidCastException</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">YF_RelayCommand.cs — 安全类型转换</div>
+    <pre>public bool CanExecute(object parameter)
+{
+    if (parameter is T typedParam)
+        return _canExecute?.Invoke(typedParam) ?? true;
+    // 参数为 null 或类型不匹配时，如果可执行方法不需要参数则允许执行
+    return _canExecute == null;
+}
+
+public void Execute(object parameter)
+{
+    if (parameter is T typedParam)
+    {
+        _execute(typedParam);
+    }
+    else if (parameter == null && default(T) == null)
+    {
+        // T 是引用类型且 parameter 为 null 时，调用 default(T)
+        _execute(default(T));
+    }
+    // 类型不匹配时静默忽略，避免因 XAML 绑定问题导致崩溃
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MEDIUM SEVERITY -->
+<!-- ============================================================ -->
+
+<h2 class="section-title">🟡 中危问题 (Medium)</h2>
+
+<!-- Issue 12 -->
+<div id="issue-12" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">12</div>
+  <div class="info">
+    <div class="title">LogText 字符串拼接导致性能和内存问题</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">性能</span><span class="tag">内存</span>
+      文件: <code>MainWindowViewModel.cs:358</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>Show_Log</code> 使用 <code>LogText += msg + "\n"</code> 拼接日志。在 C# 中，字符串是不可变对象，每次 <code>+=</code> 操作都会创建新的字符串对象并复制所有旧内容。
+    随着日志量增长（可能达到数万条），这会导致严重的性能下降和内存压力（大量中间字符串对象等待 GC 回收）。应改用 <code>StringBuilder</code> 或在 ViewModel 层面做日志行数限制。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindowViewModel.cs — Show_Log</div>
+    <pre>public virtual void Show_Log(string msg)
+{
+    try
+    {
+        LogText += msg + "\n";
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("Show_Log", ex.Message);
+    }
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindowViewModel.cs — 使用 StringBuilder + 日志行数限制</div>
+    <pre>private readonly StringBuilder _logBuilder = new StringBuilder();
+private const int MaxLogLines = 500;
+
+public virtual void Show_Log(string msg)
+{
+    try
+    {
+        _logBuilder.AppendLine(msg);
+
+        // 限制最大行数，移除最旧的日志行
+        var lines = _logBuilder.ToString().Split('\n');
+        if (lines.Length > MaxLogLines)
+        {
+            _logBuilder.Clear();
+            _logBuilder.AppendJoin("\n", lines.Skip(lines.Length - MaxLogLines));
+        }
+
+        LogText = _logBuilder.ToString();
+    }
+    catch (Exception ex)
+    {
+        logger.ErrorInfo("Show_Log", ex.Message);
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 13 -->
+<div id="issue-13" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">13</div>
+  <div class="info">
+    <div class="title">LoadAndShowUserControl 与 ShowUserControl 存在大量重复代码</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">DRY</span><span class="tag">可维护性</span>
+      文件: <code>UserControlsService.cs:54-195</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>两个方法都包含相同的逻辑：扫描插件目录 → 查找 <code>YF_*.dll</code> 文件 → 跳过 <code>YF_Manager</code> → <code>Assembly.LoadFrom</code> → 反射查找 <code>MainControl</code> 和 <code>MainControlViewModel</code> 类型。
+    这使得代码难以维护——任何对插件加载逻辑的修改都需要在两个地方同步更新。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">UserControlsService.cs — 两个方法中重复的代码段</div>
+    <pre>// LoadAndShowUserControl 中:
+string[] array = Directory.GetFiles(item, "YF_*.dll")
+    .Select(p => System.IO.Path.GetFileNameWithoutExtension(p)).ToArray();
+foreach (string s in array)
+{
+    if (s == "YF_Manager") continue;
+    string assemblyPath = @$"{item}\{s}.dll";
+    Assembly assembly = Assembly.LoadFrom(assemblyPath);
+    Type userControlType = assembly.GetType($"{s}.MainControl");
+    Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");
+    // ...
+}
+
+// ShowUserControl 中 (几乎完全相同):
+string[] array = Directory.GetFiles(path, "YF_*.dll")
+    .Select(p => System.IO.Path.GetFileNameWithoutExtension(p)).ToArray();
+foreach (string s in array)
+{
+    if (s == "YF_Manager") continue;
+    string assemblyPath = @$"{path}\{s}.dll";
+    Assembly assembly = Assembly.LoadFrom(assemblyPath);
+    Type userControlType = assembly.GetType($"{s}.MainControl");
+    Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel");
+    // ...
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">UserControlsService.cs — 提取公共方法消除重复</div>
+    <pre>/// &lt;summary&gt;
+/// 从指定路径加载插件程序集并获取其 UserControl 和 ViewModel 类型
+/// &lt;/summary&gt;
+private (Type userControlType, Type viewModelType, Assembly assembly)?
+    LoadPluginTypes(string pluginDirectory)
+{
+    string[] dllFiles = Directory.GetFiles(pluginDirectory, "YF_*.dll")
+        .Select(p => Path.GetFileNameWithoutExtension(p))
+        .ToArray();
+
+    foreach (string pluginName in dllFiles)
+    {
+        if (pluginName == "YF_Manager")
+            continue;
+
+        string assemblyPath = Path.Combine(pluginDirectory, $"{pluginName}.dll");
+        byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
+        Assembly assembly = Assembly.Load(assemblyBytes);
+
+        Type userControlType = assembly.GetType($"{pluginName}.MainControl");
+        Type viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
+
+        if (userControlType != null && viewModelType != null)
+            return (userControlType, viewModelType, assembly);
+
+        // 记录加载失败的类型
+        if (userControlType == null)
+            MainWindowViewModel.Instance.logger.ErrorInfo("LoadPluginTypes",
+                $"{pluginName} MainControl 加载失败");
+        if (viewModelType == null)
+            MainWindowViewModel.Instance.logger.ErrorInfo("LoadPluginTypes",
+                $"{pluginName} MainControlViewModel 加载失败");
+    }
+    return null;
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 14 -->
+<div id="issue-14" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">14</div>
+  <div class="info">
+    <div class="title">YF_Manager_Log 中空的 catch 块静默吞没所有异常</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">异常处理</span>
+      文件: <code>YF_Manager_Log.cs:115-117, 144-146</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>Write()</code> 和 <code>CreateNewLogFile()</code> 方法中的 catch 块完全为空。
+    这意味着当日志系统本身发生错误时（如磁盘满、权限不足、路径不存在），错误被完全吞没，开发者无法获知日志系统已经失效。对于诊断工具而言，这极其危险——你可能以为日志正常工作，实际上没有任何内容被写入。
+    至少应该通过 <code>Debug.WriteLine</code> 或 <code>Console.Error.WriteLine</code> 输出错误信息。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">YF_Manager_Log.cs — Write 和 CreateNewLogFile</div>
+    <pre>// Write 方法中:
+catch (Exception ex)
+{
+    // ⚠️ 完全空的 catch 块！
+}
+
+// CreateNewLogFile 方法中:
+catch (Exception ex)
+{
+    // ⚠️ 完全空的 catch 块！
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">YF_Manager_Log.cs — 至少输出到 Debug/Trace</div>
+    <pre>// Write 方法中:
+catch (Exception ex)
+{
+    // 日志系统自身出错时，至少输出到调试器
+    System.Diagnostics.Debug.WriteLine(
+        $"[YF_Manager_Log] 日志写入失败 - 路径: {path}, 错误: {ex.Message}");
+    System.Diagnostics.Trace.TraceError(
+        $"[YF_Manager_Log] 日志写入失败 - 路径: {path}, 错误: {ex.Message}");
+}
+
+// CreateNewLogFile 方法中:
+catch (Exception ex)
+{
+    System.Diagnostics.Debug.WriteLine(
+        $"[YF_Manager_Log] 日志文件轮转失败 - 路径: {logDirectory}, 错误: {ex.Message}");
+    System.Diagnostics.Trace.TraceError(
+        $"[YF_Manager_Log] 日志文件轮转失败 - 路径: {logDirectory}, 错误: {ex.Message}");
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 15 -->
+<div id="issue-15" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">15</div>
+  <div class="info">
+    <div class="title">PerformanceCounter 首次调用 NextValue() 返回无效数据</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">数据准确性</span>
+      文件: <code>PerformanceMonitor.xaml.cs:150-153</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>PerformanceCounter.NextValue()</code> 在首次调用时返回 0 或一个采样初始值（而非实际使用率）。
+    这是因为 <code>PerformanceCounter</code> 需要两次采样才能计算出正确的差值。代码中每次 Tick 直接使用 <code>NextValue()</code> 的结果，第一个数据点始终不准确。
+    应在初始化后调用一次 <code>NextValue()</code> 丢弃初始值，或延迟一个周期后再开始记录数据。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">PerformanceMonitor.xaml.cs — UpdatePerformanceData</div>
+    <pre>private void UpdatePerformanceData(object sender, EventArgs e)
+{
+    try
+    {
+        float cpuUsage = cpuCounter.NextValue();          // ⚠️ 首次调用可能返回0
+        float availableMemoryMB = ramCounter.NextValue();  // ⚠️ 首次调用可能返回0
+        // ...
+    }
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">PerformanceMonitor.xaml.cs — 初始化时预热计数器</div>
+    <pre>// 在 InitializeCounters() 末尾添加：
+cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+
+// 预热：调用一次 NextValue() 以建立初始采样点，丢弃返回值
+cpuCounter.NextValue();
+ramCounter.NextValue();
+System.Threading.Thread.Sleep(100); // 短暂等待以确保第二次采样有效
+cpuCounter.NextValue();
+ramCounter.NextValue();</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 16 -->
+<div id="issue-16" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">16</div>
+  <div class="info">
+    <div class="title">MainWindow 中创建了无用的 YF_Manager_Main 实例</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">代码质量</span>
+      文件: <code>MainWindow.xaml.cs:19</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>new YF_Manager_Main()</code> 创建的实例赋值给变量 <code>a</code>，但该变量从未被使用。
+    虽然构造函数有副作用（初始化 <code>YF_Manager_Main.logger</code> 静态字段），但通过实例化来触发静态初始化是一种非常隐晦的方式，意图不明确，易被后来的维护者当作无用代码删除。
+    应改为显式的静态初始化方法，或至少添加注释说明意图。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindow.xaml.cs</div>
+    <pre>public MainWindow()
+{
+    YF_Manager_Main a = new YF_Manager_Main();   // ⚠️ 变量a从未使用
+    DataContext = MainWindowViewModel.Instance;
+    MainWindowViewModel.Instance.Init();
+    InitializeComponent();
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindow.xaml.cs — 改为显式静态初始化</div>
+    <pre>public MainWindow()
+{
+    // 确保 YF_Manager 静态日志实例在使用前已初始化
+    YF_Manager_Main.EnsureInitialized();
+
+    InitializeComponent();
+    DataContext = MainWindowViewModel.Instance;
+    MainWindowViewModel.Instance.Init();
+}</pre>
+  </div>
+  <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.88em;">
+    💡 同时需要在 <code>YF_Manager_Main</code> 中添加静态构造函数或静态 <code>EnsureInitialized()</code> 方法：
+  </p>
+  <div class="code-block">
+    <div class="code-label suggested">YF_Manager.cs — 添加显式初始化方法</div>
+    <pre>public class YF_Manager_Main : I_YF_Detail
+{
+    public string YF_ID => "YF_Manager";
+    public string YF_Name => "主控类";
+
+    public static YF_Manager_Log logger;
+
+    // 静态构造函数确保类加载时初始化 logger
+    static YF_Manager_Main()
+    {
+        logger = new YF_Manager_Log("主控类", "YF_Manager");
+    }
+
+    /// &lt;summary&gt;确保静态资源已初始化（触发静态构造函数）&lt;/summary&gt;
+    public static void EnsureInitialized() { }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 17 -->
+<div id="issue-17" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">17</div>
+  <div class="info">
+    <div class="title">接口方法上的 [Log] 特性不会被 AOP 拦截器生效</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">AOP</span><span class="tag">设计缺陷</span>
+      文件: <code>I_YF_Command.cs:11</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>I_YF_Command.ExecuteCommand</code> 上标注了 <code>[Log]</code> 特性，但 Castle DynamicProxy 创建的是 <strong>类代理（Class Proxy）</strong>而非接口代理。
+    类代理的拦截仅对类上定义的 virtual 方法有效。接口上定义的特性不会自动被实现类继承（除非使用 <code>Inherited = true</code>，且当前定义为 <code>Inherited = false</code>）。
+    这意味着 <code>ExecuteCommand</code> 的实现实际上不会被日志拦截器记录。
+    <br><br>
+    <strong>解决方案有两种：</strong>
+    <ol style="margin-left:20px; margin-top:6px;">
+      <li>将 <code>[Log]</code> 移到每个插件的具体实现类上。</li>
+      <li>将 <code>LogAttribute</code> 的 <code>AttributeUsage</code> 设为 <code>Inherited = true</code>，并改用接口代理（<code>CreateInterfaceProxyWithTarget</code>）。</li>
+    </ol>
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">I_YF_Command.cs</div>
+    <pre>public interface I_YF_Command
+{
+    [Log(Level = LogLevel.Info, Message = "发送命令到插件")]  // ⚠️ 对类代理不生效！
+    void ExecuteCommand(string command, object parameter = null);
+
+    event EventHandler&lt;PluginEventArgs&gt; OnPluginCallback;
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">方案一：移除接口特性，在 MainWindowViewModel.SendCommand 中已有 [Log] 标记</div>
+    <pre>public interface I_YF_Command
+{
+    // 移除接口上的特性，由具体实现类自行决定是否记录日志
+    void ExecuteCommand(string command, object parameter = null);
+
+    event EventHandler&lt;PluginEventArgs&gt; OnPluginCallback;
+}</pre>
+  </div>
+  <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.88em;">
+    💡 实际上 <code>MainWindowViewModel.SendCommand()</code> 已经标记了 <code>[Log]</code>，它会负责记录。接口上的特性移除即可。
+  </p>
+</div>
+</div>
+
+<!-- Issue 18 -->
+<div id="issue-18" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">18</div>
+  <div class="info">
+    <div class="title">WMI 查询对象未释放</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">资源泄漏</span>
+      文件: <code>PerformanceMonitor.xaml.cs:110-115</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>ManagementObjectSearcher</code> 和 <code>ManagementObject</code> 都实现了 <code>IDisposable</code>，持有非托管 WMI 资源。
+    代码中未使用 <code>using</code> 语句包裹，导致 COM/WMI 资源泄漏。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">PerformanceMonitor.xaml.cs</div>
+    <pre>var query = new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
+var searcher = new ManagementObjectSearcher(query);
+foreach (ManagementObject obj in searcher.Get())
+{
+    totalMemoryMB = Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024);
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">PerformanceMonitor.xaml.cs — 使用 using 确保资源释放</div>
+    <pre>using (var searcher = new ManagementObjectSearcher(
+    new ObjectQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem")))
+{
+    foreach (ManagementObject obj in searcher.Get())
+    {
+        using (obj)
+        {
+            totalMemoryMB = Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024);
+        }
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 19 -->
+<div id="issue-19" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">19</div>
+  <div class="info">
+    <div class="title">Magic Number 与误导的图表标签</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">可读性</span><span class="tag">数据准确性</span>
+      文件: <code>PerformanceMonitor.xaml.cs:94,98,162,167</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>
+    <ol style="margin-left:20px; margin-top:6px;">
+      <li>初始化时 Labels 为 <code>["1分钟前", ..., "现在"]</code>，暗示数据跨度为 60 秒，但实际采样间隔是 5 秒 × 6 个数据点 = 30 秒。运行时 Labels 被更新为以 5 秒为间隔的文本，说明初始化时的标签是遗留错误。</li>
+      <li><code>CounterTimes++ % 12</code> 中的 12 是魔法数字：5 秒 × 12 = 60 秒，即每分钟记录一次日志。应定义为常量 <code>LogIntervalTicks</code>。</li>
+      <li>Timer 的间隔是 5 秒，但 Labels 文本未关联此常量。</li>
+    </ol>
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">PerformanceMonitor.xaml.cs</div>
+    <pre>Labels = new[] { "1分钟前", "50秒前", "40秒前", "30秒前", "20秒前", "现在" };  // ⚠️ 与5秒间隔不匹配
+// ...
+timer.Interval = TimeSpan.FromSeconds(5);     // 5 魔法数字
+// ...
+if(CounterTimes++ % 12 == 0)                  // 12 魔法数字
+    MainWindowViewModel.Instance.logger.LogInfo(...);</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">PerformanceMonitor.xaml.cs — 使用常量并修正标签</div>
+    <pre>private const int DataPointCount = 6;
+private const int SamplingIntervalSeconds = 5;
+private const int LogIntervalTicks = 12; // 5秒 × 12 = 60秒，每分钟记录一次日志
+
+// 构造函数中：
+SeriesCollection = new SeriesCollection
+{
+    new LineSeries
+    {
+        Title = "CPU",
+        Values = new ChartValues&lt;ObservableValue&gt;(
+            Enumerable.Repeat(new ObservableValue(0), DataPointCount))
+        // ...
+    },
+    // ...
+};
+
+// 根据采样间隔动态生成标签
+Labels = GenerateLabels(SamplingIntervalSeconds, DataPointCount);
+
+// ...
+
+private static string[] GenerateLabels(int intervalSeconds, int count)
+{
+    return Enumerable.Range(0, count)
+        .Select(i => i == count - 1
+            ? "现在"
+            : $"{(count - 1 - i) * intervalSeconds}秒前")
+        .ToArray();
+}
+
+// timer 使用常量：
+timer.Interval = TimeSpan.FromSeconds(SamplingIntervalSeconds);
+
+// 日志间隔使用常量：
+if (CounterTimes++ % LogIntervalTicks == 0)
+    MainWindowViewModel.Instance.logger.LogInfo(...);</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 20 -->
+<div id="issue-20" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">20</div>
+  <div class="info">
+    <div class="title">CtrlParamModel 为空类 — 死代码</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">死代码</span>
+      文件: <code>CtrlParamModel.cs</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>CtrlParamModel</code> 是一个完全没有成员的空类（class 使用 internal 默认访问级别，且没有任何属性或方法）。
+    它在项目中没有任何引用，属于死代码。应删除或补充其设计意图。如果它是预留的参数模型，应添加适当的注释和属性定义。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">CtrlParamModel.cs</div>
+    <pre>namespace YFrame.Model
+{
+    class CtrlParamModel
+    {
+    }
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">CtrlParamModel.cs — 补充实现或删除</div>
+    <pre>namespace YFrame.Model
+{
+    /// &lt;summary&gt;
+    /// 插件参数模型 — 预留，用于传递插件配置参数
+    /// TODO: 根据实际需求补充属性定义
+    /// &lt;/summary&gt;
+    public class CtrlParamModel
+    {
+        /// &lt;summary&gt;参数键&lt;/summary&gt;
+        public string Key { get; set; }
+
+        /// &lt;summary&gt;参数值&lt;/summary&gt;
+        public object Value { get; set; }
+
+        /// &lt;summary&gt;参数类型&lt;/summary&gt;
+        public Type ValueType { get; set; }
+    }
+}</pre>
+  </div>
+  <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.88em;">
+    💡 如果确认不需要此模型，直接删除文件。当前 <code>CtrlDataModel.Parameters</code> 已使用 <code>Dictionary&lt;string, object&gt;</code> 替代了此类。
+  </p>
+</div>
+</div>
+
+<!-- Issue 21 -->
+<div id="issue-21" class="issue severity-medium">
+<div class="issue-header">
+  <div class="issue-number">21</div>
+  <div class="info">
+    <div class="title">GetLocalIP 无异常处理，DNS 解析失败导致崩溃</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-medium">Medium</span>
+      <span class="tag">异常处理</span>
+      文件: <code>YF_TcpHelper.cs:56-60</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong><code>GetLocalIP()</code> 使用 LINQ <code>First()</code> 查找第一个 IPv4 地址。如果 DNS 解析失败（<code>Dns.GetHostEntry</code> 抛出 <code>SocketException</code>），或者机器没有任何 IPv4 地址（<code>First()</code> 抛出 <code>InvalidOperationException</code>），将导致未处理异常。整个方法没有任何异常保护。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">YF_TcpHelper.cs</div>
+    <pre>public virtual string GetLocalIP()
+{
+    return Dns.GetHostEntry(Dns.GetHostName())
+        .AddressList.First(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        .ToString();
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">YF_TcpHelper.cs — 添加异常处理和降级方案</div>
+    <pre>public virtual string GetLocalIP()
+{
+    try
+    {
+        var localIP = Dns.GetHostEntry(Dns.GetHostName())
+            .AddressList
+            .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+        if (localIP != null)
+            return localIP.ToString();
+
+        YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", "未找到 IPv4 地址");
+        return "127.0.0.1"; // fallback
+    }
+    catch (Exception ex)
+    {
+        YF_Manager_Main.logger?.ErrorInfo("GetLocalIP", ex.Message);
+        return "127.0.0.1"; // fallback
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- LOW SEVERITY -->
+<!-- ============================================================ -->
+
+<h2 class="section-title">🟢 低危问题 (Low)</h2>
+
+<!-- Issue 22 -->
+<div id="issue-22" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">22</div>
+  <div class="info">
+    <div class="title">多处命名不符合 C# 命名规范</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">编码规范</span>
+      文件: 多个文件
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>项目中存在多处违反 C# 标准命名约定的地方：
+  </div>
+  <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+    <tr style="background:rgba(255,255,255,0.03);">
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">位置</th>
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">当前命名</th>
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">应改为</th>
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>MainWindowViewModel.cs:168</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>lsPlugins</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border); color:var(--low);"><code>Plugins</code> 或 <code>PluginList</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);">匈牙利命名法已过时，C# 使用 PascalCase</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>CtrlDataModel.cs:20</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>userControl</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border); color:var(--low);"><code>UserControl</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);">公开属性应使用 PascalCase</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>MainWindowViewModel.cs</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>InitCommond</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border); color:var(--low);"><code>InitCommand</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);">拼写错误：Commond → Command</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>CtrlDataModel.cs</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>CtrlDataModel</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border); color:var(--low);"><code>PluginDataModel</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);">"Ctrl" 含义模糊</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>UserControlsService.cs:30</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>DctControls</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border); color:var(--low);"><code>PluginControls</code></td>
+      <td style="padding:8px 12px; border-bottom:1px solid var(--border);">"Dct" 缩写不清晰</td>
+    </tr>
+  </table>
+</div>
+</div>
+
+<!-- Issue 23 -->
+<div id="issue-23" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">23</div>
+  <div class="info">
+    <div class="title">多个公有字段应改为属性</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">封装</span>
+      文件: 多个文件
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>以下位置使用了公开字段（public field）而非属性（property），违反了封装原则：
+  </div>
+  <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+    <tr style="background:rgba(255,255,255,0.03);">
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">文件</th>
+      <th style="text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary);">代码</th>
+    </tr>
+    <tr><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>MainWindowViewModel.cs:177</code></td><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>public YF_Manager_Log logger;</code> → 应改为 <code>public YF_Manager_Log Logger { get; private set; }</code></td></tr>
+    <tr><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>UserControlsService.cs:30</code></td><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>public Dictionary&lt;string, CtrlDataModel&gt; DctControls = new();</code> → 应改为 <code>public Dictionary&lt;string, CtrlDataModel&gt; PluginControls { get; } = new();</code></td></tr>
+    <tr><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>CtrlDataModel.cs:25</code></td><td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>public Dictionary&lt;string, object&gt; Parameters = new();</code> → 应改为 <code>public Dictionary&lt;string, object&gt; Parameters { get; } = new();</code></td></tr>
+  </table>
+</div>
+</div>
+
+<!-- Issue 24 -->
+<div id="issue-24" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">24</div>
+  <div class="info">
+    <div class="title">插件状态值应使用枚举替代魔法数字</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">类型安全</span>
+      文件: <code>PluginsModel.cs:56-57</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">PluginsModel.cs</div>
+    <pre>/// &lt;summary&gt;
+/// 状态  0: 关闭, 1:显示, 2:驻留
+/// &lt;/summary&gt;
+private int _status;
+public int Status { get; set; }</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">PluginsModel.cs — 使用枚举</div>
+    <pre>/// &lt;summary&gt;
+/// 插件显示状态
+/// &lt;/summary&gt;
+public enum PluginStatus
+{
+    Closed = 0,   // 关闭
+    Shown = 1,    // 显示
+    Dwelling = 2  // 驻留
+}
+
+private PluginStatus _status;
+public PluginStatus Status
+{
+    get => _status;
+    set
+    {
+        if (_status != value)
+        {
+            _status = value;
+            OnPropertyChanged(nameof(Status));
+        }
+    }
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 25 -->
+<div id="issue-25" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">25</div>
+  <div class="info">
+    <div class="title">端口号使用 string 类型而非整数</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">类型安全</span>
+      文件: <code>Config.cs:21-23</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">Config.cs</div>
+    <pre>public const string TcpHelper_Port_Server = "8021";
+public const string TcpHelper_Port_Client = "8022";</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">Config.cs — 使用 int 类型</div>
+    <pre>// 网络端口应使用整数类型（ushort 范围 0-65535 符合 TCP 端口规范）
+public const ushort TcpServerPort = 8021;
+public const ushort TcpClientPort = 8022;</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 26 -->
+<div id="issue-26" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">26</div>
+  <div class="info">
+    <div class="title">委托容器类应声明为静态类</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">设计</span>
+      文件: <code>YF_DelegateFunctionModel.cs</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">YF_DelegateFunctionModel.cs</div>
+    <pre>public class YF_DelegateFunctionModel
+{
+    public delegate void dvFunc_Vs(string str1);
+    public delegate void dvFunc_Vs_s(string str1, string str2);
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">YF_DelegateFunctionModel.cs — 静态类 + 语义化命名</div>
+    <pre>/// &lt;summary&gt;
+/// 框架委托类型定义
+/// &lt;/summary&gt;
+public static class YF_Delegates
+{
+    /// &lt;summary&gt;单字符串参数委托（如日志输出）&lt;/summary&gt;
+    public delegate void StringAction(string value);
+
+    /// &lt;summary&gt;双字符串参数委托（如状态更新）&lt;/summary&gt;
+    public delegate void DualStringAction(string value1, string value2);
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 27 -->
+<div id="issue-27" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">27</div>
+  <div class="info">
+    <div class="title">InitializeComponent 应在 DataContext 赋值之前调用</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">WPF最佳实践</span>
+      文件: <code>MainWindow.xaml.cs:20-23</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    <strong>问题描述：</strong>虽然 WPF 允许在 <code>InitializeComponent()</code> 之前设置 <code>DataContext</code>，但这是一个非标准顺序。
+    标准做法是先调用 <code>InitializeComponent()</code> 构建可视化树，然后再设置 <code>DataContext</code> 以触发首次绑定。
+    此外，<code>Init()</code> 方法在 <code>InitializeComponent()</code> 之前调用——它内部设置了 <code>Performance_Monitor_View</code> 和 <code>Grid_Show_Array</code> 属性，这些绑定目标在 XAML 树还未构建时就被更新了。
+  </div>
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">MainWindow.xaml.cs</div>
+    <pre>public MainWindow()
+{
+    YF_Manager_Main a = new YF_Manager_Main();
+    DataContext = MainWindowViewModel.Instance;
+    MainWindowViewModel.Instance.Init();   // ⚠️ InitializeComponent 之前调用
+    InitializeComponent();
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">MainWindow.xaml.cs — 调整调用顺序</div>
+    <pre>public MainWindow()
+{
+    // 1. 确保静态资源初始化
+    YF_Manager_Main.EnsureInitialized();
+
+    // 2. 构建 XAML 可视化树
+    InitializeComponent();
+
+    // 3. 设置数据上下文并初始化ViewModel
+    DataContext = MainWindowViewModel.Instance;
+    MainWindowViewModel.Instance.Init();
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 28 -->
+<div id="issue-28" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">28</div>
+  <div class="info">
+    <div class="title">不必要的 .ToString() 调用</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">代码整洁</span>
+      文件: <code>YF_Manager.cs:19</code>, <code>UserControlsService.cs:94</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">多处</div>
+    <pre>// YF_Manager.cs:19
+logger = new YF_Manager_Log(YF_Name.ToString(), YF_ID);
+// YF_Name 和 YF_ID 已经是 string 类型，.ToString() 是多余的
+
+// UserControlsService.cs:94
+UserControlsService.Instance.AddControl(detail.YF_Name.ToString(), detail.YF_ID.ToString());
+// YF_Name 和 YF_ID 已经是 string 类型</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">移除多余的 .ToString()</div>
+    <pre>// YF_Manager.cs:
+logger = new YF_Manager_Log(YF_Name, YF_ID);
+
+// UserControlsService.cs:
+UserControlsService.Instance.AddControl(detail.YF_Name, detail.YF_ID);</pre>
+  </div>
+</div>
+</div>
+
+<!-- Issue 29 -->
+<div id="issue-29" class="issue severity-low">
+<div class="issue-header">
+  <div class="issue-number">29</div>
+  <div class="info">
+    <div class="title">不必要的变量置 null 操作</div>
+    <div class="meta-line">
+      <span class="severity-badge badge-low">Low</span>
+      <span class="tag">代码整洁</span>
+      文件: <code>UserControlsService.cs:95-99, 170-171</code>
+    </div>
+  </div>
+</div>
+<div class="issue-body">
+  <h4>🔴 当前代码</h4>
+  <div class="code-block">
+    <div class="code-label original">UserControlsService.cs — LoadAndShowUserControl</div>
+    <pre>if (detail != null)
+{
+    UserControlsService.Instance.AddControl(detail.YF_Name.ToString(), detail.YF_ID.ToString());
+    detail = null;          // ⚠️ 局部变量，方法结束后自动释放
+    ViewModelType = null;   // ⚠️ 局部变量，方法结束后自动释放
+    userControlType = null; // ⚠️ 局部变量，方法结束后自动释放
+}</pre>
+  </div>
+  <h4>🟢 修改建议</h4>
+  <div class="code-block">
+    <div class="code-label suggested">直接删除这三行即可</div>
+    <pre>if (detail != null)
+{
+    UserControlsService.Instance.AddControl(detail.YF_Name, detail.YF_ID);
+}</pre>
+  </div>
+</div>
+</div>
+
+<!-- ============ SUMMARY ============ -->
+<h2 class="section-title">📋 问题分类统计</h2>
+<table style="width:100%; border-collapse:collapse; margin-bottom:30px;">
+  <tr style="background:rgba(255,255,255,0.03);">
+    <th style="text-align:left; padding:10px 14px; border-bottom:2px solid var(--border); color:var(--text-secondary); width:40%;">分类</th>
+    <th style="text-align:center; padding:10px 14px; border-bottom:2px solid var(--border); color:var(--text-secondary); width:15%;">Critical</th>
+    <th style="text-align:center; padding:10px 14px; border-bottom:2px solid var(--border); color:var(--text-secondary); width:15%;">High</th>
+    <th style="text-align:center; padding:10px 14px; border-bottom:2px solid var(--border); color:var(--text-secondary); width:15%;">Medium</th>
+    <th style="text-align:center; padding:10px 14px; border-bottom:2px solid var(--border); color:var(--text-secondary); width:15%;">Low</th>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">线程安全 / UI线程问题</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">空引用 / 异常处理缺失</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">3</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">2</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">逻辑Bug</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">2</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">资源泄漏 (Dispose)</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">插件系统设计</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">1</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">性能 / 内存</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">2</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">0</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 14px; border-bottom:1px solid var(--border);">代码规范 / 可读性</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--critical); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--high); font-weight:700;">0</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--medium); font-weight:700;">4</td>
+    <td style="text-align:center; padding:8px 14px; border-bottom:1px solid var(--border); color:var(--low); font-weight:700;">8</td>
+  </tr>
+  <tr style="font-weight:700;">
+    <td style="padding:10px 14px; border-top:2px solid var(--border);">合计</td>
+    <td style="text-align:center; padding:10px 14px; border-top:2px solid var(--border); color:var(--critical);">4</td>
+    <td style="text-align:center; padding:10px 14px; border-top:2px solid var(--border); color:var(--high);">7</td>
+    <td style="text-align:center; padding:10px 14px; border-top:2px solid var(--border); color:var(--medium);">10</td>
+    <td style="text-align:center; padding:10px 14px; border-top:2px solid var(--border); color:var(--low);">8</td>
+  </tr>
+</table>
+
+<!-- ============ RECOMMENDATIONS ============ -->
+<h2 class="section-title">💡 整体改进建议</h2>
+
+<div class="issue" style="border-left: 4px solid var(--accent);">
+<div class="issue-header">
+  <div class="info">
+    <div class="title">1. 引入依赖注入容器</div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    当前项目使用手写单例模式（<code>Lazy&lt;T&gt;</code> + <code>Instance</code> 属性）管理所有服务。随着插件数量增长，建议引入 DI 容器（如 <code>Microsoft.Extensions.DependencyInjection</code>）来管理服务生命周期、解析依赖关系，并提升可测试性。
+  </div>
+</div>
+</div>
+
+<div class="issue" style="border-left: 4px solid var(--accent);">
+<div class="issue-header">
+  <div class="info">
+    <div class="title">2. 使用 AssemblyLoadContext 实现插件热卸载</div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    当前使用 <code>Assembly.LoadFrom</code> 加载插件，程序集无法被卸载。.NET Core 提供了 <code>AssemblyLoadContext</code>，允许为每个插件创建独立的加载上下文，支持完全卸载插件并释放内存。这对于长时间运行的桌面应用非常重要。
+  </div>
+</div>
+</div>
+
+<div class="issue" style="border-left: 4px solid var(--accent);">
+<div class="issue-header">
+  <div class="info">
+    <div class="title">3. 添加单元测试</div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    项目中没有任何测试代码。考虑到框架核心逻辑（插件加载、日志系统、AOP拦截、RelayCommand）的复杂度，建议使用 xUnit + Moq 添加单元测试，确保重构和功能迭代时的回归安全。
+  </div>
+</div>
+</div>
+
+<div class="issue" style="border-left: 4px solid var(--accent);">
+<div class="issue-header">
+  <div class="info">
+    <div class="title">4. 统一异步编程模型</div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    项目中混用了 <code>Thread</code>、<code>ThreadPool</code> 和 <code>DispatcherTimer</code>。建议统一使用 <code>async/await</code> 模式，将耗时操作（如 WMI 查询）封装为 <code>Task.Run</code>，将 UI 更新保留在 Dispatcher 线程上。这样代码更简洁且不易产生线程安全问题。
+  </div>
+</div>
+</div>
+
+<div class="issue" style="border-left: 4px solid var(--accent);">
+<div class="issue-header">
+  <div class="info">
+    <div class="title">5. 引入 CommunityToolkit.Mvvm</div>
+  </div>
+</div>
+<div class="issue-body">
+  <div class="desc">
+    推荐引入 <code>CommunityToolkit.Mvvm</code> NuGet 包。它提供了源生成器驱动的 <code>[ObservableProperty]</code>、<code>[RelayCommand]</code> 等特性，可以大幅减少样板代码（<code>INotifyPropertyChanged</code> 实现、<code>ICommand</code> 实现），同时避免手写代码中的错误。
+  </div>
+</div>
+</div>
+
+</div><!-- container -->
+
+<div class="footer">
+  YFrame 代码审查报告 · 生成于 2026-07-09 · 共发现 29 项问题 (4 Critical / 7 High / 10 Medium / 8 Low)
+</div>
+
+</body>
+</html>

@@ -12,20 +12,13 @@ using YF_Manager;
 
 namespace YFrame
 {
-    public partial class MainWindow : Window, I_YF_Detail
+    public partial class MainWindow : Window
     {
-        public string YF_ID => "YF_Frame";
-
-        public string YF_Name => "主框架";
-
-        // 日志对象
-        public static YF_Manager_Log logger;
-
         public MainWindow()
         {
-            logger = new YF_Manager_Log(YF_Name, YF_ID);
             YF_Manager_Main a = new YF_Manager_Main();
             DataContext = MainWindowViewModel.Instance;
+            MainWindowViewModel.Instance.Init();
 
             InitializeComponent();
         }

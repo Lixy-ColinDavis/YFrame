@@ -18,7 +18,7 @@ using Castle.DynamicProxy;
 
 namespace YFrame
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : INotifyPropertyChanged, I_YF_Detail
     {
         #region INotifyPropertyChanged接口实现
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -169,18 +169,30 @@ namespace YFrame
 
         CtrlDataModel CurrentUcDate { get; set; } // 当前显示的插件信息
 
+        public string YF_ID => "YF_Frame";
+
+        public string YF_Name => "主框架";
+
+        // 日志对象
+        public YF_Manager_Log logger;
+
         #endregion
 
         public MainWindowViewModel()
         {
-            MainWindow.logger.LogInfo("主框架初始化-开始");
+            
+        }
+
+        public void Init()
+        {
+            logger = new YF_Manager_Log(YF_Name, YF_ID);
+            logger.LogInfo("主框架初始化-开始");
             InitUI();
             InitCommond();
 
             YF_Manager_Log.d_LogWrite = Show_Log;
-            MainWindow.logger.LogInfo("主框架初始化-完成");
+            logger.LogInfo("主框架初始化-完成");
         }
-
 
 
 
@@ -215,7 +227,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("InitUI", ex.Message);
+                logger.ErrorInfo("InitUI", ex.Message);
             }
         }
 
@@ -229,17 +241,17 @@ namespace YFrame
             { 
                 // 初始化命令
                 // 左抽屉
-                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; MainWindow.logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
                 // 右抽屉
-                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; MainWindow.logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
                 // 关闭按钮
-                Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); MainWindow.logger.LogInfo("退出程序"); });
+                Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); logger.LogInfo("退出程序"); });
                 // 亮色主题
-                ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); MainWindow.logger.LogInfo("主题切换-亮"); });
+                ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); logger.LogInfo("主题切换-亮"); });
                 // 暗色主题
-                ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); MainWindow.logger.LogInfo("主题切换-暗"); });
+                ToggleDarkThemeCommand = new YF_RelayCommand   (() => { App.ChangeTheme("Common/Themes/DarkTheme.xaml"); logger.LogInfo("主题切换-暗"); });
                 // 最小化
-                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; MainWindow.logger.LogInfo("窗体最小化"); });
+                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; logger.LogInfo("窗体最小化"); });
                 // 移动事件
                 Title_Move_Command = new YF_RelayCommand<object>(param =>
                 {
@@ -258,13 +270,13 @@ namespace YFrame
                     }
                     catch (Exception ex)
                     {
-                        MainWindow.logger.ErrorInfo("Title_Move_Command", ex.Message);
+                        logger.ErrorInfo("Title_Move_Command", ex.Message);
                     }
                 });
                 // 中文按钮
-                ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); MainWindow.logger.LogInfo("语言切换-中文"); });
+                ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); logger.LogInfo("语言切换-中文"); });
                 // 英文按钮
-                ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); MainWindow.logger.LogInfo("语言切换-英文"); });
+                ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); logger.LogInfo("语言切换-英文"); });
                 // 插件显示
                 Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => {
                     try
@@ -281,7 +293,7 @@ namespace YFrame
                     }
                     catch (Exception ex)
                     {
-                        MainWindow.logger.ErrorInfo("Btn_Plugin_Show_Command", ex.Message);
+                        logger.ErrorInfo("Btn_Plugin_Show_Command", ex.Message);
                     }
                 });
 
@@ -292,7 +304,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("InitCommond", ex.Message);
+                logger.ErrorInfo("InitCommond", ex.Message);
             }
             
         }
@@ -313,7 +325,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("Move_Window", ex.Message);
+                logger.ErrorInfo("Move_Window", ex.Message);
             }
         }
 
@@ -331,7 +343,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
+                logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
             }
         }
 
@@ -343,11 +355,22 @@ namespace YFrame
         {
             try
             {
-                LogText += msg + "\n";
+                // 确保UI更新在Dispatcher线程上执行
+                if (Application.Current?.Dispatcher.CheckAccess() == true)
+                {
+                    LogText += msg + "\n";
+                }
+                else
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        LogText += msg + "\n";
+                    });
+                }
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("Show_Log", ex.Message);
+                logger.ErrorInfo("Show_Log", ex.Message);
             }
         }
 
@@ -364,17 +387,17 @@ namespace YFrame
             {
                 if(CurrentUcDate == null)
                 {
-                    MainWindow.logger.CommandInfo("[命令无目标插件] : " + command);
+                    logger.CommandInfo("[命令无目标插件] : " + command);
                 }
                 else
                 {
                     CurrentUcDate.CommandHandler.ExecuteCommand(command, parameter);
-                    MainWindow.logger.CommandInfo(command);
+                    logger.CommandInfo(command);
                 }
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("SendCommand", ex.Message);
+                logger.ErrorInfo("SendCommand", ex.Message);
             }
         }
     }

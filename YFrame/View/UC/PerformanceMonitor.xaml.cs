@@ -51,7 +51,7 @@ namespace YFrame
 
         public PerformanceMonitor()
         {
-            MainWindow.logger.LogInfo("性能监视器初始化-开始");
+            MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-开始");
             InitializeComponent();
 
             
@@ -114,7 +114,7 @@ namespace YFrame
                     totalMemoryMB =  Convert.ToInt64(obj["TotalPhysicalMemory"]) / (1024 * 1024); // 转为MB
                 }
 
-                MainWindow.logger.LogInfo($"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
+                MainWindowViewModel.Instance.logger.LogInfo($"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
 
                 // 初始化CPU计数器（全局CPU使用率）
                 cpuCounter = new PerformanceCounter(
@@ -137,7 +137,7 @@ namespace YFrame
             });
             thread.IsBackground = true;
             thread.Start();
-            MainWindow.logger.LogInfo("性能监视器初始化-完成");
+            MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-完成");
         }
 
         // 刷新性能数据
@@ -165,7 +165,7 @@ namespace YFrame
                 MainWindowViewModel.dlg_Show_Cpu_Memory(cpuUsage.ToString("0.0"), $"{(usedMemoryMB / 1024).ToString("0.0")}/{(totalMemoryMB / 1024).ToString("0.0")}");
 
                 if(CounterTimes++ % 12 == 0)
-                    MainWindow.logger.LogInfo($"" +
+                    MainWindowViewModel.Instance.logger.LogInfo($"" +
                         $"CPU:{cpuUsage.ToString("0.0")}%  " +
                         $"内存:{(usedMemoryMB / 1024).ToString("0.0")}GB/{(totalMemoryMB / 1024).ToString("0.0")}GB"
                         );
@@ -173,7 +173,7 @@ namespace YFrame
             catch (Exception ex)
             {
                 // 由于 Windows 性能计数器损坏 => cmd lodctr / R
-                MainWindow.logger.ErrorInfo("UpdatePerformanceData" , ex.Message);
+                MainWindowViewModel.Instance.logger.ErrorInfo("UpdatePerformanceData" , ex.Message);
             }
         }
 
@@ -199,7 +199,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindow.logger.ErrorInfo("UpdateChartData", ex.Message);
+                MainWindowViewModel.Instance.logger.ErrorInfo("UpdateChartData", ex.Message);
             }
         }
 
