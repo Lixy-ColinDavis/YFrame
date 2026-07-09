@@ -176,9 +176,10 @@ namespace YFrame
         // 日志对象
         public YF_Manager_Log logger;
 
-
         private readonly StringBuilder _logBuilder = new StringBuilder(); // 日志显示字符串
         private const int MaxLogLines = 500;    // 日志最大行数
+        private readonly object _logLock = new();   // 日志锁
+        private int _logLineCount = 0;
 
         #endregion
 
@@ -287,13 +288,19 @@ namespace YFrame
                     {
                         Grid_Show_Array.Children.Clear();
 
-                        var v = UserControlsService.Instance.DctControls.First(x => x.Key == parameter);
-                        //// 读取并加载、显示目标插件
-                        CurrentUcDate = v.Value;
-                        UserControlsService.Instance.ShowUserControl(v.Key);
-                        UserControl uc = CurrentUcDate.userControl;
-                        //CurrentUcDate.CommandHandler.ExecuteCommand("加载...");
-                        Grid_Show_Array.Children.Add(uc);
+                        if (!UserControlsService.Instance.DctControls.TryGetValue(parameter, out var ctrlData))
+                        {
+                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 未找到");
+                            return;
+                        }
+
+                        CurrentUcDate = ctrlData;
+                        UserControlsService.Instance.ShowUserControl(parameter);
+                        UserControl? uc = CurrentUcDate.userControl;
+                        if (uc != null)
+                            Grid_Show_Array.Children.Add(uc);
+                        else
+                            logger.ErrorInfo("Btn_Plugin_Show_Command", $"插件 {parameter} 加载失败");
                     }
                     catch (Exception ex)
                     {
@@ -361,21 +368,29 @@ namespace YFrame
         {
             try
             {
-                _logBuilder.AppendLine(msg);
-
-                // 限制最大行数（从头部裁剪）
-                var text = _logBuilder.ToString();
-                var lines = text.Split('\n');
-                if (lines.Length > MaxLogLines)
+                lock (_logLock)
                 {
-                    _logBuilder.Clear();
-                    _logBuilder.AppendJoin("\n", lines.Skip(lines.Length - MaxLogLines));
+                    _logBuilder.AppendLine(msg);
+                    _logLineCount++;
+
+                    // 从头部裁剪超出行数
+                    while (_logLineCount > MaxLogLines)
+                    {
+                        var text = _logBuilder.ToString();
+                        var newlineIdx = text.IndexOf('\n');
+                        if (newlineIdx < 0) break;
+                        _logBuilder.Remove(0, newlineIdx + 1);
+                        _logLineCount--;
+                    }
                 }
 
+                var currentText = "";
+                lock (_logLock) { currentText = _logBuilder.ToString(); }
+
                 if (Application.Current?.Dispatcher.CheckAccess() == true)
-                    LogText = _logBuilder.ToString();
+                    LogText = currentText;
                 else
-                    Application.Current?.Dispatcher.Invoke(() => LogText = _logBuilder.ToString());
+                    Application.Current?.Dispatcher.Invoke(() => LogText = currentText);
             }
             catch (Exception ex) { logger.ErrorInfo("Show_Log", ex.Message); }
         }

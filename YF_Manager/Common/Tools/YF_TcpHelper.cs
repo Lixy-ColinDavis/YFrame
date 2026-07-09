@@ -36,9 +36,7 @@ namespace YF_Manager
 
                 Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
                 if (match.Success)
-                {
                     return IPAddress.Parse(match.Groups[^1].Value);
-                }
                 return null;
             }
             catch (Exception ex)

@@ -39,26 +39,22 @@ namespace YFrame
         /// <param name="commandHandler">创建的 ViewModel 对应的 I_YF_Command 接口</param>
         /// <returns>加载成功返回 true，类型解析失败返回 false</returns>
         private static bool TryLoadPlugin(string assemblyPath, string pluginName,
-            out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
+    out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
         {
-            userControl = null;
-            detail = null;
-            commandHandler = null;
-
+            userControl = null; detail = null; commandHandler = null;
             Assembly assembly = Assembly.LoadFrom(assemblyPath);
             Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
             Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
-
             if (userControlType == null || viewModelType == null)
                 return false;
-
+            if (!typeof(UserControl).IsAssignableFrom(userControlType))
+                return false;
             var viewModel = Activator.CreateInstance(viewModelType);
             object uc = Activator.CreateInstance(userControlType);
-
             detail = viewModel as I_YF_Detail;
             commandHandler = viewModel as I_YF_Command;
             userControl = uc as UserControl;
-            return true;
+            return userControl != null;
         }
 
         /// <summary>
@@ -164,14 +160,6 @@ namespace YFrame
                         {
                             ctrlData.userControl = userControl;
                             ctrlData.CommandHandler = commandHandler;
-
-                            if (commandHandler != null)
-                            {
-                                commandHandler.OnPluginCallback += (sender, e) =>
-                                {
-                                    HandlePluginCallback(detail.YF_ID, e);
-                                };
-                            }
                         }
                         else
                         {
@@ -186,10 +174,6 @@ namespace YFrame
                                 HandlePluginCallback(detail.YF_ID, e);
                             };
                         }
-                    }
-                    else
-                    {
-                        MainWindowViewModel.Instance.logger.LogInfo("ShowUserControl: ", s + "插件IDetail接口读取失败");
                     }
                 }
 

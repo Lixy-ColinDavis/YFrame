@@ -152,7 +152,6 @@ namespace YFrame
                 UpdateChartData(cpuUsage, memoryUsagePercent);
 
                 // 更新标签（可选：显示最新数据）
-                Labels = new[] { "25秒前", "20秒前", "15秒前", "10秒前", "5秒前", "现在" };
                 OnPropertyChanged(nameof(Labels)); // 通知UI更新
 
                 MainWindowViewModel.dlg_Show_Cpu_Memory(cpuUsage.ToString("0.0"), $"{(usedMemoryMB / 1024).ToString("0.0")}/{(totalMemoryMB / 1024).ToString("0.0")}");
