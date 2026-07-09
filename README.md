@@ -1,49 +1,794 @@
-# YFrame
+# YFrame 项目介绍
 
-YF软件框架，基于C#.NET8.0，WPF开发，采用MVVM框架，AOP面向切片设计，抽屉界面风格设计，可根据需求自定义添加和修改插件，持续开发中...
+> **YFrame** — 基于 C# .NET 8.0 + WPF 的模块化桌面应用框架，采用抽屉式 IDE 风格外壳，通过反射动态加载插件，为各类开发者工具提供统一的运行平台。
 
-### 项目结构
-- YFrame.sln
-- YF_Manager	(框架通用管理库)
-  - Common	(通用工具库)
-    - Attributes (特性）
-    - Intercepterceptor (拦截器）
-  - Interface	(接口库)
-  - YF_Manager.cs
-- YFrame	(框架主体)
-  - Common	(工具库)
-    - Language	(语言类)
-    - Themes	(主题类)
-  - Model	（模型类）
-  - View	(视图类)
-  - ViewModel (视图模型类)
-    - Service	(服务类)
-  - MainWindow.xaml</span>
+---
 
+## 目录
 
-### 主框架功能列表
+1. [架构总览](#1-架构总览)
+2. [设计模式](#2-设计模式)
+3. [项目结构](#3-项目结构)
+4. [核心机制详解](#4-核心机制详解)
+   - [4.1 插件系统](#41-插件系统)
+   - [4.2 AOP 日志拦截](#42-aop-日志拦截)
+   - [4.3 全局日志系统](#43-全局日志系统)
+   - [4.4 主题与多语言](#44-主题与多语言)
+   - [4.5 性能监控](#45-性能监控)
+   - [4.6 命令与事件通信](#46-命令与事件通信)
+5. [插件生态](#5-插件生态)
+6. [技术栈详情](#6-技术栈详情)
+7. [数据流与生命周期](#7-数据流与生命周期)
 
-1. CPU内存性能监视器
+---
 
-2. 全局Log同步监控
+## 1. 架构总览
 
-3. 全局主题切换
+### 1.1 分层架构
 
-4. 多语言系统
+```
+┌────────────────────────────────────────────────────────────────┐
+│                      表示层 (Presentation)                      │
+│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  MainWindow  │  │PerformanceMonitor│  │  插件 UserControl │  │
+│  │  (Shell 窗口)│  │  (LiveCharts 图表)│  │  (动态加载的 UI)  │  │
+│  └──────┬───────┘  └────────┬─────────┘  └────────┬─────────┘  │
+│         │                   │                     │             │
+├─────────┼───────────────────┼─────────────────────┼─────────────┤
+│         │         视图模型层 (ViewModel)           │             │
+│  ┌──────▼──────────┐  ┌─────▼──────────┐  ┌──────▼──────────┐   │
+│  │ MainWindowVM    │  │ PerfMonitor    │  │ 插件 ViewModel  │   │
+│  │ (单例 + AOP)    │  │ (后台线程采集)  │  │ (单例 + AOP)     │   │
+│  └──────┬──────────┘  └─────┬──────────┘  └──────┬──────────┘   │
+│         │                   │                     │             │
+├─────────┼───────────────────┼─────────────────────┼─────────────┤
+│         │           模型层 (Model)                 │             │
+│  ┌──────▼──────────┐  ┌─────▼──────────┐                        │
+│  │  PluginsModel   │  │  CtrlDataModel │                        │
+│  │  (插件列表项)    │  │  (运行时实例)   │                        │
+│  └─────────────────┘  └────────────────┘                         │
+├──────────────────────────────────────────────────────────────────┤
+│                      服务层 (Service)                             │
+│  ┌──────────────────────────────────────────────────────────────┐ │
+│  │  UserControlsService (单例 + AOP)                            │ │
+│  │  · 插件扫描 · 程序集加载 · 类型反射 · 实例化 · 生命周期管理      │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────────┤
+│                   基础设施层 (Infrastructure)                     │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐              │
+│  │ LogInterceptor│ │ YF_Manager_Log│ │ YF_RelayCommand│          │
+│  │ (AOP 方法拦截) │ │ (文件日志系统) │ │ (ICommand 封装) │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘              │
+│  ┌──────────────┐ ┌──────────────┐                               │
+│  │ I_YF_Detail  │ │ I_YF_Command │                               │
+│  │ (插件元数据)   │ │ (命令/回调)   │                              │
+│  └──────────────┘ └──────────────┘                               │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-5. 反射灵活加载插件、回调等避免额外性能占用
+### 1.2 解决方案组成
 
-6. 特性+拦截器日志自动化
+解决方案 `YFrame.sln` 包含两个项目：
 
-### 已开发插件
+| 项目 | 类型 | 输出 | 说明 |
+|------|------|------|------|
+| **YFrame** | WPF Application (`WinExe`) | `YFrame.exe` | 主框架外壳，负责窗口管理、插件加载、主题/语言切换、性能监控 |
+| **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架 |
 
-1. AI对话助手本地部署
+### 1.3 依赖关系
 
-2. OCR屏幕一键截屏翻译（英-中）
+```
+YFrame.exe ──→ YF_Manager.dll ──→ Castle.Core (AOP)
+    │                                 │
+    │  运行时反射加载                  │  编译时引用
+    ▼                                 ▼
+plugins/                       所有插件项目
+  ├── YF_AIHelper.dll ──────────→ YF_Manager.dll + LLamaSharp
+  ├── YF_HttpServer.dll ────────→ YF_Manager.dll
+  ├── YF_KMScript.dll ──────────→ YF_Manager.dll
+  └── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
+```
 
-3. HTTP文件服务器一键部署
+**关键设计决策：** YFrame 与插件之间**没有编译时依赖**。框架通过 `YF_Manager.dll` 中定义的接口契约（`I_YF_Detail`、`I_YF_Command`）与插件通信，插件在运行时通过反射被发现和加载，实现了完全的**编译时解耦**。
 
-4. TCP局域网自动发现、聊天、大文件互传
+---
+
+## 2. 设计模式
+
+本项目综合运用了多种经典设计模式，构建了一个松耦合、可扩展的插件化架构。
+
+### 2.1 模式总览
+
+| 设计模式 | 应用位置 | 解决的问题 |
+|----------|----------|-----------|
+| **单例模式 (Singleton)** | `MainWindowViewModel`、`UserControlsService`、所有插件 ViewModel | 确保全局唯一实例，避免状态分散 |
+| **代理模式 (Proxy) / AOP** | `LogInterceptor` + Castle.Core `ProxyGenerator` | 在不修改业务代码的前提下，透明地注入日志记录逻辑 |
+| **观察者模式 (Observer)** | `INotifyPropertyChanged` + 数据绑定、`OnPluginCallback` 事件 | View 与 ViewModel 解耦；插件向宿主回传数据 |
+| **命令模式 (Command)** | `YF_RelayCommand` / `YF_RelayCommand<T>` | 将 UI 操作抽象为可绑定、可测试的命令对象 |
+| **策略模式 (Strategy)** | 主题切换（`ResourceDictionary` 替换）、语言切换 | 运行时动态替换行为（外观/文本），无需修改代码 |
+| **工厂模式 (Factory)** | `UserControlsService.TryLoadPlugin()` 反射创建实例 | 根据运行时发现的类型信息动态创建插件实例 |
+| **外观模式 (Facade)** | `YF_Manager_Log` | 将文件 I/O、日志分类、轮转、UI 回传等复杂性封装为简单接口 |
+| **模板方法 (Template Method)** | `LogInterceptor.Intercept()` | 定义日志拦截骨架（记录开始→记录参数→执行→记录结果），子步骤可定制 |
+| **依赖倒置 (DIP)** | `I_YF_Detail`、`I_YF_Command` 接口 | 宿主依赖抽象接口而非具体插件实现 |
+
+### 2.2 单例 + AOP 代理（核心模式）
+
+这是整个框架中**使用最广泛**的组合模式，每一个核心组件都遵循此模式：
+
+```csharp
+// 模式定义（以 MainWindowViewModel 为例）
+public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
+    () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor())
+);
+public static MainWindowViewModel Instance => _instance.Value;
+```
+
+**设计要点：**
+
+1. **`Lazy<T>` 保证线程安全** — 避免 `double-check locking` 的复杂性和潜在 bug
+2. **`ProxyGenerator.CreateClassProxy<T>()`** — Castle.Core 动态生成代理类，继承目标类并拦截所有 `virtual` 方法
+3. **`LogInterceptor`** — 在方法调用前后自动注入日志逻辑（记录方法名、参数、返回值、耗时）
+4. **方法必须为 `virtual`** — Castle.Core 的类代理要求被拦截方法可重写
+
+**采用此模式的类：**
+
+| 类 | 所属项目 | 角色 |
+|----|----------|------|
+| `MainWindowViewModel` | YFrame | 主窗口视图模型 |
+| `UserControlsService` | YFrame | 插件加载服务 |
+| `YF_AIHelper.MainControlViewModel` | 插件 | AI 助手视图模型 |
+| `YF_HttpServer.MainControlViewModel` | 插件 | HTTP 服务器视图模型 |
+| `YF_HttpServer.HttpService` | 插件 | HTTP 服务器核心服务 |
+| `YF_KMScript.MainControlViewModel` | 插件 | 脚本编辑器视图模型 |
+| `YF_ScreenOCRTranslate.MainControlViewModel` | 插件 | OCR 翻译视图模型 |
+| `YF_ScreenOCRTranslate.ScreenShotViewModel` | 插件 | 截图选区域视图模型 |
+| `YF_ScreenOCRTranslate.TranslateService` | 插件 | 翻译服务 |
+
+### 2.3 MVVM 架构模式
+
+```
+┌──────────────────────┐
+│       View (XAML)    │  ← 数据绑定 (DataContext)
+│  MainWindow.xaml     │  ← ICommand 绑定 (Btn_Plugin_Show_Command)
+│  插件 UserControl    │  ← 模板绑定 (ItemsControl + DataTemplate)
+└──────────┬───────────┘
+           │  DataContext = MainWindowViewModel.Instance
+┌──────────▼───────────┐
+│    ViewModel         │
+│  · INotifyPropertyChanged │ → 属性变更通知 View
+│  · ICommand (RelayCommand)│ → 处理 View 的用户操作
+│  · 业务逻辑              │ → 调用 Service 层
+└──────────┬───────────┘
+           │
+┌──────────▼───────────┐
+│       Model          │
+│  PluginsModel        │ → 插件列表数据
+│  CtrlDataModel       │ → 运行时插件实例数据
+└──────────────────────┘
+```
+
+**数据绑定流：**
+- View 通过 `{Binding LeftVisible}` 绑定到 ViewModel 属性
+- ViewModel 通过 `OnPropertyChanged()` 通知 View 更新
+- 按钮 Command 通过 `{Binding Btn_Plugin_Show_Command}` 绑定到 `YF_RelayCommand`
+- 插件列表通过 `ItemsControl` + `DataTemplate` + `ObservableCollection<PluginsModel>` 动态渲染
+
+### 2.4 插件契约模式（接口隔离）
+
+```
+I_YF_Detail                  I_YF_Command
+┌─────────────┐              ┌─────────────────────┐
+│ YF_ID       │              │ ExecuteCommand()    │
+│ YF_Name     │              │ OnPluginCallback    │
+└─────────────┘              └─────────────────────┘
+      ▲                              ▲
+      │        插件 ViewModel 实现    │
+      └──────────────┬───────────────┘
+                     │
+         ┌───────────┴───────────┐
+         │ MainControlViewModel  │
+         │(每个插件都实现这两个接口)│
+         └───────────────────────┘
+```
+
+- **`I_YF_Detail`** — 提供插件身份标识（ID + Name），框架用它构建插件列表
+- **`I_YF_Command`** — 提供命令执行入口（`ExecuteCommand`）和事件回调（`OnPluginCallback`），实现框架与插件的双向通信
+
+### 2.5 策略模式 — 主题与语言切换
+
+主题和语言系统采用纯策略模式，通过**运行时替换 `ResourceDictionary`** 实现：
+
+```
+Application.Current.Resources.MergedDictionaries
+│
+├── DarkTheme.xaml   ←── 替换 ──→ LightTheme.xaml
+├── zh-CN.xaml       ←── 替换 ──→ en-US.xaml
+└── ...
+```
+
+- 切换操作：移除旧字典 → 添加新字典
+- XAML 中通过 `{DynamicResource key}` 引用资源，确保切换后自动刷新
+- 无状态管理：主题和语言不保存在 ViewModel 中，完全由 `ResourceDictionary` 控制
+
+---
+
+## 3. 项目结构
+
+```
+YFrame/
+├── YFrame.sln                          # Visual Studio 2022 解决方案
+├── README.md                           # 项目简要说明
+│
+├── YFrame/                             # 主框架项目 (WPF Application)
+│   ├── App.xaml                        # 应用启动配置（默认暗色主题 + 中文）
+│   ├── App.xaml.cs                     # 入口逻辑 + ChangeTheme() / ChangeLanguage()
+│   ├── MainWindow.xaml                 # 主窗口布局（三栏 DockPanel + Menu + StatusBar）
+│   ├── MainWindow.xaml.cs              # 主窗口代码后置（设置 DataContext）
+│   ├── ViewModel/
+│   │   ├── MainWindowViewModel.cs      # 核心 ViewModel（单例 + AOP，管理全部 UI 状态和命令）
+│   │   └── Service/
+│   │       └── UserControlsService.cs  # 插件加载服务（单例 + AOP，反射扫描/加载/实例化）
+│   ├── Model/
+│   │   ├── PluginsModel.cs             # 插件列表项模型（Name, ID, Status）
+│   │   ├── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
+│   │   └── CtrlParamModel.cs           # 参数模型（预留）
+│   ├── View/UC/
+│   │   └── PerformanceMonitor.xaml/.cs # CPU/内存实时监控图表（LiveCharts）
+│   └── Common/
+│       ├── Themes/
+│       │   ├── DarkTheme.xaml          # 暗色主题（#303030/#505050 深色系）
+│       │   └── LightTheme.xaml         # 亮色主题（浅灰/白色系）
+│       └── Language/
+│           ├── zh-CN.xaml              # 简体中文字符串资源
+│           └── en-US.xaml              # 英文字符串资源
+│
+├── YF_Manager/                         # 共享框架库 (Class Library)
+│   ├── YF_Manager.cs                   # 静态入口类（持有静态 logger 实例）
+│   ├── Interface/
+│   │   ├── I_YF_Detail.cs              # 插件元数据接口（YF_ID, YF_Name）
+│   │   └── I_YF_Command.cs             # 插件命令接口（ExecuteCommand, OnPluginCallback）
+│   └── Common/
+│       ├── Config.cs                   # 全局常量（日志路径、插件路径、TCP 端口等）
+│       ├── Attributes/
+│       │   └── LogAttribute.cs         # [Log] 自定义特性（Level + Message）
+│       ├── Interceptors/
+│       │   └── LogInterceptor.cs       # Castle.Core IInterceptor 实现（方法级日志拦截）
+│       ├── Tools/
+│       │   ├── YF_Manager_Log.cs       # 文件日志系统（HTML 格式、按天/类型分文件、1MB 轮转）
+│       │   └── YF_TcpHelper.cs         # 网络工具（获取网关 IP、本机 IP）
+│       ├── YF_RelayCommand.cs          # ICommand 实现（无参版 + 泛型版）
+│       └── YF_DelegateFunctionModel.cs # 委托类型声明
+│
+└── Review/                             # 代码审查报告与项目文档
+```
+
+---
+
+## 4. 核心机制详解
+
+### 4.1 插件系统
+
+插件系统是整个框架最核心的设计，实现了**完全动态的插件发现、加载、实例化和通信**。
+
+#### 4.1.1 插件发现与加载流程
+
+```
+应用启动
+    │
+    ▼
+MainWindowViewModel.Init()
+    │
+    ▼
+UserControlsService.LoadAndShowUserControl()
+    │
+    ├── 1. 扫描 plugins/ 目录下所有子文件夹
+    │      Directory.GetDirectories("plugins")
+    │
+    ├── 2. 在每个子文件夹中查找 YF_*.dll 文件
+    │      Directory.GetFiles(item, "YF_*.dll")
+    │
+    ├── 3. 过滤掉 YF_Manager.dll（框架库，非插件）
+    │      if (s == "YF_Manager") continue;
+    │
+    ├── 4. 反射加载程序集
+    │      Assembly.LoadFrom(assemblyPath)
+    │
+    ├── 5. 获取约定的类型
+    │      assembly.GetType($"{pluginName}.MainControl")       → UserControl
+    │      assembly.GetType($"{pluginName}.MainControlViewModel") → ViewModel
+    │
+    └── 6. 实例化并注册
+           Activator.CreateInstance(viewModelType)
+           ├── 验证是否实现 I_YF_Detail（获取 ID 和 Name）
+           └── 存入 DctControls 字典
+```
+
+#### 4.1.2 懒加载策略
+
+插件加载分为两个阶段，最大化节约内存：
+
+| 阶段 | 时机 | 操作 | 内存占用 |
+|------|------|------|----------|
+| **元数据扫描** | 应用启动 | 反射获取 `I_YF_Detail`（ID + Name），存入 `DctControls` | 仅元数据 |
+| **实例化** | 用户点击"显示"按钮 | 创建 `UserControl` 实例，注入到 `Grid_Show_Array` | 完整插件实例 |
+
+#### 4.1.3 插件开发规范
+
+每个插件必须满足以下约定：
+
+| 约定项 | 规范 |
+|--------|------|
+| **命名空间** | 与 DLL 文件名相同（如 `YF_AIHelper.dll` → namespace `YF_AIHelper`） |
+| **入口控件** | `{命名空间}.MainControl`，继承 `UserControl` |
+| **视图模型** | `{命名空间}.MainControlViewModel`，实现 `I_YF_Detail` + `I_YF_Command` |
+| **输出目录** | 编译到 `plugins/{命名空间}/` 目录下 |
+| **依赖** | 必须引用 `YF_Manager.dll` |
+
+#### 4.1.4 双向通信机制
+
+```
+┌──────────────────────────────────────────────────────┐
+│                    YFrame 宿主                       │
+│                                                      │
+│  MainWindowViewModel.SendCommand("command", param)   │
+│      │                                               │
+│      ▼                                               │
+│  plugin.CommandHandler.ExecuteCommand("cmd", param)  │
+│      │                                               │
+│      │         ┌──────────────┐                      │
+│      │  调用   │  插件 ViewModel │  事件回调          │
+│      └───────→ │  (I_YF_Command)│ ─────────→         │
+│                └──────────────┘           │          │
+│                                           ▼          │
+│                              OnPluginCallback 事件   │
+│                              HandlePluginCallback()  │
+└──────────────────────────────────────────────────────┘
+```
+
+### 4.2 AOP 日志拦截
+
+框架采用 **Castle.Core DynamicProxy** 实现面向切面编程（AOP），在不侵入业务代码的前提下实现全自动的方法级日志记录。
+
+#### 4.2.1 工作流程
+
+```
+调用者
+  │
+  ▼
+代理对象 (Proxy) ──→ LogInterceptor.Intercept(invocation)
+  │                         │
+  │                         ├── 1. 检查方法是否有 [Log] 特性
+  │                         │      · 无特性 → 直接执行原方法
+  │                         │      · 有特性 → 继续拦截
+  │                         │
+  │                         ├── 2. 启动 Stopwatch 计时
+  │                         │
+  │                         ├── 3. 记录方法名、参数名和参数值
+  │                         │
+  │                         ├── 4. 调用 invocation.Proceed() 执行原方法
+  │                         │      ├── 同步方法 → 直接等待完成
+  │                         │      └── 异步方法 (Task/Task<T>)
+  │                         │           → InterceptAsync() 等待完成
+  │                         │
+  │                         ├── 5. 记录返回值 + 执行耗时
+  │                         │
+  │                         └── 6. 异常时记录错误信息并重新抛出
+  │
+  ▼
+返回结果
+```
+
+#### 4.2.2 异步方法处理
+
+拦截器通过 `dynamic` 分发自动区分两种异步模式：
+
+```csharp
+bool isAsync = invocation.Method.ReturnType == typeof(Task) ||
+               (invocation.Method.ReturnType.IsGenericType &&
+                invocation.Method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+
+if (isAsync)
+    invocation.ReturnValue = InterceptAsync((dynamic)invocation.ReturnValue, ...);
+```
+
+- **`Task`（无返回值）** → `InterceptAsync(Task, ...)` → `await task` 后记录完成
+- **`Task<T>`（有返回值）** → `InterceptAsync<T>(Task<T>, ...)` → `await task` 后记录返回值
+
+#### 4.2.3 日志输出示例
+
+```
+[2026-07-09 10:30:00] 执行开始 | 初始化UI | 函数位置：YFrame.MainWindowViewModel.InitUI
+[2026-07-09 10:30:00] 执行完成 | 初始化UI 耗时: 245ms | 函数位置：YFrame.MainWindowViewModel.InitUI
+```
+
+### 4.3 全局日志系统
+
+#### 4.3.1 系统架构
+
+```
+任意组件
+  │
+  ├── logger.LogInfo(msg)    ──→ Write(InfoLog/*.htm)
+  ├── logger.DebugInfo(msg)  ──→ Write(DebugLog/*.htm) + LogInfo()
+  ├── logger.ErrorInfo(...)  ──→ Write(ErrorLog/*.htm) + LogInfo()
+  ├── logger.CommandInfo(msg)──→ Write(CommandLog/*.htm) + LogInfo()
+  ├── logger.TcpInfo(msg)    ──→ Write(TcpLog/*.htm)
+  └── logger.InterceptorsLog  ──→ Write(InterceptorsLog/*.htm) + LogInfo()
+       │
+       └── d_LogWrite 委托 ──→ MainWindowViewModel.Show_Log() ──→ UI TextBox
+```
+
+#### 4.3.2 日志分类
+
+| 日志类型 | 目录 | 内容 |
+|----------|------|------|
+| **InfoLog** | `Log/InfoLog/` | 所有 Info 级别日志的聚合（各类型日志也会写入此目录） |
+| **DebugLog** | `Log/DebugLog/` | 调试信息（插件扫描、加载过程） |
+| **ErrorLog** | `Log/ErrorLog/` | 错误信息（异常详情、堆栈信息） |
+| **CommandLog** | `Log/CommandLog/` | 命令执行记录（框架→插件命令） |
+| **TcpLog** | `Log/TcpLog/` | 网络通信日志（TCP 发现、连接） |
+| **InterceptorsLog** | `Log/InterceptorsLog/` | AOP 拦截器日志（方法调用记录） |
+
+#### 4.3.3 日志特性
+
+- **文件格式：** HTML（`.htm`），带 `<HR>` 分隔线，方便浏览器查看
+- **文件命名：** 按日期分文件（`yyyy-MM-dd.htm`），每天自动新建
+- **自动轮转：** 单文件超过 1MB 时自动重命名为 `*_1.htm`、`*_2.htm` ... `*_999.htm`
+- **线程安全：** 全局 `_fileLock` 对象保证多线程写入安全
+- **UI 实时显示：** 通过静态委托 `d_LogWrite` 将日志推送到主窗口右侧面板
+- **UI 容量控制：** 内存中保留最近 500 行日志，使用 `StringBuilder` 高效裁剪
+- **日志自身容错：** 日志写入失败时输出到 `Debug.WriteLine()` 和 `Trace`，不会拖垮主程序
+
+### 4.4 主题与多语言
+
+#### 4.4.1 主题系统
+
+```
+App.ChangeTheme(themePath)
+    │
+    ├── 1. 在 MergedDictionaries 中查找含 "Theme" 的旧字典
+    ├── 2. 移除旧字典
+    └── 3. 加载新字典 → Application.Current.Resources.MergedDictionaries.Add(newTheme)
+```
+
+| 主题 | 文件 | 主色调 |
+|------|------|--------|
+| 暗色 (Dark) | `DarkTheme.xaml` | 背景 `#303030` / `#505050`，文字 `#F0F0F0` |
+| 亮色 (Light) | `LightTheme.xaml` | 背景浅灰/白，文字 `#333333` |
+
+XAML 中通过 `{DynamicResource key}` 引用资源，切换时所有绑定控件自动刷新。
+
+#### 4.4.2 多语言系统
+
+| 语言 | 文件 | 切换方式 |
+|------|------|----------|
+| 简体中文 | `zh-CN.xaml` | `App.ChangeLanguage("zh")` |
+| English | `en-US.xaml` | `App.ChangeLanguage("en")` |
+
+- 界面文本通过 `{DynamicResource key_XXX}` 绑定
+- 切换时替换 `MergedDictionaries` 中的语言字典
+
+### 4.5 性能监控
+
+`PerformanceMonitor` 是一个独立的 `UserControl`，实时展示系统 CPU 和内存使用率。
+
+#### 4.5.1 数据采集
+
+| 指标 | 数据源 | 方式 |
+|------|--------|------|
+| **CPU** | `PerformanceCounter("Processor", "% Processor Time", "_Total")` | 先调用 `NextValue()` 预热，再采集实际值 |
+| **内存** | WMI `Win32_ComputerSystem.TotalPhysicalMemory` + `PerformanceCounter("Memory", "Available MBytes")` | 总内存(GB) = WMI 总量 − 可用内存 |
+
+#### 4.5.2 渲染机制
+
+- **图表库：** LiveCharts.Wpf `CartesianChart`（折线图）
+- **采样周期：** 5 秒/次（`ThreadPool` 后台线程 + `Dispatcher.Invoke` 回到 UI 线程）
+- **数据窗口：** 滚动保留最近 30 秒（6 个数据点）
+- **状态栏推送：** 通过静态委托 `dlg_Show_Cpu_Memory` 同步更新底部状态栏文字
+
+### 4.6 命令与事件通信
+
+#### 4.6.1 RelayCommand
+
+框架实现了两个版本的 `ICommand`：
+
+```
+YF_RelayCommand              YF_RelayCommand<T>
+┌────────────────┐           ┌──────────────────┐
+│ Action _execute │           │ Action<T> _execute│
+│ Func<bool>      │           │ Func<T,bool>      │
+│ _canExecute     │           │ _canExecute       │
+└────────────────┘           └──────────────────┘
+```
+
+- `CanExecuteChanged` 委托给 `CommandManager.RequerySuggested`，由 WPF 自动管理
+- 构造函数中 `_execute` 参数通过 `ArgumentNullException` 防护
+
+#### 4.6.2 事件驱动通信
+
+```
+MainWindowViewModel              UserControlsService           Plugin ViewModel
+       │                               │                            │
+       │ ShowUserControl(pluginId)     │                            │
+       │──────────────────────────────→│                            │
+       │                               │ Load assembly + create     │
+       │                               │───────────────────────────→│
+       │                               │                            │
+       │                               │   Hook OnPluginCallback    │
+       │                               │←───────────────────────────│
+       │                               │                            │
+       │                     HandlePluginCallback()                 │
+       │←──────────────────────────────│                            │
+       │                               │                            │
+       │  SendCommand("cmd", param)    │                            │
+       │──────────────────────────────────────────────────────────→ │
+       │                               │       ExecuteCommand()     │
+```
+
+**三种通信路径：**
+1. **宿主 → 插件：** `MainWindowViewModel.SendCommand()` → `I_YF_Command.ExecuteCommand()`
+2. **插件 → 宿主：** `OnPluginCallback` 事件 → `UserControlsService.HandlePluginCallback()`
+3. **任意组件 → UI 日志面板：** 静态委托 `d_LogWrite` → `MainWindowViewModel.Show_Log()`
+
+---
+
+## 5. 插件生态
+
+当前已开发四款插件，覆盖 AI、网络、自动化、OCR 翻译四大场景。
+
+### 5.1 插件总览
+
+| 插件 | ID | 名称 | 核心依赖 | 一句话描述 |
+|------|-----|------|----------|-----------|
+| **YF_AIHelper** | `YF_AIHelper` | AI 助手 | LLamaSharp 0.24.0 + CUDA 12 | 本地 LLM 推理的 AI 对话助手 |
+| **YF_HttpServer** | `YF_HttpServer` | Http 文件助手 | `HttpListener`（框架内置） | 一键启动的轻量级 HTTP 文件服务器 |
+| **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | 无额外依赖 | 中文 DSL 键鼠自动化脚本引擎 |
+| **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
+
+### 5.2 YF_AIHelper — AI 助手
+
+**功能描述：** 基于 LLamaSharp 加载本地 GGUF 格式大语言模型，在本地完成推理，无需联网。支持 GPU 加速（CUDA 12）。
+
+**技术实现：**
+- 使用 `LLamaWeights.LoadFromFile()` 加载 GGUF 模型文件
+- 通过 `LLamaContext` 创建推理上下文
+- `ChatSession` 管理多轮对话历史
+- 聊天消息通过 `ObservableCollection<ChatMessage>` 绑定到 UI 列表
+- 发送消息支持按钮点击和 Enter 键（通过 `KeyBinding`）
+
+**核心 NuGet 依赖：**
+- `LLamaSharp` 0.24.0 — llama.cpp 的 .NET 绑定
+- `LLamaSharp.Backend.Cuda12` 0.24.0 — CUDA 12 GPU 加速后端
+
+### 5.3 YF_HttpServer — HTTP 文件助手
+
+**功能描述：** 基于 `HttpListener` 实现的一键式 HTTP 文件服务器。自动获取本机 IP，提供目录浏览、文件下载和文件上传功能。
+
+**技术实现：**
+- `HttpListener` 监听指定端口（默认 8000），在后台线程运行
+- `ProcessRequest()` 处理 GET 请求：生成 HTML 目录列表（`GenerateDirectoryListing()`）或返回文件内容（含 MIME 类型检测 `GetMimeType()`）
+- `ProcessUploadRequest()` 处理 POST 请求：从 `X-FileName` 头获取文件名
+- 启动/停止按钮通过 `YF_RelayCommand` 的 `CanExecute` 控制互斥状态
+- 自动通过 `YF_TcpHelper.GetLocalIP()` 获取本机 IP
+
+### 5.4 YF_KMScript — 脚本编辑器
+
+**功能描述：** 提供中文关键字 DSL 的键鼠自动化脚本编辑和解释执行环境。
+
+**DSL 语法规则：**
+
+| 关键字 | 语法 | 说明 |
+|--------|------|------|
+| `定义` | `定义 变量名 = 值` | 变量声明与赋值（支持字符串 `"..."` 和整数） |
+| `找图` | `找图 变量名` | 模拟屏幕找图（返回坐标存入 `变量名位置`） |
+| `点击` | `点击 变量名` | 模拟鼠标点击到指定坐标 |
+| `等待` | `等待 毫秒` | 线程休眠 |
+| `循环` | `循环 N 次 ... 结束循环` | 循环结构（支持嵌套） |
+| `输出` | `输出 内容` | 打印到输出面板 |
+| `//` | `// 注释内容` | 单行注释 |
+
+**技术实现：**
+- `ScriptInterpreter` 类逐行解析脚本
+- 变量存储在 `Dictionary<string, object>` 中
+- 脚本在 `ThreadPool` 后台线程执行，支持通过 `_shouldStop` 标志中止
+- 可视化编辑器 + 输出面板，提供运行/停止/清空按钮
+
+### 5.5 YF_ScreenOCRTranslate — OCR 实时翻译
+
+**功能描述：** 全局热键唤起截图 → PaddleOCR 文字识别 → 百度翻译 API 英译中 → 翻译结果叠加显示。五步流水线在数秒内完成。
+
+**完整工作流：**
+
+```
+用户按 Ctrl+Y
+    │
+    ▼
+[1] 热键捕获 (RegisterHotKey + HwndSource)
+    │
+    ▼
+[2] 全屏截图覆盖层 (ScreenShot Window)
+    │  · WindowState=Maximized, AllowsTransparency=True
+    │  · 鼠标拖拽绘制选区矩形
+    │  · SetWindowPos 确保置顶
+    │
+    ▼
+[3] 区域截图 → Bitmap
+    │
+    ▼
+[4] PaddleOCR 文字识别 (PaddleOCRSharp)
+    │  · OCRModelConfig 配置 PP-OCRv5 模型
+    │  · 返回 TextBlock 列表（文字 + 坐标）
+    │
+    ▼
+[5] 百度翻译 API (TranslateService)
+    │  · MD5(appid + q + salt + key) 签名
+    │  · GET api.fanyi.baidu.com
+    │  · Newtonsoft.Json 解析返回
+    │
+    ▼
+[6] 结果显示 (ShowText Window)
+    · 翻译文字 Canvas 叠加到原图位置
+    · 1.25x DPI 缩放适配
+```
+
+**核心 NuGet 依赖：**
+- `Paddle.Runtime.win_x64` 3.4.0 — Paddle 推理运行时
+- `PaddleOCRSharp` 6.1.0 — PaddleOCR 的 .NET 封装
+- `Newtonsoft.Json` 13.0.4 — JSON 序列化/反序列化
+- Win32 API（`user32.dll`）：`RegisterHotKey`、`UnregisterHotKey`、`SetWindowPos`
+
+---
+
+## 6. 技术栈详情
+
+### 6.1 框架与运行时
+
+| 技术 | 版本/规格 | 用途 |
+|------|-----------|------|
+| **.NET** | 8.0 (`net8.0-windows`) | 目标框架 |
+| **C#** | 12.0 | 编程语言（nullable enabled, implicit usings） |
+| **WPF** | .NET 8.0 内置 | 桌面 UI 框架 |
+| **Visual Studio** | 2022 (17.x) | 开发环境 |
+
+### 6.2 核心 NuGet 依赖
+
+| 包名 | 版本 | 所属项目 | 用途 |
+|------|------|----------|------|
+| **Castle.Core** | 5.2.1 | YF_Manager | AOP 动态代理，实现 `LogInterceptor` |
+| **LiveCharts.Wpf** | 0.9.7 | YFrame | CPU/内存实时折线图 |
+| **System.Management** | 9.0.8 | YFrame | WMI 查询系统物理内存 |
+
+### 6.3 插件 NuGet 依赖
+
+| 包名 | 版本 | 所属插件 | 用途 |
+|------|------|----------|------|
+| **LLamaSharp** | 0.24.0 | YF_AIHelper | llama.cpp .NET 绑定，本地 LLM 推理 |
+| **LLamaSharp.Backend.Cuda12** | 0.24.0 | YF_AIHelper | CUDA 12 GPU 加速 |
+| **Microsoft.Extensions.Configuration** | 9.0.8 | YF_AIHelper | 配置文件读取 |
+| **Microsoft.Extensions.Configuration.Json** | 9.0.8 | YF_AIHelper | JSON 配置文件支持 |
+| **Paddle.Runtime.win_x64** | 3.4.0 | YF_ScreenOCRTranslate | Paddle 推理运行时 |
+| **PaddleOCRSharp** | 6.1.0 | YF_ScreenOCRTranslate | PaddleOCR .NET 封装（PP-OCRv5） |
+| **Newtonsoft.Json** | 13.0.4 | YF_ScreenOCRTranslate | JSON 解析（百度翻译 API 响应） |
+
+### 6.4 系统 API
+
+| API | 来源 | 使用位置 | 用途 |
+|-----|------|----------|------|
+| `RegisterHotKey` | `user32.dll` | YF_ScreenOCRTranslate | 注册全局热键 Ctrl+Y |
+| `UnregisterHotKey` | `user32.dll` | YF_ScreenOCRTranslate | 注销全局热键 |
+| `SetWindowPos` | `user32.dll` | YF_ScreenOCRTranslate | 截图覆盖层置顶 |
+| `PerformanceCounter` | `System.Diagnostics` | YFrame | CPU 和内存使用率采集 |
+| `ManagementObjectSearcher` | `System.Management` | YFrame | WMI 查询 `Win32_ComputerSystem` |
+| `HttpListener` | `System.Net` | YF_HttpServer | HTTP 服务器核心 |
+
+---
+
+## 7. 数据流与生命周期
+
+### 7.1 应用启动时序
+
+```
+Application.Startup
+    │
+    ├── 1. App 构造函数
+    │      · 加载 DarkTheme.xaml（默认暗色主题）
+    │      · 加载 zh-CN.xaml（默认中文）
+    │
+    ├── 2. MainWindow 构造函数
+    │      · DataContext = MainWindowViewModel.Instance
+    │      · 首次访问 Instance → Lazy<T> 触发
+    │        → ProxyGenerator.CreateClassProxy<MainWindowViewModel>()
+    │        → 生成带 LogInterceptor 的代理对象
+    │
+    ├── 3. MainWindowViewModel.Instance.Init()
+    │      · 创建 logger 实例
+    │      · 调用 InitUI()
+    │        ├── 设置 LeftVisible / RightVisible = true
+    │        ├── 创建 PerformanceMonitor UserControl
+    │        ├── 创建 Grid_Show_Array（插件容器）
+    │        └── UserControlsService.Instance.LoadAndShowUserControl()
+    │             └── 扫描 plugins/ → 反射加载 → 注册插件元数据
+    │      · 调用 InitCommond()
+    │        └── 创建所有 YF_RelayCommand 绑定
+    │      · 设置静态委托
+    │        ├── YF_Manager_Log.d_LogWrite = Show_Log（日志 → UI）
+    │        └── dlg_Show_Cpu_Memory = Show_Cpu_Memory（性能 → 状态栏）
+    │
+    └── 4. MainWindow.Show()
+           · 用户可见
+           · PerformanceMonitor 后台线程开始采集
+```
+
+### 7.2 插件生命周期
+
+```
+                    ┌─────────────┐
+                    │  应用启动    │
+                    └──────┬──────┘
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │ 元数据扫描   │  ← LoadAndShowUserControl()
+                    │ 注册到列表   │     仅获取 I_YF_Detail (ID + Name)
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ 空闲等待     │  ← 插件 DLL 未加载到内存
+                    └──────┬──────┘
+                           │ 用户点击"显示"
+                           ▼
+                    ┌─────────────┐
+                    │ 加载程序集   │  ← Assembly.LoadFrom(dllPath)
+                    │ 创建实例     │  ← Activator.CreateInstance()
+                    │ Hook 回调    │  ← OnPluginCallback += ...
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ 运行中       │  ← UserControl 显示在 Grid_Show_Array
+                    │ 双向通信     │     宿主 ⇄ 插件（Command + Event）
+                    └──────┬──────┘
+                           │ 用户切换到其他插件 / 关闭
+                           ▼
+                    ┌─────────────┐
+                    │ 隐藏/卸载    │  ← Children.Clear() 移除 UI
+                    │ (实例保留)   │     CtrlDataModel 仍在字典中
+                    └─────────────┘
+```
+
+### 7.3 日志数据流
+
+```
+业务代码调用                    文件系统                   UI
+─────────────                  ────────                   ──
+logger.LogInfo("msg")
+    │
+    ├──→ Write("Log/InfoLog/2026-07-09.htm")
+    │       │
+    │       ├── 文件存在? → 追加写入
+    │       ├── 文件 > 1MB? → 重命名 + 新建
+    │       └── 写入失败? → Debug.WriteLine() + Trace
+    │
+    └──→ d_LogWrite?.Invoke("msg")
+            │
+            ▼
+         MainWindowViewModel.Show_Log("msg")
+            │
+            ├── lock(_logLock) → StringBuilder.AppendLine()
+            ├── 超过 500 行 → 裁剪头部
+            └── Dispatcher.Invoke → LogText = text
+                    │
+                    ▼
+                UI TextBox 自动刷新 (数据绑定)
+```
+
+---
+
+> **项目状态：** 持续开发中
+>
+> **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR
+>
+> **最后更新：** 2026-07-09
+
 
 
 ### *当前版本软件框架效果示例*
