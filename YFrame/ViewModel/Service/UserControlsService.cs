@@ -161,7 +161,7 @@ namespace YFrame
                 Type userControlType = assembly.GetType($"{s}.MainControl");        // 确保命名空间和类型名正确。
                 Type ViewModelType = assembly.GetType($"{s}.MainControlViewModel"); // 确保命名空间和类型名正确。
 
-                if (userControlType != null)
+                if (userControlType != null && ViewModelType != null)
                 {
                     var viewModel = Activator.CreateInstance(ViewModelType);
                     object uc = Activator.CreateInstance(userControlType);
@@ -177,8 +177,25 @@ namespace YFrame
                     if (detail != null)
                     {
                         //将读取的插件信息保存
-                        UserControlsService.Instance.DctControls[plugin_Id].userControl = userControl;
-                        UserControlsService.Instance.DctControls[plugin_Id].CommandHandler = commandHandler;
+                        // 使用 TryGetValue 安全访问字典
+                        if (UserControlsService.Instance.DctControls.TryGetValue(plugin_Id, out var ctrlData))
+                        {
+                            ctrlData.userControl = userControl;
+                            ctrlData.CommandHandler = commandHandler;
+
+                            if (commandHandler != null)
+                            {
+                                commandHandler.OnPluginCallback += (sender, e) =>
+                                {
+                                    HandlePluginCallback(detail.YF_ID, e);
+                                };
+                            }
+                        }
+                        else
+                        {
+                            MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl",
+                                $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
+                        }
 
 
                         // 将读取的插件信息保存

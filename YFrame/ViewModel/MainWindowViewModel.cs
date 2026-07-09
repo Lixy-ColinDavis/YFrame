@@ -243,9 +243,9 @@ namespace YFrame
                 // 左抽屉
                 ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
                 // 右抽屉
-                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (LeftVisible == true ? "开" : "关")); });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (RightVisible == true ? "开" : "关")); });
                 // 关闭按钮
-                Btn_Exit_Command = new YF_RelayCommand(() => { Environment.Exit(0); logger.LogInfo("退出程序"); });
+                Btn_Exit_Command = new YF_RelayCommand(() => { logger.LogInfo("退出程序"); Environment.Exit(0); });
                 // 亮色主题
                 ToggleLightThemeCommand = new YF_RelayCommand(() => { App.ChangeTheme("Common/Themes/LightTheme.xaml"); logger.LogInfo("主题切换-亮"); });
                 // 暗色主题

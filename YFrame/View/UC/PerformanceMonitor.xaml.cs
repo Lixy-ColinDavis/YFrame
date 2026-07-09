@@ -130,10 +130,13 @@ namespace YFrame
                 );
 
                 // 启动定时器刷新数据（每1秒更新一次）
-                
-                timer.Interval = TimeSpan.FromSeconds(5);
-                timer.Tick += UpdatePerformanceData;
-                timer.Start();
+
+                Dispatcher.BeginInvoke(() =>
+                {
+                    timer.Interval = TimeSpan.FromSeconds(5);
+                    timer.Tick += UpdatePerformanceData;
+                    timer.Start();
+                });
             });
             thread.IsBackground = true;
             thread.Start();

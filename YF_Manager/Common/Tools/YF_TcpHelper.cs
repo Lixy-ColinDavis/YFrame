@@ -20,11 +20,11 @@ namespace YF_Manager
         /// 获取默认网关IP
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "获取默认网关IP")]
-        public virtual IPAddress GetDefaultGatewayIP()  // 改为实例方法，加 virtual
+        public virtual IPAddress GetDefaultGatewayIP()
         {
             try
             {
-                var process = new Process();
+                using var process = new Process();
                 process.StartInfo.FileName = "route.exe";
                 process.StartInfo.Arguments = "print";
                 process.StartInfo.UseShellExecute = false;
@@ -45,7 +45,6 @@ namespace YF_Manager
             {
                 YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", ex.Message);
             }
-
             return null;
         }
 
