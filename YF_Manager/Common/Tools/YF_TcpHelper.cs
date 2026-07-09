@@ -20,7 +20,7 @@ namespace YF_Manager
         /// 获取默认网关IP
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "获取默认网关IP")]
-        public virtual IPAddress GetDefaultGatewayIP()
+        public virtual IPAddress? GetDefaultGatewayIP()
         {
             try
             {
@@ -29,10 +29,16 @@ namespace YF_Manager
                 process.StartInfo.Arguments = "print";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
                 process.Start();
-
                 string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
+                string error = process.StandardError.ReadToEnd();
+                if (!process.WaitForExit(5000))
+                {
+                    process.Kill();
+                    YF_Manager_Main.logger.ErrorInfo("GetDefaultGatewayIP", "route.exe 执行超时");
+                    return null;
+                }
 
                 Match match = Regex.Match(output, @"0.0.0.0\s+0.0.0.0\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)");
                 if (match.Success)

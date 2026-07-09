@@ -331,7 +331,7 @@ namespace YFrame
                 if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
                 {
                     var window = Window.GetWindow((DependencyObject)sender);
-                    window.DragMove();
+                    window?.DragMove();
                 }
             }
             catch (Exception ex)
