@@ -792,10 +792,10 @@ logger.LogInfo("msg")
 
 
 ### *当前版本软件框架效果示例*
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/09243a9e-ed46-4937-9232-73ae7bca26dc/image.png 'image.png')
+![9249886d523e2bf360b03917e08a63a3.png](https://raw.gitcode.com/user-images/assets/7353928/eee8d143-056e-4280-aa9c-5ce646269bdc/9249886d523e2bf360b03917e08a63a3.png '9249886d523e2bf360b03917e08a63a3.png')
 
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/5a980432-55f8-4750-a4ff-e94b8c5f1e04/image.png 'image.png')
+![3730dd278b7fe9a389ee8d19b9b0eadb.png](https://raw.gitcode.com/user-images/assets/7353928/11f39e9c-84e9-4f99-a7b6-453fffbe0016/3730dd278b7fe9a389ee8d19b9b0eadb.png '3730dd278b7fe9a389ee8d19b9b0eadb.png')
 
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/577dc5ad-0813-4415-afbb-c52faa5b4334/image.png 'image.png')
+![603cbc1653ce76a433559a47b07b9c87.png](https://raw.gitcode.com/user-images/assets/7353928/45da4d23-795a-4b3f-8a5a-c2326dc75ddb/603cbc1653ce76a433559a47b07b9c87.png '603cbc1653ce76a433559a47b07b9c87.png')
 
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/e8d596bf-c80e-42cf-9606-5c0973524c4c/image.png 'image.png')
+![5fecfc78ec872aab7b77ae3a97d52729.png](https://raw.gitcode.com/user-images/assets/7353928/0ca36448-69b1-4702-9fc5-d986346200a8/5fecfc78ec872aab7b77ae3a97d52729.png '5fecfc78ec872aab7b77ae3a97d52729.png')
