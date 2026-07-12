@@ -59,10 +59,10 @@
 │  │ LogInterceptor│ │ YF_Manager_Log│ │ YF_RelayCommand│          │
 │  │ (AOP 方法拦截) │ │ (文件日志系统) │ │ (ICommand 封装) │         │
 │  └──────────────┘ └──────────────┘ └──────────────┘              │
-│  ┌──────────────┐ ┌──────────────┐                               │
-│  │ I_YF_Detail  │ │ I_YF_Command │                               │
-│  │ (插件元数据)   │ │ (命令/回调)   │                              │
-│  └──────────────┘ └──────────────┘                               │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐              │
+│  │ I_YF_Detail  │ │ I_YF_Command │ │ YF_FileHelper │              │
+│  │ (插件元数据)   │ │ (命令/回调)   │ │v│              │
+│  └──────────────┘ └──────────────┘ └──────────────┘              │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,6 +90,19 @@ plugins/                       所有插件项目
 ```
 
 **关键设计决策：** YFrame 与插件之间**没有编译时依赖**。框架通过 `YF_Manager.dll` 中定义的接口契约（`I_YF_Detail`、`I_YF_Command`）与插件通信，插件在运行时通过反射被发现和加载，实现了完全的**编译时解耦**。
+
+### 1.4 Shell UI 特性
+
+主窗口采用抽屉式 IDE 风格布局，具有以下 UI 特性：
+
+| 特性 | 说明 |
+|------|------|
+| **应用 Logo** | 窗口标题栏区域显示自定义 Logo 图标 |
+| **窗口控制按钮** | 显示最大化 / 最小化 / 关闭按钮 |
+| **侧边栏文字旋转** | 左侧插件列表文字垂直旋转显示（VS Code 风格活动栏） |
+| **插件选中指示** | 选中插件以左侧强调色竖线指示（无背景高亮） |
+| **全局极窄滚动条** | 5px 宽滚动条，透明轨道 + 主题强调色滑块 + 悬停动画 |
+| **性能监视器边框** | LiveCharts 图表区域带边框视觉分隔 |
 
 ---
 
@@ -201,9 +214,9 @@ I_YF_Detail                  I_YF_Command
 ```
 Application.Current.Resources.MergedDictionaries
 │
-├── DarkTheme.xaml   ←── 替换 ──→ LightTheme.xaml
-├── zh-CN.xaml       ←── 替换 ──→ en-US.xaml
-└── ...
+├── DarkGrayTheme.xaml  ←── 替换 ──→ CreamWhiteTheme / LightBlueTheme / GreenWhiteTheme
+├── zh-CN.xaml          ←── 替换 ──→ en-US.xaml
+└── ControlStyles.xaml  (全局控件样式，不随主题切换)
 ```
 
 - 切换操作：移除旧字典 → 添加新字典
@@ -234,13 +247,18 @@ YFrame/
 │   │   └── CtrlParamModel.cs           # 参数模型（预留）
 │   ├── View/UC/
 │   │   └── PerformanceMonitor.xaml/.cs # CPU/内存实时监控图表（LiveCharts）
-│   └── Common/
-│       ├── Themes/
-│       │   ├── DarkTheme.xaml          # 暗色主题（#303030/#505050 深色系）
-│       │   └── LightTheme.xaml         # 亮色主题（浅灰/白色系）
-│       └── Language/
-│           ├── zh-CN.xaml              # 简体中文字符串资源
-│           └── en-US.xaml              # 英文字符串资源
+│   ├── Common/
+│   │   ├── Images/
+│   │   │   └── Logo.png               # 应用 Logo
+│   │   ├── Themes/
+│   │   │   ├── DarkGrayTheme.xaml      # 炭火暗夜（VS Code 暗色风，#1E1E1E）
+│   │   │   ├── CreamWhiteTheme.xaml    # 素火明昼（暖白柔和，#FFF5F5F8）
+│   │   │   ├── LightBlueTheme.xaml     # 冰火深蓝（深海蓝，#0B1526）
+│   │   │   ├── GreenWhiteTheme.xaml    # 翠火青绿（暗绿基色，#0A1410）
+│   │   │   └── ControlStyles.xaml      # 全局控件统一样式（Button / TextBox / Label）
+│   │   └── Language/
+│   │       ├── zh-CN.xaml              # 简体中文字符串资源
+│   │       └── en-US.xaml              # 英文字符串资源
 │
 ├── YF_Manager/                         # 共享框架库 (Class Library)
 │   ├── YF_Manager.cs                   # 静态入口类（持有静态 logger 实例）
@@ -255,7 +273,8 @@ YFrame/
 │       │   └── LogInterceptor.cs       # Castle.Core IInterceptor 实现（方法级日志拦截）
 │       ├── Tools/
 │       │   ├── YF_Manager_Log.cs       # 文件日志系统（HTML 格式、按天/类型分文件、1MB 轮转）
-│       │   └── YF_TcpHelper.cs         # 网络工具（获取网关 IP、本机 IP）
+│       │   ├── YF_TcpHelper.cs         # 网络工具（获取网关 IP、本机 IP）
+│       │   └── YF_FileHelper.cs        # 文件操作助手（目录复制、剪贴板写入重试、资源管理器打开）
 │       ├── YF_RelayCommand.cs          # ICommand 实现（无参版 + 泛型版）
 │       └── YF_DelegateFunctionModel.cs # 委托类型声明
 │
@@ -451,10 +470,20 @@ App.ChangeTheme(themePath)
     └── 3. 加载新字典 → Application.Current.Resources.MergedDictionaries.Add(newTheme)
 ```
 
-| 主题 | 文件 | 主色调 |
-|------|------|--------|
-| 暗色 (Dark) | `DarkTheme.xaml` | 背景 `#303030` / `#505050`，文字 `#F0F0F0` |
-| 亮色 (Light) | `LightTheme.xaml` | 背景浅灰/白，文字 `#333333` |
+框架提供四套主题，启动时默认加载 `DarkGrayTheme.xaml` + `ControlStyles.xaml`：
+
+| 主题 | 文件 | 中文名 | 主色调 |
+|------|------|--------|--------|
+| 炭火暗夜 | `DarkGrayTheme.xaml` | Ember Night | 背景 `#1E1E1E`，强调色 `#0078D4`（VS Code 风格暗色） |
+| 素火明昼 | `CreamWhiteTheme.xaml` | Plain Fire | 背景 `#FFF5F5F8`，强调色 `#D94A1A`（暖橙红） |
+| 冰火深蓝 | `LightBlueTheme.xaml` | Ice Deep Blue | 背景 `#0B1526`，强调色 `#00CCF0`（冰蓝） |
+| 翠火青绿 | `GreenWhiteTheme.xaml` | Emerald Fire | 背景 `#0A1410`，强调色 `#00E676`（翠绿） |
+
+**全局控件统一样式（`ControlStyles.xaml`）：**
+- **Button** — 圆角边框 + 悬停透明度变化
+- **TextBox** — 聚焦时显示主题强调色边框
+- **Label** — 统一字体与颜色跟随主题
+- **ScrollBar** — 5px 极窄滚动条，透明轨道 + 强调色滑块 + 悬停动画
 
 XAML 中通过 `{DynamicResource key}` 引用资源，切换时所有绑定控件自动刷新。
 
@@ -562,12 +591,15 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 
 ### 5.3 YF_HttpServer — HTTP 文件助手
 
-**功能描述：** 基于 `HttpListener` 实现的一键式 HTTP 文件服务器。自动获取本机 IP，提供目录浏览、文件下载和文件上传功能。
+**功能描述：** 基于 `HttpListener` 实现的一键式 HTTP 文件服务器。自动获取本机 IP，提供目录浏览、文件下载、拖拽上传和剪贴板复制命令等功能。
 
 **技术实现：**
 - `HttpListener` 监听指定端口（默认 8000），在后台线程运行
 - `ProcessRequest()` 处理 GET 请求：生成 HTML 目录列表（`GenerateDirectoryListing()`）或返回文件内容（含 MIME 类型检测 `GetMimeType()`）
 - `ProcessUploadRequest()` 处理 POST 请求：从 `X-FileName` 头获取文件名
+- 支持拖拽文件上传（自定义依赖属性 `DropCommand`）
+- 一键复制 `curl` 下载命令到剪贴板（通过 `YF_FileHelper.SetClipboardWithRetry()`）
+- 文件操作（目录复制、剪贴板写入、打开文件夹）已提取到 `YF_Manager` 共享库的 `YF_FileHelper` 中
 - 启动/停止按钮通过 `YF_RelayCommand` 的 `CanExecute` 控制互斥状态
 - 自动通过 `YF_TcpHelper.GetLocalIP()` 获取本机 IP
 
@@ -691,7 +723,7 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 Application.Startup
     │
     ├── 1. App 构造函数
-    │      · 加载 DarkTheme.xaml（默认暗色主题）
+    │      · 加载 DarkGrayTheme.xaml（默认暗色主题）+ ControlStyles.xaml（全局控件样式）
     │      · 加载 zh-CN.xaml（默认中文）
     │
     ├── 2. MainWindow 构造函数
@@ -787,7 +819,7 @@ logger.LogInfo("msg")
 >
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR
 >
-> **最后更新：** 2026-07-09
+> **最后更新：** 2026-07-10
 
 
 
