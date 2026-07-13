@@ -8,10 +8,15 @@ namespace YF_Manager
 {
     public class YF_TcpHelper
     {
-        // 单例实例
-        public static YF_TcpHelper Instance { get; } = new YF_TcpHelper();
+        // AOP 日志拦截，采用 ProxyGenerator 模式：
+        private static readonly Lazy<YF_TcpHelper> _instance =
+            new Lazy<YF_TcpHelper>(() =>
+                new Castle.DynamicProxy.ProxyGenerator()
+                    .CreateClassProxy<YF_TcpHelper>(new LogInterceptor()));
 
-        public YF_TcpHelper() { }  // 私有构造函数
+        public static YF_TcpHelper Instance => _instance.Value;
+
+        internal YF_TcpHelper() { }
 
         /// <summary>
         /// 获取本机默认IP（遍历活跃网卡的首个 IPv4 单播地址）
