@@ -1,20 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace YF_Manager.Common
+namespace YF_Manager
 {
     public class YF_FileHelper
     {
+        // AOP 日志拦截，采用 ProxyGenerator 模式：
+        private static readonly Lazy<YF_FileHelper> _instance =
+            new Lazy<YF_FileHelper>(() =>
+                new Castle.DynamicProxy.ProxyGenerator()
+                    .CreateClassProxy<YF_FileHelper>(new LogInterceptor()));
+
+        public static YF_FileHelper Instance => _instance.Value;
+
+        internal YF_FileHelper() { }
+
+        /// <summary>
+        /// 剪贴板写入重试次数
+        /// </summary>
+        private const int ClipboardRetryCount = 2;
+
         /// <summary>
         /// 递归复制目录
         /// </summary>
+        /// <returns>复制是否成功</returns>
         [Log(Level = LogLevel.Info, Message = "递归复制目录")]
-        public virtual void CopyDirectory(string sourceDir, string destDir)
+        public virtual bool CopyDirectory(string sourceDir, string destDir)
         {
+            if (string.IsNullOrEmpty(sourceDir))
+                throw new ArgumentNullException(nameof(sourceDir));
+            if (string.IsNullOrEmpty(destDir))
+                throw new ArgumentNullException(nameof(destDir));
+            if (!Directory.Exists(sourceDir))
+            {
+                YF_Manager_Main.logger?.ErrorInfo("CopyDirectory", $"源目录不存在: {sourceDir}");
+                return false;
+            }
+
             try
             {
                 Directory.CreateDirectory(destDir);
@@ -22,10 +44,12 @@ namespace YF_Manager.Common
                     File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
                 foreach (var dir in Directory.GetDirectories(sourceDir))
                     CopyDirectory(dir, Path.Combine(destDir, Path.GetFileName(dir)));
+                return true;
             }
             catch (Exception ex)
             {
                 YF_Manager_Main.logger?.ErrorInfo("CopyDirectory", "递归复制目录异常 " + ex.Message);
+                return false;
             }
         }
 
@@ -35,7 +59,7 @@ namespace YF_Manager.Common
         [Log(Level = LogLevel.Info, Message = "剪贴板写入")]
         public virtual void SetClipboardWithRetry(string text)
         {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < ClipboardRetryCount; i++)
             {
                 try
                 {
@@ -50,13 +74,22 @@ namespace YF_Manager.Common
             }
         }
 
+        /// <summary>
+        /// 打开指定文件夹（如不存在则创建后打开）
+        /// </summary>
         [Log(Level = LogLevel.Info, Message = "打开文件夹")]
-        public virtual void OpenFolder(string AbsolutePath)
+        public virtual void OpenFolder(string absolutePath)
         {
-            string absPath = AbsolutePath;
-            if (!Directory.Exists(absPath))
-                Directory.CreateDirectory(absPath);
-            System.Diagnostics.Process.Start("explorer.exe", absPath);
+            try
+            {
+                if (!Directory.Exists(absolutePath))
+                    Directory.CreateDirectory(absolutePath);
+                System.Diagnostics.Process.Start("explorer.exe", absolutePath);
+            }
+            catch (Exception ex)
+            {
+                YF_Manager_Main.logger?.ErrorInfo("OpenFolder", "打开文件夹异常 " + ex.Message);
+            }
         }
     }
 }
