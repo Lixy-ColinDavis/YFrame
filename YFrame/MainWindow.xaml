@@ -35,8 +35,8 @@
                 <MenuItem Header="English"  Command="{Binding ToggleEnglishCommand}"/>
             </MenuItem>
         <MenuItem Header="{DynamicResource key_Plug-in}">
-                <MenuItem Header="加载插件"/>
-                <MenuItem Header="插件管理器"/>
+                <MenuItem Header="{DynamicResource key_LoadPlugin}"/>
+                <MenuItem Header="{DynamicResource key_PluginManager}"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Help}"/>
             <MenuItem IsEnabled="False"/>
@@ -61,31 +61,31 @@
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="6" Height="6" Fill="#FF34D399" Margin="0,0,6,0"/>
-                    <TextBlock Text="运行中" Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock Text="{DynamicResource key_Running}" Foreground="{DynamicResource TextBrush}"/>
                 </StackPanel>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Foreground="{DynamicResource TextBrush}">
-                    <Run Text="CPU: "/><Run Text="{Binding Txt_Cpu, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource key_CpuLabel}"/><Run Text="{Binding Txt_Cpu, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Foreground="{DynamicResource TextBrush}">
-                    <Run Text="内存: "/><Run Text="{Binding Txt_Memory, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource key_MemoryLabel}"/><Run Text="{Binding Txt_Memory, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock>
-                    <Run Text="插件: "/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text=" 已加载"/>
+                    <Run Text="{DynamicResource key_PluginLabel}"/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text="{DynamicResource key_LoadedPlugins}"/>
                 </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Foreground="{DynamicResource TextBrush}">
-                    <Run Text="热键Ctrl+Y: "/><Run Text="{Binding HotkeyStatusText, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource key_HotkeyStatusLabel}"/><Run Text="{Binding HotkeyStatusText, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
         </StatusBar>
@@ -112,7 +112,7 @@
                             Background="{DynamicResource MenuBarBrush}" 
                             Foreground="{DynamicResource TextBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            Cursor="Hand" ToolTip="切换热键监控 Ctrl+Y">
+                            Cursor="Hand" ToolTip="{DynamicResource key_HotkeyTooltip}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center">
                                 <Ellipse.Style>
@@ -126,7 +126,7 @@
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
-                            <TextBlock Text="热键监控" FontSize="12"
+                            <TextBlock Text="{DynamicResource key_HotkeyMonitor}" FontSize="12"
                                        Foreground="{DynamicResource TextBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -160,7 +160,7 @@
                             <!-- 插件列表 标签 -->
                             <Border x:Name="TabPlugins" Height="80" Cursor="Hand"
                                     Background="{DynamicResource MenuBarBrush}"
-                                    ToolTip="插件列表">
+                                    ToolTip="{DynamicResource key_PluginList}">
                                 <Border.InputBindings>
                                     <MouseBinding MouseAction="LeftClick"
                                                   Command="{Binding SwitchLeftPanelCommand}"
@@ -182,7 +182,7 @@
                             <!-- 工具箱 标签 -->
                             <Border x:Name="TabToolbox" Height="70" Cursor="Hand"
                                     Background="{DynamicResource MenuBarBrush}"
-                                    ToolTip="工具箱">
+                                    ToolTip="{DynamicResource key_Toolbox}">
                                 <Border.InputBindings>
                                     <MouseBinding MouseAction="LeftClick"
                                                   Command="{Binding SwitchLeftPanelCommand}"
@@ -275,7 +275,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Grid.Style>
-                                <TextBlock Text="工具箱内容（待添加）"
+                                <TextBlock Text="{DynamicResource key_ToolboxContent}"
                                            Foreground="{DynamicResource TreeItemSecondaryText}"
                                            FontSize="12" VerticalAlignment="Top"
                                            Margin="14,14,0,0"/>
@@ -376,7 +376,7 @@
                                              Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
                                              Background="Transparent" Foreground="{DynamicResource TextBrush}"
                                              BorderThickness="0"/>
-                                    <Button Content="清除日志" Command="{Binding ClearLogCommand}"
+                                    <Button Content="{DynamicResource key_ClearLog}" Command="{Binding ClearLogCommand}"
                                             HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                             Height="24" FontSize="11" Padding="8,2" Margin="0,0,4,4"
                                             Background="{DynamicResource MenuBarBrush}"
@@ -418,14 +418,14 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </ScrollViewer>
-                                    <Button Content="添加参数"
+                                    <Button Content="{DynamicResource key_AddParam}"
                                             HorizontalAlignment="Left" VerticalAlignment="Bottom"
                                             Height="24" FontSize="11" Padding="8,2" Margin="4,0,0,4"
                                             Background="{DynamicResource MenuBarBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             Cursor="Hand"/>
-                                    <Button Content="删除参数"
+                                    <Button Content="{DynamicResource key_DeleteParam}"
                                             HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                             Height="24" FontSize="11" Padding="8,2" Margin="0,0,4,4"
                                             Background="{DynamicResource MenuBarBrush}"
@@ -442,7 +442,7 @@
                                 <StackPanel>
                                     <!-- 日志 标签 -->
                                     <Border Height="60" Cursor="Hand"
-                                            Background="{DynamicResource MenuBarBrush}" ToolTip="日志">
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="{DynamicResource key_Log}">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick"
                                                           Command="{Binding SwitchRightPanelCommand}"
@@ -460,7 +460,7 @@
                                     <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="4,0"/>
                                     <!-- 参数 标签 -->
                                     <Border Height="60" Cursor="Hand"
-                                            Background="{DynamicResource MenuBarBrush}" ToolTip="参数">
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="{DynamicResource key_Param}">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick"
                                                           Command="{Binding SwitchRightPanelCommand}"

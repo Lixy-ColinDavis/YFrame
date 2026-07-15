@@ -1,7 +1,9 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
-    <sys:String x:Key="key_Performance monitor">Performance monitor</sys:String>
+
+    <!--标题栏-->
+    <sys:String x:Key="key_Performance monitor">Performance Monitor</sys:String>
     <sys:String x:Key="key_File">File</sys:String>
     <sys:String x:Key="key_Edit">Edit</sys:String>
     <sys:String x:Key="key_View">View</sys:String>
@@ -12,8 +14,8 @@
     <sys:String x:Key="key_New">New</sys:String>
     <sys:String x:Key="key_Open">Open</sys:String>
     <sys:String x:Key="key_Exit">Exit</sys:String>
-    <sys:String x:Key="key_Left sidebar">Left sidebar</sys:String>
-    <sys:String x:Key="key_Right sidebar">Right sidebar</sys:String>
+    <sys:String x:Key="key_Left sidebar">Left Sidebar</sys:String>
+    <sys:String x:Key="key_Right sidebar">Right Sidebar</sys:String>
     <sys:String x:Key="key_DarkGray theme">Ember Night</sys:String>
     <sys:String x:Key="key_CreamWhite theme">Plain Fire</sys:String>
     <sys:String x:Key="key_LightBlue theme">Ice Deep Blue</sys:String>
@@ -30,13 +32,88 @@
 
     <!--AI助手-->
     <sys:String x:Key="key_Ai_Send">Send</sys:String>
+    <sys:String x:Key="key_Ai_Title">AI Assistant</sys:String>
+    <sys:String x:Key="key_Ai_Subtitle">DeepSeek-R1-Distill-Qwen-7B · Local Inference</sys:String>
+    <sys:String x:Key="key_Ai_ModelReady">Model Ready</sys:String>
+    <sys:String x:Key="key_Ai_InputPlaceholder">Enter your question, Enter to send, Ctrl+Enter for new line</sys:String>
+    <sys:String x:Key="key_Ai_Hint">💡 Tip: Enter to send | Ctrl + Enter for new line | Model runs locally, no internet needed</sys:String>
 
     <!--HTTP服务器-->
-    <sys:String x:Key="key_Http_FilePath">FilePath</sys:String>
-    <sys:String x:Key="key_Http_StartServer">StartServer</sys:String>
-    <sys:String x:Key="key_Http_CloseServer">CloseServer</sys:String>
+    <sys:String x:Key="key_Http_FilePath">File Path</sys:String>
+    <sys:String x:Key="key_Http_StartServer">Start Server</sys:String>
+    <sys:String x:Key="key_Http_CloseServer">Close Server</sys:String>
+    <sys:String x:Key="key_Http_ServerConfig">Server Config</sys:String>
+    <sys:String x:Key="key_Http_LocalIP">Local IP:</sys:String>
+    <sys:String x:Key="key_Http_Port">Port:</sys:String>
+    <sys:String x:Key="key_Http_OpenFolder">Open Folder</sys:String>
+    <sys:String x:Key="key_Http_DragHint">Drag files or folders from Explorer here, will auto-copy to file path directory</sys:String>
+    <sys:String x:Key="key_Http_DragPlaceholder">📥 Drag files here to upload</sys:String>
+    <sys:String x:Key="key_Http_AdminHint">Please run PowerShell as Administrator</sys:String>
+    <sys:String x:Key="key_Http_FirewallStep1">① Add firewall inbound rule</sys:String>
+    <sys:String x:Key="key_Http_Copy">📋 Copy</sys:String>
+    <sys:String x:Key="key_Http_UploadCmd">② Upload file command</sys:String>
 
     <!--工具栏-->
     <sys:String x:Key="key_OpenLogFolder">Open Log</sys:String>
+    <sys:String x:Key="key_HotkeyMonitor">Hotkey</sys:String>
+    <sys:String x:Key="key_HotkeyTooltip">Toggle hotkey monitor Ctrl+Y</sys:String>
+    <sys:String x:Key="key_ClearLog">Clear Log</sys:String>
+    <sys:String x:Key="key_AddParam">Add Param</sys:String>
+    <sys:String x:Key="key_DeleteParam">Delete Param</sys:String>
+
+    <!--状态栏-->
+    <sys:String x:Key="key_Running">Running</sys:String>
+    <sys:String x:Key="key_MemoryLabel">Memory: </sys:String>
+    <sys:String x:Key="key_LoadedPlugins"> loaded</sys:String>
+    <sys:String x:Key="key_HotkeyStatusLabel">Hotkey Ctrl+Y: </sys:String>
+    <sys:String x:Key="key_ToolboxContent">Toolbox content (TBD)</sys:String>
+
+    <!--性能监视器-->
+    <sys:String x:Key="key_UsagePercent">Usage (%)</sys:String>
+    <sys:String x:Key="key_Time">Time</sys:String>
+
+    <!--点击器-->
+    <sys:String x:Key="key_Clicker_Title">Mouse Clicker</sys:String>
+    <sys:String x:Key="key_Clicker_Interval">Click Interval:</sys:String>
+    <sys:String x:Key="key_Clicker_Start">Start Click</sys:String>
+    <sys:String x:Key="key_Clicker_Stop">Stop Click</sys:String>
+    <sys:String x:Key="key_Clicker_HotkeyHint">Framework Hotkey: Ctrl+Y toggles clicker</sys:String>
+
+    <!--脚本编辑器-->
+    <sys:String x:Key="key_KMS_ScriptArea">Script Editor</sys:String>
+    <sys:String x:Key="key_KMS_MatchThreshold">Match Threshold:</sys:String>
+    <sys:String x:Key="key_KMS_RegionShot">📷 Region Screenshot</sys:String>
+    <sys:String x:Key="key_KMS_RunScript">▶ Run Script</sys:String>
+    <sys:String x:Key="key_KMS_Stop">⏹ Stop</sys:String>
+    <sys:String x:Key="key_KMS_ClearOutput">🗑 Clear Output</sys:String>
+    <sys:String x:Key="key_KMS_OutputLog">Output Log</sys:String>
+    <sys:String x:Key="key_KMS_Output">Output</sys:String>
+    <sys:String x:Key="key_KMS_Debug">Debug</sys:String>
+    <sys:String x:Key="key_KMS_DragHint">Drag to select screenshot area&#x0a;Press ESC to cancel</sys:String>
+
+    <!--OCR实时翻译-->
+    <sys:String x:Key="key_OCR_Title">OCR Live Translation</sys:String>
+    <sys:String x:Key="key_OCR_Subtitle">English → Chinese</sys:String>
+    <sys:String x:Key="key_OCR_Steps">📋 Steps</sys:String>
+    <sys:String x:Key="key_OCR_Step1Title">Enable hotkey in framework and press Ctrl+Y</sys:String>
+    <sys:String x:Key="key_OCR_Step1Desc">Click 'Hotkey Monitor: On' in toolbar, then press Ctrl + Y to start screenshot translation</sys:String>
+    <sys:String x:Key="key_OCR_Step2Title">Select translation area</sys:String>
+    <sys:String x:Key="key_OCR_Step2Desc">Hold left mouse button and drag to select English text area on screen</sys:String>
+    <sys:String x:Key="key_OCR_Step3Title">Auto recognize and translate</sys:String>
+    <sys:String x:Key="key_OCR_Step3Desc">Release mouse to auto OCR and display Chinese translation</sys:String>
+    <sys:String x:Key="key_OCR_Hint">💡 Tip: Click anywhere in translation window to close; hotkey Ctrl+Y managed by framework</sys:String>
+    <sys:String x:Key="key_OCR_ScreenShotTitle">📷 Screenshot Translation</sys:String>
+    <sys:String x:Key="key_OCR_ScreenHint">Hold left mouse button and drag to select English text area</sys:String>
+    <sys:String x:Key="key_OCR_ReleaseHint">Release mouse to auto recognize and translate</sys:String>
+    <sys:String x:Key="key_OCR_ESCCancel">Press ESC to cancel</sys:String>
+    <sys:String x:Key="key_OCR_ShowTextHint">💡 Click anywhere or press ESC to close translation</sys:String>
+
+    <!--菜单-->
+    <sys:String x:Key="key_LoadPlugin">Load Plugin</sys:String>
+    <sys:String x:Key="key_PluginManager">Plugin Manager</sys:String>
+
+    <!--状态栏标签-->
+    <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
+    <sys:String x:Key="key_PluginLabel">Plugins: </sys:String>
      
 </ResourceDictionary>
