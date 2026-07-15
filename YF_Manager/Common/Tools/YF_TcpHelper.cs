@@ -16,7 +16,7 @@ namespace YF_Manager
 
         public static YF_TcpHelper Instance => _instance.Value;
 
-        internal YF_TcpHelper() { }
+        public YF_TcpHelper() { }
 
         /// <summary>
         /// 获取本机默认IP（遍历活跃网卡的首个 IPv4 单播地址）

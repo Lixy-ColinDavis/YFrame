@@ -91,7 +91,6 @@ namespace YF_Manager
                 logger.InterceptorsLog(
                     $"执行失败 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | 错误: {ex.Message} | 函数位置：" +
                     methodName, logAttr.Level.ToString());
-                throw;
             }
         }
 

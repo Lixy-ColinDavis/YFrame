@@ -13,7 +13,7 @@ namespace YF_Manager
 
         public static YF_FileHelper Instance => _instance.Value;
 
-        internal YF_FileHelper() { }
+        public YF_FileHelper() { }
 
         /// <summary>
         /// 剪贴板写入重试次数
@@ -28,9 +28,15 @@ namespace YF_Manager
         public virtual bool CopyDirectory(string sourceDir, string destDir)
         {
             if (string.IsNullOrEmpty(sourceDir))
-                throw new ArgumentNullException(nameof(sourceDir));
+            {
+                YF_Manager_Main.logger?.ErrorInfo("CopyDirectory", "sourceDir 为空");
+                return false;
+            }
             if (string.IsNullOrEmpty(destDir))
-                throw new ArgumentNullException(nameof(destDir));
+            {
+                YF_Manager_Main.logger?.ErrorInfo("CopyDirectory", "destDir 为空");
+                return false;
+            }
             if (!Directory.Exists(sourceDir))
             {
                 YF_Manager_Main.logger?.ErrorInfo("CopyDirectory", $"源目录不存在: {sourceDir}");
