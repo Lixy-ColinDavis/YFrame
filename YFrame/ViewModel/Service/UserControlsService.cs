@@ -171,7 +171,7 @@ namespace YFrame
                         {
                             commandHandler.OnPluginCallback += (sender, e) =>
                             {
-                                HandlePluginCallback(detail.YF_ID, e);
+                                MainWindowViewModel.Instance.HandlePluginCallback(detail.YF_ID, e);
                             };
                         }
                     }

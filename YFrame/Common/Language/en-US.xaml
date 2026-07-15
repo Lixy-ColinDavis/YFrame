@@ -35,6 +35,8 @@
     <sys:String x:Key="key_Http_FilePath">FilePath</sys:String>
     <sys:String x:Key="key_Http_StartServer">StartServer</sys:String>
     <sys:String x:Key="key_Http_CloseServer">CloseServer</sys:String>
-    
-    
+
+    <!--工具栏-->
+    <sys:String x:Key="key_OpenLogFolder">Open Log</sys:String>
+     
 </ResourceDictionary>

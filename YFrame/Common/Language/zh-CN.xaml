@@ -38,4 +38,7 @@
     <sys:String x:Key="key_Http_StartServer">开启服务器</sys:String>
     <sys:String x:Key="key_Http_CloseServer">关闭服务器</sys:String>
 
+    <!--工具栏-->
+    <sys:String x:Key="key_OpenLogFolder">打开日志</sys:String>
+
 </ResourceDictionary>

@@ -82,6 +82,12 @@
                     <Run Text="插件: "/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text=" 已加载"/>
                 </TextBlock>
             </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Foreground="{DynamicResource TextBrush}">
+                    <Run Text="热键Ctrl+Y: "/><Run Text="{Binding HotkeyStatusText, Mode=OneWay}"/>
+                </TextBlock>
+            </StatusBarItem>
         </StatusBar>
 
         <!-- 主内容区域 -->
@@ -96,9 +102,28 @@
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{DynamicResource ToolWindowBrush}">
-                
-            </Grid>
+            <!-- 工具栏区域：热键监控开关 + 打开日志文件夹 -->
+            <Border Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{DynamicResource ToolWindowBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                    <!-- 热键监控开关按钮 -->
+                    <Button Content="{Binding HotkeyButtonText}" Command="{Binding ToggleHotkeyCommand}"
+                            Width="120" Height="26" Margin="0,0,10,0"
+                            Background="{DynamicResource MenuBarBrush}" 
+                            Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Cursor="Hand">
+                    </Button>
+                    <!-- 打开日志文件夹按钮 -->
+                    <Button Content="{DynamicResource key_OpenLogFolder}" Command="{Binding OpenLogFolderCommand}"
+                            Width="100" Height="26"
+                            Background="{DynamicResource MenuBarBrush}" 
+                            Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Cursor="Hand">
+                    </Button>
+                </StackPanel>
+            </Border>
 
             <!-- 左侧工具栏抽屉（VS 风格：竖排标签 + 内容面板） -->
             <Border Grid.Column="0" Grid.RowSpan="2"
