@@ -84,8 +84,10 @@ YFrame.exe ──→ YF_Manager.dll ──→ Castle.Core (AOP)
     ▼                                 ▼
 plugins/                       所有插件项目
   ├── YF_AIHelper.dll ──────────→ YF_Manager.dll + LLamaSharp
+  ├── YF_Clicker.dll ───────────→ YF_Manager.dll + WindowsInput
   ├── YF_HttpServer.dll ────────→ YF_Manager.dll
   ├── YF_KMScript.dll ──────────→ YF_Manager.dll
+  ├── YF_Penetration.dll ───────→ YF_Manager.dll + NatTraversal 自研库
   └── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
 ```
 
@@ -101,8 +103,11 @@ plugins/                       所有插件项目
 | **窗口控制按钮** | 显示最大化 / 最小化 / 关闭按钮 |
 | **侧边栏文字旋转** | 左侧插件列表文字垂直旋转显示（VS Code 风格活动栏） |
 | **插件选中指示** | 选中插件以左侧强调色竖线指示（无背景高亮） |
+| **多标签侧面板切换** | 左侧面板（插件列表 / 工具箱）和右侧面板（日志 / 参数）支持标签页切换 |
 | **全局极窄滚动条** | 5px 宽滚动条，透明轨道 + 主题强调色滑块 + 悬停动画 |
 | **性能监视器边框** | LiveCharts 图表区域带边框视觉分隔 |
+| **全局热键监控** | 框架统一管理 Ctrl+Y 热键，工具栏一键启停 + 状态栏状态显示 |
+| **日志面板管理** | 支持清除日志面板、一键打开日志文件夹 |
 
 ---
 
@@ -149,10 +154,14 @@ public static MainWindowViewModel Instance => _instance.Value;
 |----|----------|------|
 | `MainWindowViewModel` | YFrame | 主窗口视图模型 |
 | `UserControlsService` | YFrame | 插件加载服务 |
+| `HotkeyService` | YFrame | 全局热键服务 |
+| `YF_FileHelper` | YF_Manager | 文件操作助手 |
 | `YF_AIHelper.MainControlViewModel` | 插件 | AI 助手视图模型 |
+| `YF_Clicker.MainControlViewModel` | 插件 | 鼠标连点器视图模型 |
 | `YF_HttpServer.MainControlViewModel` | 插件 | HTTP 服务器视图模型 |
 | `YF_HttpServer.HttpService` | 插件 | HTTP 服务器核心服务 |
 | `YF_KMScript.MainControlViewModel` | 插件 | 脚本编辑器视图模型 |
+| `YF_Penetration.MainControlViewModel` | 插件 | NAT 内网穿透视图模型 |
 | `YF_ScreenOCRTranslate.MainControlViewModel` | 插件 | OCR 翻译视图模型 |
 | `YF_ScreenOCRTranslate.ScreenShotViewModel` | 插件 | 截图选区域视图模型 |
 | `YF_ScreenOCRTranslate.TranslateService` | 插件 | 翻译服务 |
@@ -240,7 +249,8 @@ YFrame/
 │   ├── ViewModel/
 │   │   ├── MainWindowViewModel.cs      # 核心 ViewModel（单例 + AOP，管理全部 UI 状态和命令）
 │   │   └── Service/
-│   │       └── UserControlsService.cs  # 插件加载服务（单例 + AOP，反射扫描/加载/实例化）
+│   │       ├── UserControlsService.cs  # 插件加载服务（单例 + AOP，反射扫描/加载/实例化）
+│   │       └── HotkeyService.cs        # 全局热键服务（单例 + AOP，Win32 RegisterHotKey 封装）
 │   ├── Model/
 │   │   ├── PluginsModel.cs             # 插件列表项模型（Name, ID, Status）
 │   │   ├── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
@@ -561,17 +571,76 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 
 ---
 
+### 4.7 全局热键系统
+
+框架通过 `HotkeyService` 统一管理全局热键，而非各插件单独注册，解决热键重复或过多问题。
+
+#### 4.7.1 架构设计
+
+```
+MainWindow 加载
+    │
+    ▼
+HotkeyService.Instance.Initialize(window)
+    │  WindowInteropHelper → HwndSource.AddHook(WndProc)
+    │
+    ▼
+用户点击工具栏"热键监控" → ToggleHotkeyCommand
+    │
+    ├── 开启 → HotkeyService.Instance.Register()
+    │             RegisterHotKey(hWnd, HOTKEY_ID, MOD_CONTROL, VK_Y)
+    │             状态栏显示 "热键Ctrl+Y: 已开启"
+    │
+    └── 关闭 → HotkeyService.Instance.Unregister()
+                  UnregisterHotKey(hWnd, HOTKEY_ID)
+                  状态栏显示 "热键Ctrl+Y: 已关闭"
+
+Ctrl+Y 按下 → WndProc 拦截 WM_HOTKEY → OnHotkeyPressed 事件
+    │
+    ▼
+MainWindowViewModel.OnHotkeyPressed()
+    │  根据当前激活插件 ID 分发命令:
+    ├── "YF_ScreenOCRTranslate" → ExecuteCommand("CaptureScreen")
+    ├── "YF_Clicker" → ExecuteCommand("ToggleClick")
+    └── 其他插件 → ExecuteCommand("HotkeyTrigger")
+```
+
+#### 4.7.2 HotkeyService 核心实现
+
+| 组件 | 说明 |
+|------|------|
+| **Win32 API** | `RegisterHotKey` / `UnregisterHotKey`（user32.dll） |
+| **热键组合** | Ctrl + Y（`MOD_CONTROL=0x0002`，`VK_Y=0x59`） |
+| **热键 ID** | `HOTKEY_ID = 9001` |
+| **消息拦截** | `HwndSource.AddHook(WndProc)` 拦截 `WM_HOTKEY (0x0312)` |
+| **事件通知** | `Action? OnHotkeyPressed` 事件通知订阅者 |
+| **设计模式** | AOP 单例（`ProxyGenerator.CreateClassProxy<HotkeyService>`） |
+
+#### 4.7.3 插件热键适配
+
+插件只需在 `ExecuteCommand` 中实现对应命令，无需关心热键注册：
+
+| 插件 | 命令 | 说明 |
+|------|------|------|
+| YF_ScreenOCRTranslate | `"CaptureScreen"` | 触发截图翻译流程 |
+| YF_Clicker | `"ToggleClick"` | 切换连点器启停 |
+| 其他插件 | `"HotkeyTrigger"` | 通用热键触发命令 |
+
+---
+
 ## 5. 插件生态
 
-当前已开发四款插件，覆盖 AI、网络、自动化、OCR 翻译四大场景。
+当前已开发六款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透等场景。
 
 ### 5.1 插件总览
 
 | 插件 | ID | 名称 | 核心依赖 | 一句话描述 |
 |------|-----|------|----------|-----------|
 | **YF_AIHelper** | `YF_AIHelper` | AI 助手 | LLamaSharp 0.24.0 + CUDA 12 | 本地 LLM 推理的 AI 对话助手 |
-| **YF_HttpServer** | `YF_HttpServer` | Http 文件助手 | `HttpListener`（框架内置） | 一键启动的轻量级 HTTP 文件服务器 |
+| **YF_Clicker** | `YF_Clicker` | 鼠标连点器 | WindowsInput | 可配置间隔的鼠标自动连点器 |
+| **YF_HttpServer** | `YF_HttpServer` | Http 文件助手 | `HttpListener`（框架内置）| 一键启动的轻量级 HTTP 文件服务器 |
 | **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | 无额外依赖 | 中文 DSL 键鼠自动化脚本引擎 |
+| **YF_Penetration** | `YF_Penetration` | NAT 内网穿透 | NatTraversal 自研库 | NAT 穿透 P2P 联机（房间制中继转发）|
 | **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
 
 ### 5.2 YF_AIHelper — AI 助手
@@ -589,7 +658,26 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 - `LLamaSharp` 0.24.0 — llama.cpp 的 .NET 绑定
 - `LLamaSharp.Backend.Cuda12` 0.24.0 — CUDA 12 GPU 加速后端
 
-### 5.3 YF_HttpServer — HTTP 文件助手
+### 5.3 YF_Clicker — 鼠标连点器
+
+**功能描述：** 基于 WindowsInput 实现的鼠标自动连点工具。支持自定义点击间隔，通过后台线程连续点击，支持手动按钮控制和框架 Ctrl+Y 热键切换启停。
+
+**技术实现：**
+- `InputSimulator.Mouse.LeftButtonClick()` 模拟鼠标左键点击
+- 后台 `Thread` 执行连续点击循环，10 秒自动停止
+- `CancellationTokenSource` 实现安全中断
+- UI 显示实时运行状态（绿/灰圆形指示器）和点击次数统计
+- 通过 `OnPluginCallback` 事件向框架回传统计数据（启停状态、完成次数、耗时）
+
+**启停方式：**
+- 手动点击 UI 的"开始点击"/"停止点击"按钮
+- 框架 Ctrl+Y 热键切换（需当前激活此插件）
+- 10 秒超时自动停止
+
+**核心 NuGet 依赖：**
+- `WindowsInput` 6.4.0 — 模拟键盘鼠标输入
+
+### 5.4 YF_HttpServer — HTTP 文件助手
 
 **功能描述：** 基于 `HttpListener` 实现的一键式 HTTP 文件服务器。自动获取本机 IP，提供目录浏览、文件下载、拖拽上传和剪贴板复制命令等功能。
 
@@ -603,7 +691,7 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 - 启动/停止按钮通过 `YF_RelayCommand` 的 `CanExecute` 控制互斥状态
 - 自动通过 `YF_TcpHelper.GetLocalIP()` 获取本机 IP
 
-### 5.4 YF_KMScript — 脚本编辑器
+### 5.5 YF_KMScript — 脚本编辑器
 
 **功能描述：** 提供中文关键字 DSL 的键鼠自动化脚本编辑和解释执行环境。
 
@@ -625,17 +713,38 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 - 脚本在 `ThreadPool` 后台线程执行，支持通过 `_shouldStop` 标志中止
 - 可视化编辑器 + 输出面板，提供运行/停止/清空按钮
 
-### 5.5 YF_ScreenOCRTranslate — OCR 实时翻译
+### 5.6 YF_Penetration — NAT 内网穿透
+
+**功能描述：** 基于自研 NatTraversal 库实现的 NAT 内网穿透工具，通过中转服务器实现 P2P 联机。支持 Host（建主）和 Player（加入）两种角色模式。
+
+**技术实现：**
+- `NatTunnelClient` 核心客户端类，管理连接生命周期
+- Host 模式：创建房间 → 生成加入码 → 启动 TCP/UDP 中继循环
+- Player 模式：使用加入码加入房间 → 启动本地代理 → `127.0.0.1` 端口转发
+- 支持 UDP 中继和 TCP 传输两种转发模式
+- 双标签页 UI 切换 Host/Player 角色，带连接状态实时指示器
+- 统计数据面板：上传/下载字节数、会话数、回显测试
+- 日志面板实时输出连接、中继、错误信息
+
+**核心依赖：**
+- NatTraversal.Client — NAT 穿透客户端核心库
+- NatTraversal.Server — 中转服务端核心库
+- NatTraversal.Shared — 共享类型定义库
+
+### 5.7 YF_ScreenOCRTranslate — OCR 实时翻译
 
 **功能描述：** 全局热键唤起截图 → PaddleOCR 文字识别 → 百度翻译 API 英译中 → 翻译结果叠加显示。五步流水线在数秒内完成。
+
+**注意：** 热键 Ctrl+Y 现由框架 `HotkeyService` 统一管理，插件无需自行注册热键。
 
 **完整工作流：**
 
 ```
-用户按 Ctrl+Y
+用户按 Ctrl+Y（框架 HotkeyService 统一管理）
     │
     ▼
-[1] 热键捕获 (RegisterHotKey + HwndSource)
+[1] 框架热键触发 → HotkeyService.OnHotkeyPressed
+    │  MainWindowViewModel 向激活插件发送 "CaptureScreen" 命令
     │
     ▼
 [2] 全屏截图覆盖层 (ScreenShot Window)
@@ -706,8 +815,8 @@ MainWindowViewModel              UserControlsService           Plugin ViewModel
 
 | API | 来源 | 使用位置 | 用途 |
 |-----|------|----------|------|
-| `RegisterHotKey` | `user32.dll` | YF_ScreenOCRTranslate | 注册全局热键 Ctrl+Y |
-| `UnregisterHotKey` | `user32.dll` | YF_ScreenOCRTranslate | 注销全局热键 |
+| `RegisterHotKey` | `user32.dll` | YFrame (HotkeyService) | 注册全局热键 Ctrl+Y |
+| `UnregisterHotKey` | `user32.dll` | YFrame (HotkeyService) | 注销全局热键 |
 | `SetWindowPos` | `user32.dll` | YF_ScreenOCRTranslate | 截图覆盖层置顶 |
 | `PerformanceCounter` | `System.Diagnostics` | YFrame | CPU 和内存使用率采集 |
 | `ManagementObjectSearcher` | `System.Management` | YFrame | WMI 查询 `Win32_ComputerSystem` |
@@ -819,7 +928,7 @@ logger.LogInfo("msg")
 >
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR
 >
-> **最后更新：** 2026-07-10
+> **最后更新：** 2026-07-15
 
 
 
