@@ -143,14 +143,10 @@ namespace YFrame
                 {
                     _isHotkeyEnabled = value;
                     OnPropertyChanged(nameof(IsHotkeyEnabled));
-                    OnPropertyChanged(nameof(HotkeyButtonText));
                     OnPropertyChanged(nameof(HotkeyStatusText));
                 }
             }
         }
-
-        // 热键按钮显示文本
-        public string HotkeyButtonText => IsHotkeyEnabled ? "热键监控: 开" : "热键监控: 关";
 
         // 状态栏热键状态文本
         public string HotkeyStatusText => IsHotkeyEnabled ? "已开启" : "已关闭";
@@ -172,6 +168,7 @@ namespace YFrame
         public ICommand SwitchRightPanelCommand { get; set; }           // 右侧面板切换事件
         public ICommand ToggleHotkeyCommand { get; set; }               // 热键监控开关事件
         public ICommand OpenLogFolderCommand { get; set; }              // 打开日志文件夹事件
+        public ICommand ClearLogCommand { get; set; }                   // 清除日志事件
 
         #endregion
 
@@ -400,6 +397,8 @@ namespace YFrame
                 ToggleHotkeyCommand = new YF_RelayCommand(() => ToggleHotkey());
                 // 打开日志文件夹
                 OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
+                // 清除日志
+                ClearLogCommand = new YF_RelayCommand(() => ClearLog());
 
                 // 委托绑定
                 // 显示CPU-Memory
@@ -472,6 +471,28 @@ namespace YFrame
         }
 
         /// <summary>
+        /// 清除日志面板内容
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "清除日志")]
+        public virtual void ClearLog()
+        {
+            try
+            {
+                lock (_logLock)
+                {
+                    _logBuilder.Clear();
+                    _logLineCount = 0;
+                }
+                LogText = string.Empty;
+                logger.LogInfo("日志面板已清除");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ClearLog", ex.Message);
+            }
+        }
+
+        /// <summary>
         /// 热键被按下：根据当前显示的插件发送对应命令
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "热键触发")]
@@ -526,7 +547,7 @@ namespace YFrame
         {
             try
             {
-                string msg = $"[{pluginId}] 命令:{e.Command} 结果:{e.Data} 时间:{e.Timestamp:HH:mm:ss}";
+                string msg = $"[{pluginId}] 命令:{e.Command} 内容:{e.Data} 时间:{e.Timestamp:HH:mm:ss}";
                 logger.LogInfo(msg);
                 Application.Current.Dispatcher.Invoke(() =>
                 {
