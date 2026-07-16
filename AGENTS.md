@@ -282,8 +282,9 @@ MainWindowViewModel.OnHotkeyPressed()
 - **模型:** DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf（本地 GGUF）
 - **配置:** ContextSize=1024, GpuLayerCount=20
 - **核心:** LLamaWeights → LLamaContext → InteractiveExecutor → 流式 InferAsync
-- **UI:** 聊天界面，AI左/用户右气泡，Enter发送/Ctrl+Enter换行
-- **模型路径在代码中硬编码，需.gguf文件存在**
+- **UI:** 聊天界面，AI左/用户右气泡，消息自动滚动
+- **初始化分离:** `Init(false)` 仅返回元数据不加载模型（避免文件占用），`Init(true)` 完整加载
+- **已知问题:** KeyDown 事件未绑定到 XAML（Enter/Ctrl+Enter 功能不生效），`ExecuteCommand` 未区分命令类型，`Microsoft.Extensions.Configuration` 包已添加但未使用
 
 ### YF_Clicker（鼠标连点器）（2026-07 新增）
 - **ID:** YF_Clicker，名称："鼠标连点器"
@@ -299,13 +300,17 @@ MainWindowViewModel.OnHotkeyPressed()
 - **功能:** GET目录浏览+文件下载（含MIME），POST上传（X-FileName头）
 - **UI:** IP/端口/路径配置 + 启停按钮 + 拖拽上传 + 防火墙/curl命令一键复制
 - **自定义附加行为:** `DragDropBehavior` 实现MVVM拖放绑定
+- **已知问题:** `_YF_FileHelper` 字段未初始化（OpenFolderCommand 会空引用），`ExecuteCommand` 未区分命令类型，`Run()` 中有调试残留代码 `var a = ex.GetType().Name;`
 
 ### YF_KMScript（脚本编辑器）
 - **ID:** YF_KMScript，名称："脚本编辑器"
-- **核心:** 自研中文DSL解释器（ScriptInterpreter，内嵌在MainControl.xaml.cs中）
-- **语法:** 定义/找图/点击/等待/循环/输出，`//` 注释
-- **特性:** 后台执行 + `_shouldStop` 可中断 + 嵌套循环支持
-- **状态:** 开发中（Model/View目录为空，MVVM分离不彻底）
+- **核心:** 自研中文DSL解释器（`ScriptInterpreter`，独立在 `Services/` 目录中，416行），OpenCV 模板匹配（`ImageMatcher`）
+- **语法:** 定义/找图/点击/等待/循环/如果/否则/截图/输出，`//` 注释，Python 风格缩进（Tab 或 2 空格）
+- **找图:** OpenCvSharp4 `CCOEFF_NORMED` 算法，`匹配阈值` 变量控制相似度
+- **特性:** 后台执行 + `_shouldStop` 可中断 + 嵌套循环 + if/else 条件判断 + 区域截图选择窗口
+- **新增服务:** `ImageMatcher`（OpenCV 找图）、`LogEntry`（日志模型）、`RegionSelectionWindow`（截图选区）、`ScreenCapture`（截图工具）
+- **文件格式:** `.ys` 脚本文件
+- **内部 RelayCommand:** 自定义简单 RelayCommand，未使用框架的 `YF_RelayCommand`
 
 ### YF_Penetration（NAT 内网穿透）（2026-07 新增）
 - **ID:** YF_Penetration，名称："NAT 内网穿透"
@@ -322,6 +327,7 @@ MainWindowViewModel.OnHotkeyPressed()
 - **DPI:** 1.25倍缩放补偿（硬编码）
 - **置信度:** >0.6过滤
 - **模型:** PP-OCRv5 mobile（det/rec/cls）
+- **已知问题:** 百度 API 密钥硬编码在源码中（appId/secretKey），`PaddleOCREngine` 未释放可能导致 GPU 内存泄漏，翻译 API 使用 HTTP 而非 HTTPS
 
 ---
 
@@ -360,6 +366,12 @@ MainWindowViewModel.OnHotkeyPressed()
 3. **当前只支持 x64 / Any CPU** 配置
 4. **AOP 代理要求方法为 virtual** 且有 `[Log]` 特性
 5. **全局热键 Ctrl+Y 由框架 HotkeyService 统一管理**，插件无需各自注册热键，只需实现 `ExecuteCommand("ToggleClick" / "CaptureScreen" / "HotkeyTrigger")`
-6. **已知问题：** `CtrlParamModel.cs` 为空壳；`DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）；目录名 `Plugins` vs `plugins` 大小写不一致
+6. **已知问题：**
+   - `CtrlParamModel.cs` 为空壳
+   - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
+   - 目录名 `Plugins` vs `plugins` 大小写不一致
+   - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
+   - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）
+   - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
 7. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
 8. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）

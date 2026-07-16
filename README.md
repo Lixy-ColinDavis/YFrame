@@ -639,7 +639,7 @@ MainWindowViewModel.OnHotkeyPressed()
 | **YF_AIHelper** | `YF_AIHelper` | AI 助手 | LLamaSharp 0.24.0 + CUDA 12 | 本地 LLM 推理的 AI 对话助手 |
 | **YF_Clicker** | `YF_Clicker` | 鼠标连点器 | WindowsInput | 可配置间隔的鼠标自动连点器 |
 | **YF_HttpServer** | `YF_HttpServer` | Http 文件助手 | `HttpListener`（框架内置）| 一键启动的轻量级 HTTP 文件服务器 |
-| **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | 无额外依赖 | 中文 DSL 键鼠自动化脚本引擎 |
+| **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | OpenCvSharp4 | 中文 DSL 键鼠自动化脚本引擎 |
 | **YF_Penetration** | `YF_Penetration` | NAT 内网穿透 | NatTraversal 自研库 | NAT 穿透 P2P 联机（房间制中继转发）|
 | **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
 
@@ -699,19 +699,26 @@ MainWindowViewModel.OnHotkeyPressed()
 
 | 关键字 | 语法 | 说明 |
 |--------|------|------|
-| `定义` | `定义 变量名 = 值` | 变量声明与赋值（支持字符串 `"..."` 和整数） |
-| `找图` | `找图 变量名` | 模拟屏幕找图（返回坐标存入 `变量名位置`） |
+| `定义` | `定义 变量名 = 值` | 变量声明与赋值（支持字符串 `"..."` 和整数/浮点数） |
+| `找图` | `找图 变量名` | OpenCV 模板匹配找图（返回坐标存入 `变量名位置`） |
 | `点击` | `点击 变量名` | 模拟鼠标点击到指定坐标 |
-| `等待` | `等待 毫秒` | 线程休眠 |
-| `循环` | `循环 N 次 ... 结束循环` | 循环结构（支持嵌套） |
+| `等待` | `等待 毫秒` | 线程休眠（支持数字或变量名） |
+| `循环` | `循环 N 次 ... 结束循环` | 循环结构（支持嵌套，`循环次数` 变量自动维护） |
+| `如果` | `如果 条件 ... 否则 ...` | 条件判断（存在/等于/不等于/大于/小于/大于等于/小于等于） |
+| `截图` | `截图 x y 宽 高 路径` | 截取屏幕指定区域保存为 PNG |
 | `输出` | `输出 内容` | 打印到输出面板 |
 | `//` | `// 注释内容` | 单行注释 |
 
+**特殊变量：** `匹配阈值`（找图相似度，默认 0.80）、`循环次数`（当前循环迭代）
+
 **技术实现：**
-- `ScriptInterpreter` 类逐行解析脚本
-- 变量存储在 `Dictionary<string, object>` 中
-- 脚本在 `ThreadPool` 后台线程执行，支持通过 `_shouldStop` 标志中止
-- 可视化编辑器 + 输出面板，提供运行/停止/清空按钮
+- `ScriptInterpreter` 类基于缩进语法树（Python 风格 Tab/2空格）解析脚本
+- OpenCV `CCOEFF_NORMED` 算法实现模板匹配找图（`ImageMatcher` 服务）
+- 变量存储在 `Dictionary<string, object>` 中，支持 string/int/double/Point
+- 脚本在后台线程执行，支持通过 `_shouldStop` 标志中止
+- 可视化编辑器 + 输出面板，提供运行/停止/清空/保存按钮
+- 区域截图选择窗口（`RegionSelectionWindow`）支持鼠标拖拽框选
+- Win32 `SetCursorPos` + `mouse_event` 实现鼠标输入模拟
 
 ### 5.6 YF_Penetration — NAT 内网穿透
 
@@ -805,8 +812,12 @@ MainWindowViewModel.OnHotkeyPressed()
 |------|------|----------|------|
 | **LLamaSharp** | 0.24.0 | YF_AIHelper | llama.cpp .NET 绑定，本地 LLM 推理 |
 | **LLamaSharp.Backend.Cuda12** | 0.24.0 | YF_AIHelper | CUDA 12 GPU 加速 |
-| **Microsoft.Extensions.Configuration** | 9.0.8 | YF_AIHelper | 配置文件读取 |
-| **Microsoft.Extensions.Configuration.Json** | 9.0.8 | YF_AIHelper | JSON 配置文件支持 |
+| **Microsoft.Extensions.Configuration** | 9.0.8 | YF_AIHelper | 配置文件读取（预留） |
+| **Microsoft.Extensions.Configuration.Json** | 9.0.8 | YF_AIHelper | JSON 配置文件支持（预留） |
+| **WindowsInput** | 6.4.0 | YF_Clicker | 模拟键盘鼠标输入 |
+| **OpenCvSharp4** | 4.13.0 | YF_KMScript | 计算机视觉，模板匹配找图 |
+| **OpenCvSharp4.runtime.win** | 4.13.0 | YF_KMScript | OpenCV Windows 原生运行时 |
+| **System.Drawing.Common** | 8.0.0 | YF_KMScript | 位图处理（截图、图片加载） |
 | **Paddle.Runtime.win_x64** | 3.4.0 | YF_ScreenOCRTranslate | Paddle 推理运行时 |
 | **PaddleOCRSharp** | 6.1.0 | YF_ScreenOCRTranslate | PaddleOCR .NET 封装（PP-OCRv5） |
 | **Newtonsoft.Json** | 13.0.4 | YF_ScreenOCRTranslate | JSON 解析（百度翻译 API 响应） |
