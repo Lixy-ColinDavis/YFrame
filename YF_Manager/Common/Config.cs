@@ -14,6 +14,9 @@ namespace YF_Manager
         // 日志路径
         public const string LogPath = @"Log";
 
+        // 脚本保存路径
+        public const string ScriptPath = @"Config\Script";
+
         // 插件路径
         public const string PluginPath = @"Plugins";
 

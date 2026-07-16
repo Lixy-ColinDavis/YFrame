@@ -21,6 +21,75 @@ namespace YF_Manager
         private const int ClipboardRetryCount = 2;
 
         /// <summary>
+        /// 确保指定目录路径存在，不存在则递归创建所有层级目录
+        /// 注意：非virtual，不走AOP代理，避免与LogInterceptor产生递归调用
+        /// </summary>
+        public void EnsureDirectory(string dirPath)
+        {
+            if (!string.IsNullOrEmpty(dirPath) && !Directory.Exists(dirPath))
+                Directory.CreateDirectory(dirPath);
+        }
+
+        /// <summary>
+        /// 确保文件所在目录存在，不存在则递归创建所有层级目录
+        /// 注意：非virtual，不走AOP代理，避免与LogInterceptor产生递归调用
+        /// </summary>
+        public void EnsureDirectoryForFile(string filePath)
+        {
+            var dir = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+        /// <summary>
+        /// 获取脚本默认保存目录（软件根目录/Config/Script），目录不存在时自动创建
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "获取脚本目录")]
+        public virtual string GetScriptDirectory()
+        {
+            string dir = Path.Combine(AppContext.BaseDirectory, Config.ScriptPath);
+            EnsureDirectory(dir);
+            return dir;
+        }
+
+        /// <summary>
+        /// 检查文件是否存在
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "检查文件是否存在")]
+        public virtual bool FileExists(string filePath)
+        {
+            return !string.IsNullOrEmpty(filePath) && File.Exists(filePath);
+        }
+
+        /// <summary>
+        /// 读取文件全部文本
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "读取文件文本")]
+        public virtual string ReadAllText(string filePath)
+        {
+            return File.ReadAllText(filePath);
+        }
+
+        /// <summary>
+        /// 写入文本到文件（自动创建目录后保存）
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "写入文件文本")]
+        public virtual void WriteAllText(string filePath, string content)
+        {
+            EnsureDirectoryForFile(filePath);
+            File.WriteAllText(filePath, content);
+        }
+
+        /// <summary>
+        /// 获取文件名称（不含路径）
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "获取文件名")]
+        public virtual string GetFileName(string filePath)
+        {
+            return Path.GetFileName(filePath);
+        }
+
+        /// <summary>
         /// 递归复制目录
         /// </summary>
         /// <returns>复制是否成功</returns>

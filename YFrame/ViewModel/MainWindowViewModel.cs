@@ -15,6 +15,7 @@ using YF_Manager;
 using YFrame.Model;
 using System.Reflection.Metadata;
 using Castle.DynamicProxy;
+using System.IO;
 
 namespace YFrame
 {
@@ -132,6 +133,24 @@ namespace YFrame
             }
         }
 
+        private bool _isHotkeyEnabled;  // 热键监控是否开启
+        public bool IsHotkeyEnabled
+        {
+            get => _isHotkeyEnabled;
+            set
+            {
+                if (_isHotkeyEnabled != value)
+                {
+                    _isHotkeyEnabled = value;
+                    OnPropertyChanged(nameof(IsHotkeyEnabled));
+                    OnPropertyChanged(nameof(HotkeyStatusText));
+                }
+            }
+        }
+
+        // 状态栏热键状态文本
+        public string HotkeyStatusText => IsHotkeyEnabled ? "已开启" : "已关闭";
+
         #endregion
 
         #region 绑定命令
@@ -143,10 +162,16 @@ namespace YFrame
         public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动事件
         public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化事件
         public ICommand ToggleChineseCommand { get; set; }              // 中文切换事件
-        public ICommand ToggleEnglishCommand { get; set; }              // 中文切换事件
+        public ICommand ToggleEnglishCommand { get; set; }              // 英文切换事件
         public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
         public ICommand SwitchLeftPanelCommand { get; set; }            // 左侧面板切换事件
         public ICommand SwitchRightPanelCommand { get; set; }           // 右侧面板切换事件
+        public ICommand ToggleHotkeyCommand { get; set; }               // 热键监控开关事件
+        public ICommand OpenLogFolderCommand { get; set; }              // 打开日志文件夹事件
+        public ICommand ClearLogCommand { get; set; }                   // 清除日志事件
+        public ICommand NewScriptCommand { get; set; }                  // 新建脚本事件
+        public ICommand OpenScriptCommand { get; set; }                 // 打开脚本事件
+        public ICommand SaveScriptCommand { get; set; }                 // 保存脚本事件
 
         #endregion
 
@@ -251,6 +276,12 @@ namespace YFrame
             logger.LogInfo("主框架初始化-开始");
             InitUI();
             InitCommond();
+
+            // 订阅全局热键事件
+            HotkeyService.Instance.OnHotkeyPressed += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() => OnHotkeyPressed());
+            };
 
             YF_Manager_Log.d_LogWrite = Show_Log;
             logger.LogInfo("主框架初始化-完成");
@@ -365,6 +396,18 @@ namespace YFrame
                     if (int.TryParse(panelIndex, out var idx))
                         ActiveRightPanel = idx;
                 });
+                // 热键监控开关
+                ToggleHotkeyCommand = new YF_RelayCommand(() => ToggleHotkey());
+                // 打开日志文件夹
+                OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
+                // 清除日志
+                ClearLogCommand = new YF_RelayCommand(() => ClearLog());
+                // 新建脚本
+                NewScriptCommand = new YF_RelayCommand(() => ExecuteNewScript());
+                // 打开脚本
+                OpenScriptCommand = new YF_RelayCommand(() => ExecuteOpenScript());
+                // 保存脚本
+                SaveScriptCommand = new YF_RelayCommand(() => ExecuteSaveScript());
 
                 // 委托绑定
                 // 显示CPU-Memory
@@ -375,6 +418,221 @@ namespace YFrame
                 logger.ErrorInfo("InitCommond", ex.Message);
             }
 
+        }
+
+        /// <summary>
+        /// 热键监控开关切换
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "热键开关切换")]
+        public virtual void ToggleHotkey()
+        {
+            try
+            {
+                if (!IsHotkeyEnabled)
+                {
+                    // 开启热键
+                    if (HotkeyService.Instance.Register())
+                    {
+                        IsHotkeyEnabled = true;
+                        logger.LogInfo("全局热键 Ctrl+Y 注册成功");
+                    }
+                    else
+                    {
+                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注册失败，可能已被其他程序占用");
+                    }
+                }
+                else
+                {
+                    // 关闭热键
+                    if (HotkeyService.Instance.Unregister())
+                    {
+                        IsHotkeyEnabled = false;
+                        logger.LogInfo("全局热键 Ctrl+Y 注销成功");
+                    }
+                    else
+                    {
+                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注销失败");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ToggleHotkey", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 打开日志文件夹
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "打开日志文件夹")]
+        public virtual void OpenLogFolder()
+        {
+            try
+            {
+                string logPath = Path.GetFullPath(Config.LogPath);
+                YF_FileHelper.Instance.OpenFolder(logPath);
+                logger.LogInfo("打开日志文件夹: " + logPath);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("OpenLogFolder", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 清除日志面板内容
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "清除日志")]
+        public virtual void ClearLog()
+        {
+            try
+            {
+                lock (_logLock)
+                {
+                    _logBuilder.Clear();
+                    _logLineCount = 0;
+                }
+                LogText = string.Empty;
+                logger.LogInfo("日志面板已清除");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ClearLog", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 热键被按下：根据当前显示的插件发送对应命令
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "热键触发")]
+        public virtual void OnHotkeyPressed()
+        {
+            try
+            {
+                if (CurrentUcDate == null || CurrentUcDate.CommandHandler == null)
+                {
+                    logger.LogInfo("热键 Ctrl+Y 触发，但没有激活的插件");
+                    return;
+                }
+
+                string pluginId = string.Empty;
+                foreach (var kvp in UserControlsService.Instance.DctControls)
+                {
+                    if (kvp.Value == CurrentUcDate)
+                    {
+                        pluginId = kvp.Key;
+                        break;
+                    }
+                }
+
+                logger.CommandInfo($"热键 Ctrl+Y 触发，向插件 {pluginId} 发送命令");
+
+                // 根据插件ID发送对应的命令
+                switch (pluginId)
+                {
+                    case "YF_ScreenOCRTranslate":
+                        CurrentUcDate.CommandHandler.ExecuteCommand("CaptureScreen");
+                        break;
+                    case "YF_Clicker":
+                        CurrentUcDate.CommandHandler.ExecuteCommand("ToggleClick");
+                        break;
+                    default:
+                        // 其他插件：发送通用热键命令
+                        CurrentUcDate.CommandHandler.ExecuteCommand("HotkeyTrigger");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("OnHotkeyPressed", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 处理插件回调信息，显示在日志中
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "处理插件回调")]
+        public virtual void HandlePluginCallback(string pluginId, PluginEventArgs e)
+        {
+            try
+            {
+                string msg = $"[{pluginId}] 命令:{e.Command} 内容:{e.Data} 时间:{e.Timestamp:HH:mm:ss}";
+                logger.LogInfo(msg);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Show_Log(msg);
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("HandlePluginCallback", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 新建脚本：通知插件清空
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "新建脚本")]
+        public virtual void ExecuteNewScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法新建脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("NewScript");
+                logger.LogInfo("新建脚本完成");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteNewScript", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 打开脚本：通知插件弹出打开对话框
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "打开脚本")]
+        public virtual void ExecuteOpenScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法打开脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("OpenScript");
+                logger.LogInfo("打开脚本命令已发送");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteOpenScript", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 保存脚本：通知插件执行保存
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "保存脚本")]
+        public virtual void ExecuteSaveScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法保存脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("TriggerSave");
+                logger.LogInfo("保存脚本命令已发送");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteSaveScript", ex.Message);
+            }
         }
 
         /// <summary>

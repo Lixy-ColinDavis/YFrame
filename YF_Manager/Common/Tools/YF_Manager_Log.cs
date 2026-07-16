@@ -73,11 +73,7 @@ namespace YF_Manager
             string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".htm";
             string fullPath = Path.Combine(path, fileName);
 
-            var directoryPath = Path.GetDirectoryName(fullPath);
-            if (!Directory.Exists(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath); // 自动创建多级目录‌
-            }
+            YF_FileHelper.Instance.EnsureDirectoryForFile(fullPath);
 
             if (!File.Exists(fullPath))
             {

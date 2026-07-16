@@ -17,8 +17,10 @@
             <!-- Logo -->
             <Image Source="Common/Images/Logo.png" Width="20" Height="20" Margin="3,0,5,0" VerticalAlignment="Center"/>
             <MenuItem Header="{DynamicResource key_File}" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
-                <MenuItem Header="{DynamicResource key_New}"/>
-                <MenuItem Header="{DynamicResource key_Open}"/>
+                <MenuItem Header="{DynamicResource key_New}" Command="{Binding NewScriptCommand}"/>
+                <MenuItem Header="{DynamicResource key_Open}" Command="{Binding OpenScriptCommand}"/>
+                <MenuItem Header="{DynamicResource key_Save}" Command="{Binding SaveScriptCommand}"/>
+                <Separator/>
                 <MenuItem Header="{DynamicResource key_Exit}" Command="{Binding Btn_Exit_Command}"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Edit}"/>
@@ -35,8 +37,8 @@
                 <MenuItem Header="English"  Command="{Binding ToggleEnglishCommand}"/>
             </MenuItem>
         <MenuItem Header="{DynamicResource key_Plug-in}">
-                <MenuItem Header="加载插件"/>
-                <MenuItem Header="插件管理器"/>
+                <MenuItem Header="{DynamicResource key_LoadPlugin}"/>
+                <MenuItem Header="{DynamicResource key_PluginManager}"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Help}"/>
             <MenuItem IsEnabled="False"/>
@@ -61,25 +63,31 @@
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="6" Height="6" Fill="#FF34D399" Margin="0,0,6,0"/>
-                    <TextBlock Text="运行中" Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock Text="{DynamicResource key_Running}" Foreground="{DynamicResource TextBrush}"/>
                 </StackPanel>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Foreground="{DynamicResource TextBrush}">
-                    <Run Text="CPU: "/><Run Text="{Binding Txt_Cpu, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource key_CpuLabel}"/><Run Text="{Binding Txt_Cpu, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Foreground="{DynamicResource TextBrush}">
-                    <Run Text="内存: "/><Run Text="{Binding Txt_Memory, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource key_MemoryLabel}"/><Run Text="{Binding Txt_Memory, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock>
-                    <Run Text="插件: "/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text=" 已加载"/>
+                    <Run Text="{DynamicResource key_PluginLabel}"/><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text="{DynamicResource key_LoadedPlugins}"/>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Foreground="{DynamicResource TextBrush}">
+                    <Run Text="{DynamicResource key_HotkeyStatusLabel}"/><Run Text="{Binding HotkeyStatusText, Mode=OneWay}"/>
                 </TextBlock>
             </StatusBarItem>
         </StatusBar>
@@ -96,9 +104,45 @@
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{DynamicResource ToolWindowBrush}">
-                
-            </Grid>
+            <!-- 工具栏区域：热键监控开关 + 打开日志文件夹 -->
+            <Border Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{DynamicResource ToolWindowBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0 0 0 1">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                    <!-- 热键监控开关（绿点/灰点 + 按钮样式） -->
+                    <Button Command="{Binding ToggleHotkeyCommand}"
+                            Height="26" Margin="0,0,10,0"
+                            Background="{DynamicResource MenuBarBrush}" 
+                            Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Cursor="Hand" ToolTip="{DynamicResource key_HotkeyTooltip}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#FF9E9E9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHotkeyEnabled}" Value="True">
+                                                <Setter Property="Fill" Value="#FF34D399"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{DynamicResource key_HotkeyMonitor}" FontSize="12"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- 打开日志文件夹按钮 -->
+                    <Button Content="{DynamicResource key_OpenLogFolder}" Command="{Binding OpenLogFolderCommand}"
+                            Width="100" Height="26"
+                            Background="{DynamicResource MenuBarBrush}" 
+                            Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Cursor="Hand">
+                    </Button>
+                </StackPanel>
+            </Border>
 
             <!-- 左侧工具栏抽屉（VS 风格：竖排标签 + 内容面板） -->
             <Border Grid.Column="0" Grid.RowSpan="2"
@@ -118,7 +162,7 @@
                             <!-- 插件列表 标签 -->
                             <Border x:Name="TabPlugins" Height="80" Cursor="Hand"
                                     Background="{DynamicResource MenuBarBrush}"
-                                    ToolTip="插件列表">
+                                    ToolTip="{DynamicResource key_PluginList}">
                                 <Border.InputBindings>
                                     <MouseBinding MouseAction="LeftClick"
                                                   Command="{Binding SwitchLeftPanelCommand}"
@@ -140,7 +184,7 @@
                             <!-- 工具箱 标签 -->
                             <Border x:Name="TabToolbox" Height="70" Cursor="Hand"
                                     Background="{DynamicResource MenuBarBrush}"
-                                    ToolTip="工具箱">
+                                    ToolTip="{DynamicResource key_Toolbox}">
                                 <Border.InputBindings>
                                     <MouseBinding MouseAction="LeftClick"
                                                   Command="{Binding SwitchLeftPanelCommand}"
@@ -233,7 +277,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Grid.Style>
-                                <TextBlock Text="工具箱内容（待添加）"
+                                <TextBlock Text="{DynamicResource key_ToolboxContent}"
                                            Foreground="{DynamicResource TreeItemSecondaryText}"
                                            FontSize="12" VerticalAlignment="Top"
                                            Margin="14,14,0,0"/>
@@ -312,69 +356,87 @@
                                     </TextBlock>
                                 </Grid>
                             </Border>
-                            <!-- 日志面板 -->
+
+                            <!-- 日志与参数面板重叠在同一区域，通过 ActiveRightPanel 切换显示 -->
                             <Grid>
-                                <Grid.Style>
-                                    <Style TargetType="Grid">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Grid.Style>
-                                <TextBox TextWrapping="Wrap" AcceptsReturn="True"
-                                         IsReadOnly="True" Focusable="False"
-                                         Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
-                                         Background="Transparent" Foreground="{DynamicResource TextBrush}"
-                                         BorderThickness="0"/>
+                                <!-- 日志面板 -->
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <TextBox TextWrapping="Wrap" AcceptsReturn="True"
+                                             IsReadOnly="True" Focusable="False"
+                                             Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
+                                             Background="Transparent" Foreground="{DynamicResource TextBrush}"
+                                             BorderThickness="0"/>
+                                    <Button Content="{DynamicResource key_ClearLog}" Command="{Binding ClearLogCommand}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                            Height="24" FontSize="11" Padding="8,2" Margin="0,0,4,4"
+                                            Background="{DynamicResource MenuBarBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            Cursor="Hand"/>
+                                </Grid>
+
+                                <!-- 参数面板 -->
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="2*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Key}"
+                                                                   VerticalAlignment="Center" Margin="5,0"/>
+                                                        <TextBox Grid.Column="1"
+                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Margin="5,0"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <Button Content="{DynamicResource key_AddParam}"
+                                            HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                            Height="24" FontSize="11" Padding="8,2" Margin="4,0,0,4"
+                                            Background="{DynamicResource MenuBarBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            Cursor="Hand"/>
+                                    <Button Content="{DynamicResource key_DeleteParam}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                            Height="24" FontSize="11" Padding="8,2" Margin="0,0,4,4"
+                                            Background="{DynamicResource MenuBarBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            Cursor="Hand"/>
+                                </Grid>
                             </Grid>
-                                    <!-- 参数面板 -->
-                                    <Grid>
-                                        <Grid.Style>
-                                            <Style TargetType="Grid">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="0">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ActiveRightPanel}" Value="1">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Grid.Style>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                                            <ItemsControl x:Name="ParametersItemsControl" ItemsSource="{Binding Parameters}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Grid Margin="0,2">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="2*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Grid.Column="0" Text="{Binding Key}"
-                                                                       VerticalAlignment="Center" Margin="5,0"/>
-                                                            <TextBox Grid.Column="1"
-                                                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     Margin="5,0"/>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </ScrollViewer>
-                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
-                                            <Button Content="添加参数" Margin="5,0"/>
-                                            <Button Content="删除参数" Margin="5,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </DockPanel>
+                        </DockPanel>
 
                             <!-- 竖排标签栏（右边缘） -->
                             <Border Grid.Column="1" Background="{DynamicResource MenuBarBrush}"
@@ -382,7 +444,7 @@
                                 <StackPanel>
                                     <!-- 日志 标签 -->
                                     <Border Height="60" Cursor="Hand"
-                                            Background="{DynamicResource MenuBarBrush}" ToolTip="日志">
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="{DynamicResource key_Log}">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick"
                                                           Command="{Binding SwitchRightPanelCommand}"
@@ -400,7 +462,7 @@
                                     <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="4,0"/>
                                     <!-- 参数 标签 -->
                                     <Border Height="60" Cursor="Hand"
-                                            Background="{DynamicResource MenuBarBrush}" ToolTip="参数">
+                                            Background="{DynamicResource MenuBarBrush}" ToolTip="{DynamicResource key_Param}">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick"
                                                           Command="{Binding SwitchRightPanelCommand}"

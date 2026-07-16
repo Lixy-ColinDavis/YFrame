@@ -13,6 +13,7 @@
 
     <sys:String x:Key="key_New">新建</sys:String>
     <sys:String x:Key="key_Open">打开</sys:String>
+    <sys:String x:Key="key_Save">保存</sys:String>
     <sys:String x:Key="key_Exit">退出</sys:String>
     <sys:String x:Key="key_Left sidebar">左侧边栏</sys:String>
     <sys:String x:Key="key_Right sidebar">右侧边栏</sys:String>
@@ -32,10 +33,89 @@
     
     <!--AI助手-->
     <sys:String x:Key="key_Ai_Send">发送</sys:String>
+    <sys:String x:Key="key_Ai_Title">AI 助手</sys:String>
+    <sys:String x:Key="key_Ai_Subtitle">DeepSeek-R1-Distill-Qwen-7B · 本地推理</sys:String>
+    <sys:String x:Key="key_Ai_ModelReady">模型就绪</sys:String>
+    <sys:String x:Key="key_Ai_InputPlaceholder">输入您的问题，Enter 发送，Ctrl+Enter 换行</sys:String>
+    <sys:String x:Key="key_Ai_Hint">💡 提示：Enter 发送消息 ｜ Ctrl + Enter 换行 ｜ 模型在本地运行，无需联网</sys:String>
 
     <!--HTTP服务器-->
     <sys:String x:Key="key_Http_FilePath">文件路径</sys:String>
     <sys:String x:Key="key_Http_StartServer">开启服务器</sys:String>
     <sys:String x:Key="key_Http_CloseServer">关闭服务器</sys:String>
+    <sys:String x:Key="key_Http_ServerConfig">服务器配置</sys:String>
+    <sys:String x:Key="key_Http_LocalIP">本机 IP:</sys:String>
+    <sys:String x:Key="key_Http_Port">端口:</sys:String>
+    <sys:String x:Key="key_Http_OpenFolder">打开文件夹</sys:String>
+    <sys:String x:Key="key_Http_DragHint">从资源管理器拖拽文件或目录到此处，将自动复制到文件路径目录</sys:String>
+    <sys:String x:Key="key_Http_DragPlaceholder">📥 拖拽文件到此处以上传</sys:String>
+    <sys:String x:Key="key_Http_AdminHint">请在 PowerShell 管理员权限下执行</sys:String>
+    <sys:String x:Key="key_Http_FirewallStep1">① 添加防火墙入站规则</sys:String>
+    <sys:String x:Key="key_Http_Copy">📋 复制</sys:String>
+    <sys:String x:Key="key_Http_UploadCmd">② 上传文件指令</sys:String>
+
+    <!--工具栏-->
+    <sys:String x:Key="key_OpenLogFolder">打开日志</sys:String>
+    <sys:String x:Key="key_HotkeyMonitor">热键监控</sys:String>
+    <sys:String x:Key="key_HotkeyTooltip">切换热键监控 Ctrl+Y</sys:String>
+    <sys:String x:Key="key_ClearLog">清除日志</sys:String>
+    <sys:String x:Key="key_AddParam">添加参数</sys:String>
+    <sys:String x:Key="key_DeleteParam">删除参数</sys:String>
+
+    <!--状态栏-->
+    <sys:String x:Key="key_Running">运行中</sys:String>
+    <sys:String x:Key="key_MemoryLabel">内存: </sys:String>
+    <sys:String x:Key="key_LoadedPlugins"> 已加载</sys:String>
+    <sys:String x:Key="key_HotkeyStatusLabel">热键Ctrl+Y: </sys:String>
+    <sys:String x:Key="key_ToolboxContent">工具箱内容（待添加）</sys:String>
+
+    <!--性能监视器-->
+    <sys:String x:Key="key_UsagePercent">使用率 (%)</sys:String>
+    <sys:String x:Key="key_Time">时间</sys:String>
+
+    <!--点击器-->
+    <sys:String x:Key="key_Clicker_Title">鼠标连点器</sys:String>
+    <sys:String x:Key="key_Clicker_Interval">点击间隔：</sys:String>
+    <sys:String x:Key="key_Clicker_Start">开始点击</sys:String>
+    <sys:String x:Key="key_Clicker_Stop">停止点击</sys:String>
+    <sys:String x:Key="key_Clicker_HotkeyHint">框架热键：Ctrl+Y 切换连点器启停</sys:String>
+
+    <!--脚本编辑器-->
+    <sys:String x:Key="key_KMS_ScriptArea">脚本编辑区</sys:String>
+    <sys:String x:Key="key_KMS_MatchThreshold">匹配阈值:</sys:String>
+    <sys:String x:Key="key_KMS_RegionShot">📷 区域截图</sys:String>
+    <sys:String x:Key="key_KMS_Save">💾 保存</sys:String>
+    <sys:String x:Key="key_KMS_RunScript">▶ 运行脚本</sys:String>
+    <sys:String x:Key="key_KMS_Stop">⏹ 停止</sys:String>
+    <sys:String x:Key="key_KMS_ClearOutput">🗑 清空输出</sys:String>
+    <sys:String x:Key="key_KMS_OutputLog">输出日志</sys:String>
+    <sys:String x:Key="key_KMS_Output">输出</sys:String>
+    <sys:String x:Key="key_KMS_Debug">调试</sys:String>
+    <sys:String x:Key="key_KMS_DragHint">拖拽鼠标框选截图区域&#x0a;按 ESC 取消</sys:String>
+
+    <!--OCR实时翻译-->
+    <sys:String x:Key="key_OCR_Title">OCR 实时翻译</sys:String>
+    <sys:String x:Key="key_OCR_Subtitle">English → 中文</sys:String>
+    <sys:String x:Key="key_OCR_Steps">📋 操作步骤</sys:String>
+    <sys:String x:Key="key_OCR_Step1Title">在框架中开启热键并按下 Ctrl+Y</sys:String>
+    <sys:String x:Key="key_OCR_Step1Desc">点击框架工具栏 '热键监控: 开'，然后按下 Ctrl + Y 启动截图翻译模式</sys:String>
+    <sys:String x:Key="key_OCR_Step2Title">框选翻译区域</sys:String>
+    <sys:String x:Key="key_OCR_Step2Desc">按住鼠标左键拖拽，选择屏幕上要翻译的英文区域</sys:String>
+    <sys:String x:Key="key_OCR_Step3Title">自动识别翻译</sys:String>
+    <sys:String x:Key="key_OCR_Step3Desc">松开鼠标后自动进行 OCR 识别并显示中文翻译结果</sys:String>
+    <sys:String x:Key="key_OCR_Hint">💡 提示：翻译结果窗口中点击任意位置即可关闭；热键 Ctrl+Y 由框架统一管理</sys:String>
+    <sys:String x:Key="key_OCR_ScreenShotTitle">📷 截图翻译</sys:String>
+    <sys:String x:Key="key_OCR_ScreenHint">按住鼠标左键拖拽，框选需要翻译的英文区域</sys:String>
+    <sys:String x:Key="key_OCR_ReleaseHint">释放鼠标后自动识别并翻译</sys:String>
+    <sys:String x:Key="key_OCR_ESCCancel">按 ESC 取消截图</sys:String>
+    <sys:String x:Key="key_OCR_ShowTextHint">💡 点击任意位置或按 ESC 关闭翻译结果</sys:String>
+
+    <!--菜单-->
+    <sys:String x:Key="key_LoadPlugin">加载插件</sys:String>
+    <sys:String x:Key="key_PluginManager">插件管理器</sys:String>
+
+    <!--状态栏标签-->
+    <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
+    <sys:String x:Key="key_PluginLabel">插件: </sys:String>
 
 </ResourceDictionary>
