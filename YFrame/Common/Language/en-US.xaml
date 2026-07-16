@@ -13,6 +13,7 @@
 
     <sys:String x:Key="key_New">New</sys:String>
     <sys:String x:Key="key_Open">Open</sys:String>
+    <sys:String x:Key="key_Save">Save</sys:String>
     <sys:String x:Key="key_Exit">Exit</sys:String>
     <sys:String x:Key="key_Left sidebar">Left Sidebar</sys:String>
     <sys:String x:Key="key_Right sidebar">Right Sidebar</sys:String>
@@ -83,6 +84,7 @@
     <sys:String x:Key="key_KMS_ScriptArea">Script Editor</sys:String>
     <sys:String x:Key="key_KMS_MatchThreshold">Match Threshold:</sys:String>
     <sys:String x:Key="key_KMS_RegionShot">📷 Region Screenshot</sys:String>
+    <sys:String x:Key="key_KMS_Save">💾 Save</sys:String>
     <sys:String x:Key="key_KMS_RunScript">▶ Run Script</sys:String>
     <sys:String x:Key="key_KMS_Stop">⏹ Stop</sys:String>
     <sys:String x:Key="key_KMS_ClearOutput">🗑 Clear Output</sys:String>

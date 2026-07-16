@@ -13,6 +13,7 @@
 
     <sys:String x:Key="key_New">新建</sys:String>
     <sys:String x:Key="key_Open">打开</sys:String>
+    <sys:String x:Key="key_Save">保存</sys:String>
     <sys:String x:Key="key_Exit">退出</sys:String>
     <sys:String x:Key="key_Left sidebar">左侧边栏</sys:String>
     <sys:String x:Key="key_Right sidebar">右侧边栏</sys:String>
@@ -83,6 +84,7 @@
     <sys:String x:Key="key_KMS_ScriptArea">脚本编辑区</sys:String>
     <sys:String x:Key="key_KMS_MatchThreshold">匹配阈值:</sys:String>
     <sys:String x:Key="key_KMS_RegionShot">📷 区域截图</sys:String>
+    <sys:String x:Key="key_KMS_Save">💾 保存</sys:String>
     <sys:String x:Key="key_KMS_RunScript">▶ 运行脚本</sys:String>
     <sys:String x:Key="key_KMS_Stop">⏹ 停止</sys:String>
     <sys:String x:Key="key_KMS_ClearOutput">🗑 清空输出</sys:String>

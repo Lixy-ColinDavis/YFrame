@@ -54,6 +54,8 @@ namespace YFrame
             detail = viewModel as I_YF_Detail;
             commandHandler = viewModel as I_YF_Command;
             userControl = uc as UserControl;
+            if (userControl != null)
+                userControl.DataContext = viewModel; // 确保DataContext与commandHandler为同一实例
             return userControl != null;
         }
 

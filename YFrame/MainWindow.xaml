@@ -17,8 +17,10 @@
             <!-- Logo -->
             <Image Source="Common/Images/Logo.png" Width="20" Height="20" Margin="3,0,5,0" VerticalAlignment="Center"/>
             <MenuItem Header="{DynamicResource key_File}" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
-                <MenuItem Header="{DynamicResource key_New}"/>
-                <MenuItem Header="{DynamicResource key_Open}"/>
+                <MenuItem Header="{DynamicResource key_New}" Command="{Binding NewScriptCommand}"/>
+                <MenuItem Header="{DynamicResource key_Open}" Command="{Binding OpenScriptCommand}"/>
+                <MenuItem Header="{DynamicResource key_Save}" Command="{Binding SaveScriptCommand}"/>
+                <Separator/>
                 <MenuItem Header="{DynamicResource key_Exit}" Command="{Binding Btn_Exit_Command}"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Edit}"/>

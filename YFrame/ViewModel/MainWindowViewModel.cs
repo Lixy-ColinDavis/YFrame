@@ -169,6 +169,9 @@ namespace YFrame
         public ICommand ToggleHotkeyCommand { get; set; }               // 热键监控开关事件
         public ICommand OpenLogFolderCommand { get; set; }              // 打开日志文件夹事件
         public ICommand ClearLogCommand { get; set; }                   // 清除日志事件
+        public ICommand NewScriptCommand { get; set; }                  // 新建脚本事件
+        public ICommand OpenScriptCommand { get; set; }                 // 打开脚本事件
+        public ICommand SaveScriptCommand { get; set; }                 // 保存脚本事件
 
         #endregion
 
@@ -399,6 +402,12 @@ namespace YFrame
                 OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
                 // 清除日志
                 ClearLogCommand = new YF_RelayCommand(() => ClearLog());
+                // 新建脚本
+                NewScriptCommand = new YF_RelayCommand(() => ExecuteNewScript());
+                // 打开脚本
+                OpenScriptCommand = new YF_RelayCommand(() => ExecuteOpenScript());
+                // 保存脚本
+                SaveScriptCommand = new YF_RelayCommand(() => ExecuteSaveScript());
 
                 // 委托绑定
                 // 显示CPU-Memory
@@ -557,6 +566,72 @@ namespace YFrame
             catch (Exception ex)
             {
                 logger.ErrorInfo("HandlePluginCallback", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 新建脚本：通知插件清空
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "新建脚本")]
+        public virtual void ExecuteNewScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法新建脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("NewScript");
+                logger.LogInfo("新建脚本完成");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteNewScript", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 打开脚本：通知插件弹出打开对话框
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "打开脚本")]
+        public virtual void ExecuteOpenScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法打开脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("OpenScript");
+                logger.LogInfo("打开脚本命令已发送");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteOpenScript", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 保存脚本：通知插件执行保存
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "保存脚本")]
+        public virtual void ExecuteSaveScript()
+        {
+            try
+            {
+                if (CurrentUcDate?.CommandHandler == null)
+                {
+                    logger.LogInfo("没有激活的插件，无法保存脚本");
+                    return;
+                }
+                CurrentUcDate.CommandHandler.ExecuteCommand("TriggerSave");
+                logger.LogInfo("保存脚本命令已发送");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExecuteSaveScript", ex.Message);
             }
         }
 
