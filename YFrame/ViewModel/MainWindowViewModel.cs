@@ -283,6 +283,27 @@ namespace YFrame
                 Application.Current.Dispatcher.Invoke(() => OnHotkeyPressed());
             };
 
+            // 订阅托盘图标服务事件
+            TrayIconService.Instance.OnShowWindow += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                    {
+                        mainWindow.Show();
+                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.Activate();
+                    }
+                });
+            };
+            TrayIconService.Instance.OnExitApplication += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ExitApplication();
+                });
+            };
+
             YF_Manager_Log.d_LogWrite = Show_Log;
             logger.LogInfo("主框架初始化-完成");
         }
@@ -337,8 +358,8 @@ namespace YFrame
                 ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
                 // 右抽屉
                 ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (RightVisible == true ? "开" : "关")); });
-                // 关闭按钮
-                Btn_Exit_Command = new YF_RelayCommand(() => { logger.LogInfo("退出程序"); Environment.Exit(0); });
+                // 关闭按钮（最小化到托盘，真正退出由托盘右键菜单"退出"完成）
+                Btn_Exit_Command = new YF_RelayCommand(() => MinimizeToTray());
                 // 主题切换（通过参数传入主题文件路径）
                 SetThemeCommand = new YF_RelayCommand<string>(themePath =>
                 {
@@ -670,6 +691,45 @@ namespace YFrame
             catch (Exception ex)
             {
                 logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 最小化到系统托盘（隐藏窗口）
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "最小化到系统托盘")]
+        public virtual void MinimizeToTray()
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                        mainWindow.Hide();
+                });
+                logger.LogInfo("最小化到系统托盘");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("MinimizeToTray", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 真正退出应用程序（由托盘右键菜单"退出"调用）
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "退出应用程序")]
+        public virtual void ExitApplication()
+        {
+            try
+            {
+                TrayIconService.Instance.MarkExiting();
+                logger.LogInfo("退出应用程序");
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ExitApplication", ex.Message);
             }
         }
 
