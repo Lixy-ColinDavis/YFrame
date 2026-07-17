@@ -172,6 +172,7 @@ namespace YFrame
         public ICommand NewScriptCommand { get; set; }                  // 新建脚本事件
         public ICommand OpenScriptCommand { get; set; }                 // 打开脚本事件
         public ICommand SaveScriptCommand { get; set; }                 // 保存脚本事件
+        public ICommand Btn_About_Command { get; set; }                 // 关于事件
 
         #endregion
 
@@ -429,6 +430,8 @@ namespace YFrame
                 OpenScriptCommand = new YF_RelayCommand(() => ExecuteOpenScript());
                 // 保存脚本
                 SaveScriptCommand = new YF_RelayCommand(() => ExecuteSaveScript());
+                // 关于
+                Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
 
                 // 委托绑定
                 // 显示CPU-Memory
@@ -653,6 +656,27 @@ namespace YFrame
             catch (Exception ex)
             {
                 logger.ErrorInfo("ExecuteSaveScript", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 显示关于窗口
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "显示关于窗口")]
+        public virtual void ShowAbout()
+        {
+            try
+            {
+                var aboutWindow = new View.AboutWindow
+                {
+                    Owner = Application.Current.MainWindow
+                };
+                aboutWindow.ShowDialog();
+                logger.LogInfo("关于窗口已打开");
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorInfo("ShowAbout", ex.Message);
             }
         }
 
