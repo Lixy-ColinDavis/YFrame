@@ -13,3 +13,5 @@
 /YFrame/bin/Debug/backup
 /YFrame/bin/Debug/net8.0-windows.zip
 /Review
+/YFrame.Tests/bin/Debug/net8.0-windows
+/YFrame.Tests/obj
