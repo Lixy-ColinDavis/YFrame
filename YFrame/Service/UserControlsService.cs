@@ -51,11 +51,17 @@ namespace YFrame
                 return false;
             var viewModel = Activator.CreateInstance(viewModelType);
             object uc = Activator.CreateInstance(userControlType);
-            detail = viewModel as I_YF_Detail;
-            commandHandler = viewModel as I_YF_Command;
             userControl = uc as UserControl;
             if (userControl != null)
-                userControl.DataContext = viewModel; // 确保DataContext与commandHandler为同一实例
+            {
+                // 若插件构造函数未自行设置DataContext，则由框架设置
+                // （如YF_AIHelper自行设置了代理单例，YF_KMScript则依赖框架设置）
+                if (userControl.DataContext == null)
+                    userControl.DataContext = viewModel;
+                // 从DataContext提取接口引用，确保commandHandler与UI绑定的是同一实例
+                detail = userControl.DataContext as I_YF_Detail;
+                commandHandler = userControl.DataContext as I_YF_Command;
+            }
             return userControl != null;
         }
 

@@ -40,7 +40,9 @@
                 <MenuItem Header="{DynamicResource key_LoadPlugin}"/>
                 <MenuItem Header="{DynamicResource key_PluginManager}"/>
             </MenuItem>
-            <MenuItem Header="{DynamicResource key_Help}"/>
+            <MenuItem Header="{DynamicResource key_Help}">
+                <MenuItem Header="{DynamicResource key_About}" Command="{Binding Btn_About_Command}"/>
+            </MenuItem>
             <MenuItem IsEnabled="False"/>
             <!-- 右侧可拖拽区域 -->
             <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="750" Margin="-20,-6,-20,-11">
