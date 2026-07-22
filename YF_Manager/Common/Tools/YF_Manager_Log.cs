@@ -109,7 +109,7 @@ namespace YF_Manager
                     };
 
                     sw.WriteLine("<HR Size=1>");
-                    sw.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]: {msg}\r\n");
+                    sw.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}]: {msg}\r\n");
                 }
                 catch (Exception ex)
                 {

@@ -1,29 +1,35 @@
 ﻿using LiveCharts.Defaults;
 using LiveCharts;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
-using YFrame.Model;
-using System.Reflection.Metadata;
 using Castle.DynamicProxy;
 using System.IO;
 
 namespace YFrame
 {
+    /// <summary>
+    /// 主窗口 ViewModel — 薄门面层
+    /// 职责：持有 XAML 绑定所需的属性和命令，将业务逻辑委托给子服务
+    /// 
+    /// 架构变更（Mediator 模式）：
+    ///   原：MainWindowViewModel（854行上帝对象，承担所有逻辑）
+    ///   新：MainWindowViewModel（~280行门面） + LogService + PluginService
+    ///   跨组件通信：YF_Messenger（消息中介，组件间松耦合）
+    /// 
+    /// 依赖关系图：
+    ///   MainWindowViewModel
+    ///     ├─→ LogService ─→ YF_Messenger ←─ PluginService
+    ///     │      ↑ 日志消息         ↑ 插件/热键/脚本消息
+    ///     └──────────────────────────────────┘
+    /// </summary>
     public class MainWindowViewModel : INotifyPropertyChanged, I_YF_Detail
     {
         #region INotifyPropertyChanged接口实现
         public event PropertyChangedEventHandler? PropertyChanged;
-
 
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -31,7 +37,7 @@ namespace YFrame
         }
         #endregion
 
-        #region 绑定属性
+        #region 绑定属性（XAML 绑定点，保留在此处）
 
         private bool _leftVisible;  // 左抽屉显示状态
         public bool LeftVisible
@@ -61,7 +67,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Cpu;  // CPU显示状态
+        private string _txt_Cpu = "CPU: --%";  // CPU显示状态
         public string Txt_Cpu
         {
             get => _txt_Cpu;
@@ -75,7 +81,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Memory;  // 内存显示状态
+        private string _txt_Memory = "内存: --GB";  // 内存显示状态
         public string Txt_Memory
         {
             get => _txt_Memory;
@@ -89,7 +95,7 @@ namespace YFrame
             }
         }
 
-        private string _logText;  // 日志显示
+        private string _logText = string.Empty;  // 日志显示
         public string LogText
         {
             get => _logText;
@@ -103,9 +109,7 @@ namespace YFrame
             }
         }
 
-
-
-        private UserControl _performance_Monitor_View;  // 性能监视器
+        private UserControl _performance_Monitor_View = null!;  // 性能监视器
         public UserControl Performance_Monitor_View
         {
             get => _performance_Monitor_View;
@@ -119,7 +123,7 @@ namespace YFrame
             }
         }
 
-        private Grid _grid_Show_Array;  // 用户控件(插件)显示列表
+        private Grid _grid_Show_Array = null!;  // 用户控件(插件)显示列表
         public Grid Grid_Show_Array
         {
             get => _grid_Show_Array;
@@ -150,70 +154,6 @@ namespace YFrame
 
         // 状态栏热键状态文本
         public string HotkeyStatusText => IsHotkeyEnabled ? "已开启" : "已关闭";
-
-        #endregion
-
-        #region 绑定命令
-
-        public ICommand Btn_Exit_Command { get; set; }                  // 退出事件
-        public ICommand ToggleLeftToolWindowCommand { get; set; }       // 左侧抽屉事件
-        public ICommand ToggleRightToolWindowCommand { get; set; }      // 右侧抽屉事件
-        public ICommand SetThemeCommand { get; set; }                    // 主题切换事件（参数为主题路径）
-        public ICommand Title_Move_Command { get; set; }                // 窗体拖拽移动事件
-        public ICommand Btn_Minimize_Command { get; set; }              // 窗体最小化事件
-        public ICommand ToggleChineseCommand { get; set; }              // 中文切换事件
-        public ICommand ToggleEnglishCommand { get; set; }              // 英文切换事件
-        public ICommand Btn_Plugin_Show_Command { get; set; }           // 插件显示事件
-        public ICommand SwitchLeftPanelCommand { get; set; }            // 左侧面板切换事件
-        public ICommand SwitchRightPanelCommand { get; set; }           // 右侧面板切换事件
-        public ICommand ToggleHotkeyCommand { get; set; }               // 热键监控开关事件
-        public ICommand OpenLogFolderCommand { get; set; }              // 打开日志文件夹事件
-        public ICommand ClearLogCommand { get; set; }                   // 清除日志事件
-        public ICommand NewScriptCommand { get; set; }                  // 新建脚本事件
-        public ICommand OpenScriptCommand { get; set; }                 // 打开脚本事件
-        public ICommand SaveScriptCommand { get; set; }                 // 保存脚本事件
-
-        #endregion
-
-        #region 全局变量
-
-        // 委托-显示CPU、内存信息
-        public static YF_Manager.YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory;
-
-        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
-        // 单例模式+日志拦截器
-        public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
-            () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor())
-            );
-
-        public static MainWindowViewModel Instance => _instance.Value;
-
-        #endregion
-
-        #region 成员变量
-        public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
-
-        private PluginsModel _selectedPlugin;
-        /// <summary>
-        /// 当前在插件列表中选中的插件（VS 风格列表交互）
-        /// </summary>
-        public PluginsModel SelectedPlugin
-        {
-            get => _selectedPlugin;
-            set
-            {
-                if (_selectedPlugin != value)
-                {
-                    _selectedPlugin = value;
-                    OnPropertyChanged(nameof(SelectedPlugin));
-                    // 选中时自动显示对应插件
-                    if (value != null)
-                    {
-                        ShowPlugin(value.ID);
-                    }
-                }
-            }
-        }
 
         /// <summary>
         /// 左侧面板激活页：0=插件列表, 1=工具箱
@@ -249,73 +189,184 @@ namespace YFrame
             }
         }
 
-        CtrlDataModel CurrentUcDate { get; set; } // 当前显示的插件信息
+        public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
 
-        public string YF_ID => "YF_Frame";
-
-        public string YF_Name => "主框架";
-
-        // 日志对象
-        public YF_Manager_Log logger;
-
-        private readonly StringBuilder _logBuilder = new StringBuilder(); // 日志显示字符串
-        private const int MaxLogLines = 500;    // 日志最大行数
-        private readonly object _logLock = new();   // 日志锁
-        private int _logLineCount = 0;
+        private PluginsModel _selectedPlugin = null!;
+        /// <summary>
+        /// 当前在插件列表中选中的插件（VS 风格列表交互）
+        /// </summary>
+        public PluginsModel SelectedPlugin
+        {
+            get => _selectedPlugin;
+            set
+            {
+                if (_selectedPlugin != value)
+                {
+                    _selectedPlugin = value;
+                    OnPropertyChanged(nameof(SelectedPlugin));
+                    if (value != null)
+                        ShowPlugin(value.ID);
+                }
+            }
+        }
 
         #endregion
 
-        public MainWindowViewModel()
-        {
+        #region 绑定命令（XAML 绑定点，委托给子服务）
 
-        }
+        public ICommand Btn_Exit_Command { get; set; } = null!;                  // 退出事件
+        public ICommand ToggleLeftToolWindowCommand { get; set; } = null!;       // 左侧抽屉事件
+        public ICommand ToggleRightToolWindowCommand { get; set; } = null!;      // 右侧抽屉事件
+        public ICommand SetThemeCommand { get; set; } = null!;                   // 主题切换事件（参数为主题路径）
+        public ICommand Title_Move_Command { get; set; } = null!;                // 窗体拖拽移动事件
+        public ICommand Btn_Minimize_Command { get; set; } = null!;              // 窗体最小化事件
+        public ICommand ToggleChineseCommand { get; set; } = null!;              // 中文切换事件
+        public ICommand ToggleEnglishCommand { get; set; } = null!;              // 英文切换事件
+        public ICommand Btn_Plugin_Show_Command { get; set; } = null!;           // 插件显示事件
+        public ICommand SwitchLeftPanelCommand { get; set; } = null!;            // 左侧面板切换事件
+        public ICommand SwitchRightPanelCommand { get; set; } = null!;           // 右侧面板切换事件
+        public ICommand ToggleHotkeyCommand { get; set; } = null!;               // 热键监控开关事件
+        public ICommand OpenLogFolderCommand { get; set; } = null!;              // 打开日志文件夹事件
+        public ICommand ClearLogCommand { get; set; } = null!;                   // 清除日志事件
+        public ICommand NewScriptCommand { get; set; } = null!;                  // 新建脚本事件
+        public ICommand OpenScriptCommand { get; set; } = null!;                 // 打开脚本事件
+        public ICommand SaveScriptCommand { get; set; } = null!;                 // 保存脚本事件
+        public ICommand Btn_About_Command { get; set; } = null!;                 // 关于事件
 
-        public void Init()
+        #endregion
+
+        #region 单例 + AOP
+
+        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
+        // 单例模式+日志拦截器
+        public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
+            () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor()));
+
+        public static MainWindowViewModel Instance => _instance.Value;
+
+        #endregion
+
+        #region 全局委托（保持向后兼容）
+
+        // 委托-显示CPU、内存信息
+        public static YF_DelegateFunctionModel.dvFunc_Vs_s dlg_Show_Cpu_Memory = null!;
+
+        #endregion
+
+        #region I_YF_Detail 实现
+
+        public string YF_ID => "YF_Frame";
+        public string YF_Name => "主框架";
+
+        #endregion
+
+        #region 子服务（通过 Mediator 通信）
+
+        // 日志对象
+        public YF_Manager_Log logger = null!;
+        private LogService _logService = null!;
+        private PluginService _pluginService = null!;
+
+        #endregion
+
+        #region 构造函数 + 初始化
+
+        public MainWindowViewModel() { }
+
+        /// <summary>
+        /// 初始化入口（由 MainWindow.xaml.cs 调用）
+        /// 创建子服务 → 初始化 UI → 绑定命令 → 连接外部服务
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "主框架初始化")]
+        public virtual void Init()
         {
             logger = new YF_Manager_Log(YF_Name, YF_ID);
             logger.LogInfo("主框架初始化-开始");
+
+            // 创建子服务（它们之间通过 YF_Messenger 通信）
+            _logService = new LogService(logger);
+            _pluginService = new PluginService(logger);
+
+            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性
+            _logService.OnLogTextChanged = text =>
+            {
+                if (Application.Current?.Dispatcher.CheckAccess() == true)
+                    LogText = text;
+                else
+                    Application.Current?.Dispatcher.Invoke(() => LogText = text);
+            };
+
             InitUI();
             InitCommond();
+
+            // 连接全局日志委托到 Mediator：任何通过 YF_Manager_Log.d_LogWrite 输出的日志
+            // 都将发送到 Mediator，由 LogService 统一处理
+            YF_Manager_Log.d_LogWrite = msg =>
+            {
+                YF_Messenger.Instance.Send(new LogAppendMessage(msg));
+            };
 
             // 订阅全局热键事件
             HotkeyService.Instance.OnHotkeyPressed += () =>
             {
-                Application.Current.Dispatcher.Invoke(() => OnHotkeyPressed());
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // 通过 Mediator 发送热键消息，PluginService 订阅并处理
+                    YF_Messenger.Instance.Send(new HotkeyTriggeredMessage());
+                });
             };
 
-            YF_Manager_Log.d_LogWrite = Show_Log;
+            // 订阅托盘图标服务事件
+            TrayIconService.Instance.OnShowWindow += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                    {
+                        mainWindow.Show();
+                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.Activate();
+                    }
+                });
+            };
+            TrayIconService.Instance.OnExitApplication += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() => ExitApplication());
+            };
+
+            // 委托绑定：性能监视器回调
+            dlg_Show_Cpu_Memory = Show_Cpu_Memory;
+
             logger.LogInfo("主框架初始化-完成");
         }
 
-
-
         /// <summary>
-        /// 初始化UI
+        /// 初始化 UI 元素（保留在此处，因为 XAML 绑定需要这些属性）
         /// </summary>
-        /// <remarks>
-        /// </remarks>
         [Log(Level = LogLevel.Info, Message = "初始化UI")]
         public virtual void InitUI()
         {
             try
             {
-                // 设置左右抽屉可见性
                 LeftVisible = true;
                 RightVisible = true;
 
-                // 初始化性能监视器
                 Performance_Monitor_View = new PerformanceMonitor();
-
-                // 初始化插件显示区域
                 Grid_Show_Array = new Grid();
 
-                // 初始化插件加载器
-                UserControlsService.Instance.LoadAndShowUserControl();
+                // 通知 PluginService 插件显示区域已就绪
+                _pluginService.SetGridShowArea(Grid_Show_Array);
 
-                // 插件列表添加
+                // 加载插件列表
+                UserControlsService.Instance.LoadAndShowUserControl();
                 foreach (var item in UserControlsService.Instance.DctControls)
                 {
-                    lsPlugins.Add(new PluginsModel() { Name = item.Value.Name, ID = item.Key, Status = 0 });
+                    lsPlugins.Add(new PluginsModel
+                    {
+                        Name = item.Value.Name,
+                        ID = item.Key,
+                        Status = 0
+                    });
                 }
             }
             catch (Exception ex)
@@ -325,25 +376,51 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 初始化命令绑定
+        /// 初始化命令绑定（每个命令委托给子服务或直接操作）
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "初始化命令绑定")]
         public virtual void InitCommond()
         {
             try
             {
-                // 初始化命令
-                // 左抽屉
-                ToggleLeftToolWindowCommand = new YF_RelayCommand(() => { LeftVisible = !LeftVisible; logger.LogInfo("左侧边栏-" + (LeftVisible == true ? "开" : "关")); });
-                // 右抽屉
-                ToggleRightToolWindowCommand = new YF_RelayCommand(() => { RightVisible = !RightVisible; logger.LogInfo("右侧边栏-" + (RightVisible == true ? "开" : "关")); });
-                // 关闭按钮
-                Btn_Exit_Command = new YF_RelayCommand(() => { logger.LogInfo("退出程序"); Environment.Exit(0); });
-                // 主题切换（通过参数传入主题文件路径）
+                // ===== 面板切换（委托给 Mediator） =====
+                ToggleLeftToolWindowCommand = new YF_RelayCommand(() =>
+                {
+                    LeftVisible = !LeftVisible;
+                    logger.LogInfo("左侧边栏-" + (LeftVisible ? "开" : "关"));
+                });
+                ToggleRightToolWindowCommand = new YF_RelayCommand(() =>
+                {
+                    RightVisible = !RightVisible;
+                    logger.LogInfo("右侧边栏-" + (RightVisible ? "开" : "关"));
+                });
+
+                // ===== 窗口管理 =====
+                Btn_Exit_Command = new YF_RelayCommand(() => MinimizeToTray());
+                Btn_Minimize_Command = new YF_RelayCommand(() =>
+                {
+                    Application.Current.MainWindow.WindowState = WindowState.Minimized;
+                    logger.LogInfo("窗体最小化");
+                });
+                Title_Move_Command = new YF_RelayCommand<object>(param =>
+                {
+                    try
+                    {
+                        if (param is Border border)
+                            Window.GetWindow(border)?.DragMove();
+                        else if (param is FrameworkElement element)
+                            Window.GetWindow(element)?.DragMove();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.ErrorInfo("Title_Move_Command", ex.Message);
+                    }
+                });
+
+                // ===== 主题/语言（通过 Mediator 通知所有订阅者） =====
                 SetThemeCommand = new YF_RelayCommand<string>(themePath =>
                 {
-                    // 从路径提取主题名称用于日志
-                    var fileName = System.IO.Path.GetFileNameWithoutExtension(themePath);
+                    var fileName = Path.GetFileNameWithoutExtension(themePath);
                     var themeDisplayName = fileName switch
                     {
                         "DarkGrayTheme" => "炭火暗夜",
@@ -354,75 +431,74 @@ namespace YFrame
                     };
                     App.ChangeTheme(themePath);
                     logger.LogInfo("主题切换-" + themeDisplayName);
+                    YF_Messenger.Instance.Send(new ThemeChangedMessage(themeDisplayName, themePath));
                 });
-                // 最小化
-                Btn_Minimize_Command = new YF_RelayCommand(() => { Application.Current.MainWindow.WindowState = WindowState.Minimized; logger.LogInfo("窗体最小化"); });
-                // 移动事件
-                Title_Move_Command = new YF_RelayCommand<object>(param =>
+                ToggleChineseCommand = new YF_RelayCommand(() =>
                 {
-                    try
-                    {
-                        if (param is Border border)
-                        {
-                            var window = Window.GetWindow(border);
-                            window?.DragMove();
-                        }
-                        else if (param is FrameworkElement element)
-                        {
-                            var window = Window.GetWindow(element);
-                            window?.DragMove();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.ErrorInfo("Title_Move_Command", ex.Message);
-                    }
+                    App.ChangeLanguage("zh");
+                    logger.LogInfo("语言切换-中文");
+                    YF_Messenger.Instance.Send(new LanguageChangedMessage("zh"));
                 });
-                // 中文按钮
-                ToggleChineseCommand = new YF_RelayCommand(() => { App.ChangeLanguage("zh"); logger.LogInfo("语言切换-中文"); });
-                // 英文按钮
-                ToggleEnglishCommand = new YF_RelayCommand(() => { App.ChangeLanguage("en"); logger.LogInfo("语言切换-英文"); });
-                // 插件显示
-                Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter => ShowPlugin(parameter));
-                // 左侧面板切换
+                ToggleEnglishCommand = new YF_RelayCommand(() =>
+                {
+                    App.ChangeLanguage("en");
+                    logger.LogInfo("语言切换-英文");
+                    YF_Messenger.Instance.Send(new LanguageChangedMessage("en"));
+                });
+
+                // ===== 插件管理（委托给 PluginService） =====
+                Btn_Plugin_Show_Command = new YF_RelayCommand<string>(parameter =>
+                    _pluginService.ShowPlugin(parameter));
+
+                // ===== 面板切换（通过 Mediator） =====
                 SwitchLeftPanelCommand = new YF_RelayCommand<string>(panelIndex =>
                 {
                     if (int.TryParse(panelIndex, out var idx))
+                    {
                         ActiveLeftPanel = idx;
+                        YF_Messenger.Instance.Send(new PanelSwitchMessage("Left", idx));
+                    }
                 });
-                // 右侧面板切换
                 SwitchRightPanelCommand = new YF_RelayCommand<string>(panelIndex =>
                 {
                     if (int.TryParse(panelIndex, out var idx))
+                    {
                         ActiveRightPanel = idx;
+                        YF_Messenger.Instance.Send(new PanelSwitchMessage("Right", idx));
+                    }
                 });
-                // 热键监控开关
-                ToggleHotkeyCommand = new YF_RelayCommand(() => ToggleHotkey());
-                // 打开日志文件夹
-                OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
-                // 清除日志
-                ClearLogCommand = new YF_RelayCommand(() => ClearLog());
-                // 新建脚本
-                NewScriptCommand = new YF_RelayCommand(() => ExecuteNewScript());
-                // 打开脚本
-                OpenScriptCommand = new YF_RelayCommand(() => ExecuteOpenScript());
-                // 保存脚本
-                SaveScriptCommand = new YF_RelayCommand(() => ExecuteSaveScript());
 
-                // 委托绑定
-                // 显示CPU-Memory
-                dlg_Show_Cpu_Memory = Show_Cpu_Memory;
+                // ===== 热键开关 =====
+                ToggleHotkeyCommand = new YF_RelayCommand(() => ToggleHotkey());
+
+                // ===== 日志操作 =====
+                OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
+                ClearLogCommand = new YF_RelayCommand(() =>
+                {
+                    YF_Messenger.Instance.Send(new LogClearMessage());
+                });
+
+                // ===== 脚本操作（通过 Mediator → PluginService） =====
+                NewScriptCommand = new YF_RelayCommand(() =>
+                    YF_Messenger.Instance.Send(new ScriptCommandMessage("NewScript")));
+                OpenScriptCommand = new YF_RelayCommand(() =>
+                    YF_Messenger.Instance.Send(new ScriptCommandMessage("OpenScript")));
+                SaveScriptCommand = new YF_RelayCommand(() =>
+                    YF_Messenger.Instance.Send(new ScriptCommandMessage("SaveScript")));
+
+                // ===== 关于 =====
+                Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
             }
             catch (Exception ex)
             {
                 logger.ErrorInfo("InitCommond", ex.Message);
             }
-
         }
 
-        /// <summary>
-        /// 热键监控开关切换
-        /// </summary>
+        #endregion
+
+        #region 热键管理（保留逻辑，因为涉及 HWND 操作）
+
         [Log(Level = LogLevel.Info, Message = "热键开关切换")]
         public virtual void ToggleHotkey()
         {
@@ -430,7 +506,6 @@ namespace YFrame
             {
                 if (!IsHotkeyEnabled)
                 {
-                    // 开启热键
                     if (HotkeyService.Instance.Register())
                     {
                         IsHotkeyEnabled = true;
@@ -438,12 +513,11 @@ namespace YFrame
                     }
                     else
                     {
-                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注册失败，可能已被其他程序占用");
+                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注册失败");
                     }
                 }
                 else
                 {
-                    // 关闭热键
                     if (HotkeyService.Instance.Unregister())
                     {
                         IsHotkeyEnabled = false;
@@ -460,6 +534,20 @@ namespace YFrame
                 logger.ErrorInfo("ToggleHotkey", ex.Message);
             }
         }
+
+        /// <summary>
+        /// 委托给 PluginService 的热键路由（已废弃直接调用，改用 Mediator 消息）
+        /// 保留此方法以保持向后兼容
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "热键触发（兼容）")]
+        public virtual void OnHotkeyPressed()
+        {
+            _pluginService.OnHotkeyPressed();
+        }
+
+        #endregion
+
+        #region 日志操作
 
         /// <summary>
         /// 打开日志文件夹
@@ -480,170 +568,95 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 清除日志面板内容
+        /// 清除日志（兼容方法，推荐使用 ClearLogCommand → Mediator）
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "清除日志")]
         public virtual void ClearLog()
         {
-            try
-            {
-                lock (_logLock)
-                {
-                    _logBuilder.Clear();
-                    _logLineCount = 0;
-                }
-                LogText = string.Empty;
-                logger.LogInfo("日志面板已清除");
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("ClearLog", ex.Message);
-            }
+            LogText = _logService.ClearLog();
+            logger.LogInfo("日志面板已清除");
         }
 
         /// <summary>
-        /// 热键被按下：根据当前显示的插件发送对应命令
+        /// 追加日志到面板（兼容方法，推荐使用 LogAppendMessage）
         /// </summary>
-        [Log(Level = LogLevel.Info, Message = "热键触发")]
-        public virtual void OnHotkeyPressed()
+        public virtual void Show_Log(string msg)
         {
-            try
-            {
-                if (CurrentUcDate == null || CurrentUcDate.CommandHandler == null)
-                {
-                    logger.LogInfo("热键 Ctrl+Y 触发，但没有激活的插件");
-                    return;
-                }
-
-                string pluginId = string.Empty;
-                foreach (var kvp in UserControlsService.Instance.DctControls)
-                {
-                    if (kvp.Value == CurrentUcDate)
-                    {
-                        pluginId = kvp.Key;
-                        break;
-                    }
-                }
-
-                logger.CommandInfo($"热键 Ctrl+Y 触发，向插件 {pluginId} 发送命令");
-
-                // 根据插件ID发送对应的命令
-                switch (pluginId)
-                {
-                    case "YF_ScreenOCRTranslate":
-                        CurrentUcDate.CommandHandler.ExecuteCommand("CaptureScreen");
-                        break;
-                    case "YF_Clicker":
-                        CurrentUcDate.CommandHandler.ExecuteCommand("ToggleClick");
-                        break;
-                    default:
-                        // 其他插件：发送通用热键命令
-                        CurrentUcDate.CommandHandler.ExecuteCommand("HotkeyTrigger");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("OnHotkeyPressed", ex.Message);
-            }
+            _logService.AppendLog(msg);
         }
 
-        /// <summary>
-        /// 处理插件回调信息，显示在日志中
-        /// </summary>
+        #endregion
+
+        #region 插件操作（委托给 PluginService）
+
+        [Log(Level = LogLevel.Info, Message = "显示插件")]
+        public virtual void ShowPlugin(string pluginId)
+        {
+            _pluginService.ShowPlugin(pluginId);
+        }
+
+        [Log(Level = LogLevel.Info, Message = "发送命令")]
+        public virtual void SendCommand(string command, object parameter = null!)
+        {
+            _pluginService.SendCommand(command, parameter);
+        }
+
         [Log(Level = LogLevel.Info, Message = "处理插件回调")]
         public virtual void HandlePluginCallback(string pluginId, PluginEventArgs e)
         {
-            try
-            {
-                string msg = $"[{pluginId}] 命令:{e.Command} 内容:{e.Data} 时间:{e.Timestamp:HH:mm:ss}";
-                logger.LogInfo(msg);
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Show_Log(msg);
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("HandlePluginCallback", ex.Message);
-            }
+            _pluginService.HandlePluginCallback(pluginId, e);
         }
 
-        /// <summary>
-        /// 新建脚本：通知插件清空
-        /// </summary>
+        #endregion
+
+        #region 脚本操作（委托给 PluginService）
+
         [Log(Level = LogLevel.Info, Message = "新建脚本")]
         public virtual void ExecuteNewScript()
         {
-            try
-            {
-                if (CurrentUcDate?.CommandHandler == null)
-                {
-                    logger.LogInfo("没有激活的插件，无法新建脚本");
-                    return;
-                }
-                CurrentUcDate.CommandHandler.ExecuteCommand("NewScript");
-                logger.LogInfo("新建脚本完成");
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("ExecuteNewScript", ex.Message);
-            }
+            _pluginService.ExecuteScriptCommand("NewScript");
         }
 
-        /// <summary>
-        /// 打开脚本：通知插件弹出打开对话框
-        /// </summary>
         [Log(Level = LogLevel.Info, Message = "打开脚本")]
         public virtual void ExecuteOpenScript()
         {
-            try
-            {
-                if (CurrentUcDate?.CommandHandler == null)
-                {
-                    logger.LogInfo("没有激活的插件，无法打开脚本");
-                    return;
-                }
-                CurrentUcDate.CommandHandler.ExecuteCommand("OpenScript");
-                logger.LogInfo("打开脚本命令已发送");
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorInfo("ExecuteOpenScript", ex.Message);
-            }
+            _pluginService.ExecuteScriptCommand("OpenScript");
         }
 
-        /// <summary>
-        /// 保存脚本：通知插件执行保存
-        /// </summary>
         [Log(Level = LogLevel.Info, Message = "保存脚本")]
         public virtual void ExecuteSaveScript()
         {
+            _pluginService.ExecuteScriptCommand("SaveScript");
+        }
+
+        #endregion
+
+        #region 窗口管理
+
+        [Log(Level = LogLevel.Info, Message = "显示关于窗口")]
+        public virtual void ShowAbout()
+        {
             try
             {
-                if (CurrentUcDate?.CommandHandler == null)
+                var aboutWindow = new View.AboutWindow
                 {
-                    logger.LogInfo("没有激活的插件，无法保存脚本");
-                    return;
-                }
-                CurrentUcDate.CommandHandler.ExecuteCommand("TriggerSave");
-                logger.LogInfo("保存脚本命令已发送");
+                    Owner = Application.Current.MainWindow
+                };
+                aboutWindow.ShowDialog();
+                logger.LogInfo("关于窗口已打开");
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("ExecuteSaveScript", ex.Message);
+                logger.ErrorInfo("ShowAbout", ex.Message);
             }
         }
 
-        /// <summary>
-        /// 窗体移动事件
-        /// </summary>
         [Log(Level = LogLevel.Info, Message = "窗体移动")]
         public virtual void Move_Window(object sender, MouseButtonEventArgs e)
         {
             try
             {
-                if (e.OriginalSource is Border) // 只有当点击的是右侧空白区域时才拖拽
+                if (e.OriginalSource is Border)
                 {
                     var window = Window.GetWindow((DependencyObject)sender);
                     window?.DragMove();
@@ -656,16 +669,15 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 委托 刷新性能数据
+        /// 委托：刷新性能数据到 UI
         /// </summary>
-        /// <param name="cpu"></param>
-        /// <param name="memory"></param>
         public virtual void Show_Cpu_Memory(string cpu, string memory)
         {
             try
             {
                 Txt_Cpu = "CPU: " + cpu + "%";
                 Txt_Memory = "内存: " + memory + "GB";
+                YF_Messenger.Instance.Send(new PerformanceDataMessage(cpu, memory));
             }
             catch (Exception ex)
             {
@@ -673,98 +685,39 @@ namespace YFrame
             }
         }
 
-
-
-        /// <summary>
-        /// 委托 刷新界面log信息
-        /// </summary>
-        /// <param name="msg"></param>
-        public virtual void Show_Log(string msg)
+        [Log(Level = LogLevel.Info, Message = "最小化到系统托盘")]
+        public virtual void MinimizeToTray()
         {
             try
             {
-                lock (_logLock)
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    _logBuilder.AppendLine(msg);
-                    _logLineCount++;
-
-                    // 从头部裁剪超出行数
-                    while (_logLineCount > MaxLogLines)
-                    {
-                        var text = _logBuilder.ToString();
-                        var newlineIdx = text.IndexOf('\n');
-                        if (newlineIdx < 0) break;
-                        _logBuilder.Remove(0, newlineIdx + 1);
-                        _logLineCount--;
-                    }
-                }
-
-                var currentText = "";
-                lock (_logLock) { currentText = _logBuilder.ToString(); }
-
-                if (Application.Current?.Dispatcher.CheckAccess() == true)
-                    LogText = currentText;
-                else
-                    Application.Current?.Dispatcher.Invoke(() => LogText = currentText);
-            }
-            catch (Exception ex) { logger.ErrorInfo("Show_Log", ex.Message); }
-        }
-
-
-        /// <summary>
-        /// 显示指定 ID 的插件到主内容区
-        /// </summary>
-        [Log(Level = LogLevel.Info, Message = "显示插件")]
-        public virtual void ShowPlugin(string pluginId)
-        {
-            try
-            {
-                Grid_Show_Array.Children.Clear();
-
-                if (!UserControlsService.Instance.DctControls.TryGetValue(pluginId, out var ctrlData))
-                {
-                    logger.ErrorInfo("ShowPlugin", $"插件 {pluginId} 未找到");
-                    return;
-                }
-
-                CurrentUcDate = ctrlData;
-                UserControlsService.Instance.ShowUserControl(pluginId);
-                UserControl? uc = CurrentUcDate.userControl;
-                if (uc != null)
-                    Grid_Show_Array.Children.Add(uc);
-                else
-                    logger.ErrorInfo("ShowPlugin", $"插件 {pluginId} 加载失败");
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                        mainWindow.Hide();
+                });
+                logger.LogInfo("最小化到系统托盘");
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("ShowPlugin", ex.Message);
+                logger.ErrorInfo("MinimizeToTray", ex.Message);
             }
         }
 
-        /// <summary>
-        /// 发送命令
-        /// </summary>
-        /// <param name="command"></param>
-        /// <param name="parameter"></param>
-        [Log(Level = LogLevel.Info, Message = "发送命令")]
-        public virtual void SendCommand(string command, object parameter = null)
+        [Log(Level = LogLevel.Info, Message = "退出应用程序")]
+        public virtual void ExitApplication()
         {
             try
             {
-                if (CurrentUcDate == null || CurrentUcDate.CommandHandler == null)
-                {
-                    logger.CommandInfo("[命令无目标插件] : " + command);
-                }
-                else
-                {
-                    CurrentUcDate.CommandHandler.ExecuteCommand(command, parameter);
-                    logger.CommandInfo(command);
-                }
+                TrayIconService.Instance.MarkExiting();
+                logger.LogInfo("退出应用程序");
+                Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("SendCommand", ex.Message);
+                logger.ErrorInfo("ExitApplication", ex.Message);
             }
         }
+
+        #endregion
     }
 }
