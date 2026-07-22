@@ -1,7 +1,8 @@
 # YFrame 项目参考（AI 快速理解用）
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
-> **生成日期：** 2026-07-15
+> **生成日期：** 2026-07-22
+> **最后更新：** 2026-07-22 — 引入 Mediator 模式 + 单元测试项目
 
 ---
 
@@ -19,6 +20,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 |------|------|------|------|
 | YFrame | `YFrame\` | WPF Application | `YFrame.exe`（主框架 Shell） |
 | YF_Manager | `YF_Manager\` | Class Library | `YF_Manager.dll`（共享基础设施库） |
+| YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（107 个用例） |
 
 ### 插件（位于上层目录 `C:\Users\Administrator\Desktop\code\C#\`）
 
@@ -37,7 +39,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 
 ```
 YFrame/
-├── YFrame.sln                          # VS 解决方案（含 YFrame + YF_Manager 两项目）
+├── YFrame.sln                          # VS 解决方案（含 YFrame + YF_Manager + YFrame.Tests 三项目）
 ├── README.md                           # 详细项目文档
 │
 ├── YFrame/                             # 主框架 WPF 项目
@@ -46,14 +48,16 @@ YFrame/
 │   ├── MainWindow.xaml                 # 主窗口布局（DockPanel三栏+Menu+StatusBar）
 │   ├── MainWindow.xaml.cs              # 代码后置：DataContext = MainWindowViewModel.Instance
 │   ├── ViewModel/
-│   │   ├── MainWindowViewModel.cs      # 核心 ViewModel（~700行，单例+AOP，面板切换+热键路由+命令）
-│   │   └── Service/
-│   │       ├── UserControlsService.cs  # 插件加载服务（200行，反射扫描/加载/实例化）
-│   │       └── HotkeyService.cs        # 全局热键服务（Win32 RegisterHotKey，AOP单例）
+│   │   └── MainWindowViewModel.cs      # 核心 ViewModel（~440行，薄门面，委托给子服务）
+│   ├── Service/                        # 服务层（从 ViewModel/Service 迁移）
+│   │   ├── LogService.cs               # 日志面板服务（缓冲区管理、500行上限、通过 Mediator 接收日志消息）
+│   │   ├── PluginService.cs            # 插件管理服务（插件切换、命令转发、热键路由、脚本操作）
+│   │   ├── UserControlsService.cs      # 插件加载服务（200行，反射扫描/加载/实例化）
+│   │   ├── HotkeyService.cs            # 全局热键服务（Win32 RegisterHotKey，AOP单例）
+│   │   └── TrayIconService.cs          # 系统托盘图标服务（Win32 Shell_NotifyIcon，AOP单例）
 │   ├── Model/
 │   │   ├── PluginsModel.cs             # 插件列表模型（Name, ID, Status）
-│   │   ├── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
-│   │   └── CtrlParamModel.cs           # 预留参数模型（当前为空壳）
+│   │   └── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
 │   ├── View/UC/
 │   │   └── PerformanceMonitor.xaml/.cs # LiveCharts CPU/内存图表（5秒采样，30秒窗口）
 │   ├── Common/
@@ -70,6 +74,8 @@ YFrame/
 │   │   └── I_YF_Command.cs             # 插件命令接口（ExecuteCommand, OnPluginCallback）
 │   └── Common/
 │       ├── Config.cs                   # 全局常量（LogPath, PluginPath, TCP端口, PaddlePath）
+│       ├── YF_Messenger.cs             # 轻量级消息中介（Mediator 模式核心，Register/Send/Unregister）
+│       ├── YF_Messages.cs              # 9 种消息类型定义（LogAppend、PluginShown、HotkeyTriggered 等）
 │       ├── Attributes/LogAttribute.cs  # [Log] 特性（LogLevel: Debug/Info/Warning/Error）
 │       ├── Interceptors/LogInterceptor.cs  # Castle.Core IInterceptor（AOP 核心）
 │       ├── Tools/
@@ -78,6 +84,29 @@ YFrame/
 │       │   └── YF_FileHelper.cs        # 文件工具（CopyDirectory, SetClipboardWithRetry, OpenFolder）
 │       ├── YF_RelayCommand.cs          # ICommand实现（无参版 + 泛型版<T>）
 │       └── YF_DelegateFunctionModel.cs # 委托类型声明（dvFunc_Vs, dvFunc_Vs_s）
+│
+├── YFrame.Tests/                       # 单元测试项目
+│   ├── YFrame.Tests.csproj             # 引用 YF_Manager + YFrame + YF_KMScript，含 xUnit + coverlet
+│   ├── YF_Manager/                     # YF_Manager 相关测试
+│   │   ├── YF_RelayCommandTests.cs          # 6 个 — 无参 RelayCommand
+│   │   ├── YF_RelayCommandGenericTests.cs   # 6 个 — 泛型 RelayCommand
+│   │   ├── ConfigTests.cs                   # 7 个 — 配置常量
+│   │   ├── YF_Manager_MainTests.cs          # 4 个 — YF_Manager_Main
+│   │   ├── Common/
+│   │   │   ├── YF_DelegateFunctionModelTests.cs  # 2 个 — 委托类型
+│   │   │   ├── Attributes/LogAttributeTests.cs   # 5 个 — LogAttribute + LogLevel
+│   │   │   └── Tools/
+│   │   │       ├── YF_FileHelperTests.cs      # 15 个 — 文件系统操作
+│   │   │       ├── YF_TcpHelperTests.cs       # 5 个 — 网络工具
+│   │   │       └── YF_Manager_LogTests.cs     # 8 个 — 日志系统
+│   │   └── Interface/
+│   │       └── PluginEventArgsTests.cs        # 2 个 — 事件参数
+│   ├── YFrame/                         # YFrame 主项目相关测试
+│   │   └── Model/
+│   │       ├── PluginsModelTests.cs           # 8 个 — INotifyPropertyChanged
+│   │       └── CtrlDataModelTests.cs          # 5 个 — 插件实例数据模型
+│   └── Plugins/KMScript/               # 插件相关测试
+│       └── ScriptInterpreterTests.cs          # 34 个 — DSL 脚本解析
 │
 ├── Review/                             # 代码审查报告（多个HTML报告）
 └── .gitignore                          # 排除 bin/obj/Log/Review 等
@@ -158,8 +187,8 @@ public static T Instance => _instance.Value;
 **要求：** 被代理的方法必须声明为 `virtual`，有 `[Log]` 特性才被拦截记录。
 
 **采用此模式的类：**
-- YFrame: `MainWindowViewModel`, `UserControlsService`, `HotkeyService`
-- YF_Manager: `YF_FileHelper`
+- YFrame: `MainWindowViewModel`, `UserControlsService`, `HotkeyService`, `TrayIconService`, `YF_Messenger`
+- YF_Manager: `YF_FileHelper`, `YF_TcpHelper`
 - YF_AIHelper: `MainControlViewModel`
 - YF_Clicker: `MainControlViewModel`
 - YF_HttpServer: `MainControlViewModel`, `HttpService`
@@ -167,7 +196,66 @@ public static T Instance => _instance.Value;
 - YF_Penetration: `MainControlViewModel`
 - YF_ScreenOCRTranslate: `MainControlViewModel`, `ScreenShotViewModel`, `TranslateService`
 
-### 3.6 日志系统
+### 3.6 Mediator 模式（2026-07 重构引入）
+
+**背景：** `MainWindowViewModel.cs` 原为 854 行的"上帝对象"，承担 UI 管理 + 命令绑定 + 热键路由 + 日志面板 + 脚本操作等多项职责，无法单元测试，修改风险高。
+
+**解决方案：** 引入 Mediator 模式，将 ViewModel 拆分为一个薄门面 + 两个子服务，组件间通过 `YF_Messenger`（轻量消息中介）松耦合通信。
+
+```
+MainWindowViewModel（~440行，薄门面）
+  │  保留：XAML 绑定属性 + 17 个命令属性 + AOP 单例
+  │  删除：日志缓冲区、插件调度、热键路由、脚本命令的具体实现
+  │
+  ├──→ LogService ──→ YF_Messenger ←── PluginService
+  │      ↑ 日志消息                    ↑ 插件/热键/脚本消息
+  │      │                             │
+  └──────┼─────────────────────────────┘
+         完全不直接引用对方，只通过 Mediator 通信
+```
+
+**YF_Messenger**（位于 `YF_Manager/Common/YF_Messenger.cs`）核心 API：
+
+```csharp
+// 订阅消息
+YF_Messenger.Instance.Register<LogAppendMessage>(msg => Console.WriteLine(msg.Text));
+// 发送消息
+YF_Messenger.Instance.Send(new LogAppendMessage("Hello"));
+// 取消订阅
+YF_Messenger.Instance.Unregister<LogAppendMessage>(handler);
+```
+
+**9 种消息类型**（位于 `YF_Manager/Common/YF_Messages.cs`，均为 `record` 类型）：
+
+| 消息 | 发送方 | 接收方 | 场景 |
+|------|--------|--------|------|
+| `LogAppendMessage` | 任意组件 | LogService | 追加日志到面板 |
+| `LogClearMessage` | ClearLogCommand | LogService | 清空日志面板 |
+| `PluginShownMessage` | PluginService | 扩展点 | 插件切换通知 |
+| `HotkeyTriggeredMessage` | HotkeyService 事件 | PluginService | Ctrl+Y 路由 |
+| `ScriptCommandMessage` | 脚本按钮命令 | PluginService | 新建/打开/保存脚本 |
+| `ThemeChangedMessage` | SetThemeCommand | 扩展点 | 主题切换通知 |
+| `LanguageChangedMessage` | 语言切换命令 | 扩展点 | 语言切换通知 |
+| `PerformanceDataMessage` | Show_Cpu_Memory | 扩展点 | CPU/内存数据 |
+| `PanelSwitchMessage` | 面板切换命令 | 扩展点 | 侧边栏切换通知 |
+
+**子系统职责划分：**
+
+| 组件 | 文件 | 行数 | 职责 |
+|------|------|------|------|
+| MainWindowViewModel | `YFrame/ViewModel/MainWindowViewModel.cs` | 440 | 薄门面：XAML 绑定属性 + 命令声明 + AOP 入口 |
+| LogService | `YFrame/Service/LogService.cs` | 106 | 日志缓冲区（500行上限）、追加/清空、Mediator 订阅 |
+| PluginService | `YFrame/Service/PluginService.cs` | 194 | 插件显示/切换、命令转发、热键路由、脚本操作 |
+
+**可测试性对比：**
+
+| | 重构前 | 重构后 |
+|------|--------|--------|
+| 测热键路由 | 需初始化 854 行 ViewModel | `new PluginService(mockLogger)` 即可 |
+| 测日志缓冲区 | 同上 | `new LogService(mockLogger)` 即可 |
+| 组件耦合 | 直接引用，紧耦合 | 仅通过 Mediator 通信，松耦合 |
+
+### 3.7 日志系统
 
 | 日志类型 | 目录 | 内容 |
 |----------|------|------|
@@ -181,10 +269,10 @@ public static T Instance => _instance.Value;
 - 文件格式：HTML（`.htm`），按日期命名（`yyyy-MM-dd.htm`）
 - 单文件上限：1MB，超出自动轮转（`*_1.htm` ... `*_999.htm`）
 - 线程安全：静态 `_fileLock`
-- UI 回显：静态委托 `d_LogWrite` → `MainWindowViewModel.Show_Log()`，最多缓存 500 行
-- **日志面板可清除：** `ClearLog()` 清空内存缓存 + UI 显示
+- **UI 回显（Mediator 重构后）：** `YF_Manager_Log.d_LogWrite` → `YF_Messenger.Send(LogAppendMessage)` → `LogService.AppendLog()` → 回调更新 `MainWindowViewModel.LogText`
+- **日志面板可清除：** 通过 `YF_Messenger.Send(LogClearMessage)` 或 `MainWindowViewModel.ClearLog()`
 
-### 3.7 全局热键系统（2026-07 新增）
+### 3.8 全局热键系统（2026-07 新增）
 
 ```
 MainWindow 加载
@@ -207,16 +295,19 @@ HotkeyService.Instance.Initialize(window)
 Ctrl+Y 按下 → WndProc 拦截 WM_HOTKEY → OnHotkeyPressed 事件
     │
     ▼
-MainWindowViewModel.OnHotkeyPressed()
+HotkeyService 事件 → YF_Messenger.Send(HotkeyTriggeredMessage)
+    │
+    ▼
+PluginService.OnHotkeyPressedInternal()
     │  根据当前激活插件 ID 分发命令:
     ├── "YF_ScreenOCRTranslate" → ExecuteCommand("CaptureScreen")
     ├── "YF_Clicker" → ExecuteCommand("ToggleClick")
     └── 其他插件 → ExecuteCommand("HotkeyTrigger")
 ```
 
-**HotkeyService** 位于 `YFrame\ViewModel\Service\HotkeyService.cs`，遵循 AOP 单例模式。热键由**框架统一管理**而非各插件独立注册，避免热键冲突。
+**HotkeyService** 位于 `YFrame\Service\HotkeyService.cs`，遵循 AOP 单例模式。热键由**框架统一管理**而非各插件独立注册，避免热键冲突。热键路由由 PluginService 通过 Mediator 消息实现。
 
-### 3.8 面板切换（2026-07 新增）
+### 3.9 面板切换（2026-07 新增）
 
 主窗口的左右侧边栏支持**多标签页切换**：
 
@@ -227,7 +318,7 @@ MainWindowViewModel.OnHotkeyPressed()
 | **右侧面板** | 日志 | 0 | 实时日志输出，支持清除 |
 | **右侧面板** | 参数 | 1 | 参数面板（待扩展） |
 
-切换通过 `SwitchLeftPanelCommand` / `SwitchRightPanelCommand` 命令绑定，ViewModel 维护 `ActiveLeftPanel` / `ActiveRightPanel` 属性。
+切换通过 `SwitchLeftPanelCommand` / `SwitchRightPanelCommand` 命令绑定，ViewModel 维护 `ActiveLeftPanel` / `ActiveRightPanel` 属性。面板切换会通过 `YF_Messenger` 发送 `PanelSwitchMessage`。
 
 ---
 
@@ -247,7 +338,7 @@ MainWindowViewModel.OnHotkeyPressed()
 - `zh-CN.xaml` 简体中文（默认）
 - `en-US.xaml` English
 
-切换方式：`App.ChangeLanguage("zh"/"en")` 或 `App.ChangeTheme("path")`，通过 `MergedDictionaries` 替换实现。
+切换方式：`App.ChangeLanguage("zh"/"en")` 或 `App.ChangeTheme("path")`，通过 `MergedDictionaries` 替换实现。主题/语言切换会通过 `YF_Messenger` 发送 `ThemeChangedMessage` / `LanguageChangedMessage`。
 
 ---
 
@@ -261,7 +352,7 @@ MainWindowViewModel.OnHotkeyPressed()
 | 插件匹配 | `YF_*.dll` | UserControlsService.cs |
 | 日志文件上限 | 1MB（`1024 * 1024`） | YF_Manager_Log.cs |
 | 日志轮转上限 | 999 个文件 | YF_Manager_Log.cs |
-| UI 日志行数 | 500 行 | MainWindowViewModel.cs |
+| UI 日志行数 | 500 行 | LogService.cs（原在 MainWindowViewModel.cs） |
 | 性能采样周期 | 5 秒 | PerformanceMonitor.cs |
 | 图表数据窗口 | 6 点（30 秒） | PerformanceMonitor.cs |
 | 全局热键 | Ctrl+Y (MOD_CONTROL=0x0002, VK_Y=0x59) | HotkeyService.cs |
@@ -300,7 +391,7 @@ MainWindowViewModel.OnHotkeyPressed()
 - **功能:** GET目录浏览+文件下载（含MIME），POST上传（X-FileName头）
 - **UI:** IP/端口/路径配置 + 启停按钮 + 拖拽上传 + 防火墙/curl命令一键复制
 - **自定义附加行为:** `DragDropBehavior` 实现MVVM拖放绑定
-- **已知问题:** `_YF_FileHelper` 字段未初始化（OpenFolderCommand 会空引用），`ExecuteCommand` 未区分命令类型，`Run()` 中有调试残留代码 `var a = ex.GetType().Name;`
+- **已知问题:** `_YF_FileHelper` 字段未初始化（OpenFolderCommand 会空引用），`ExecuteCommand` 未区分命令类型，`Run()` 中有调试残留代码
 
 ### YF_KMScript（脚本编辑器）
 - **ID:** YF_KMScript，名称："脚本编辑器"
@@ -311,6 +402,7 @@ MainWindowViewModel.OnHotkeyPressed()
 - **新增服务:** `ImageMatcher`（OpenCV 找图）、`LogEntry`（日志模型）、`RegionSelectionWindow`（截图选区）、`ScreenCapture`（截图工具）
 - **文件格式:** `.ys` 脚本文件
 - **内部 RelayCommand:** 自定义简单 RelayCommand，未使用框架的 `YF_RelayCommand`
+- **单元测试覆盖:** YFrame.Tests 中 `ScriptInterpreterTests` 包含 34 个测试用例，覆盖定义/输出/等待/如果-否则/循环/嵌套/缩进/注释/错误格式
 
 ### YF_Penetration（NAT 内网穿透）（2026-07 新增）
 - **ID:** YF_Penetration，名称："NAT 内网穿透"
@@ -323,7 +415,6 @@ MainWindowViewModel.OnHotkeyPressed()
 ### YF_ScreenOCRTranslate（OCR 实时翻译）
 - **ID:** YF_ScreenOCRTranslate，名称："OCR 实时翻译"
 - **工作流:** Ctrl+Y热键 → 全屏截图选区 → PaddleOCR识别 → 百度翻译API → Canvas叠加显示
-- **Win32:** （热键现已由框架 HotkeyService 统一管理）
 - **DPI:** 1.25倍缩放补偿（硬编码）
 - **置信度:** >0.6过滤
 - **模型:** PP-OCRv5 mobile（det/rec/cls）
@@ -341,11 +432,16 @@ MainWindowViewModel.OnHotkeyPressed()
 | App 入口 | `YFrame/YFrame/App.xaml.cs` |
 | 主窗口 XAML | `YFrame/YFrame/MainWindow.xaml` |
 | 核心 ViewModel | `YFrame/YFrame/ViewModel/MainWindowViewModel.cs` |
-| 插件加载服务 | `YFrame/YFrame/ViewModel/Service/UserControlsService.cs` |
-| 热键服务 | `YFrame/YFrame/ViewModel/Service/HotkeyService.cs` |
+| 日志面板服务 | `YFrame/YFrame/Service/LogService.cs` |
+| 插件管理服务 | `YFrame/YFrame/Service/PluginService.cs` |
+| 插件加载服务 | `YFrame/YFrame/Service/UserControlsService.cs` |
+| 热键服务 | `YFrame/YFrame/Service/HotkeyService.cs` |
+| 托盘图标服务 | `YFrame/YFrame/Service/TrayIconService.cs` |
 | 插件元数据模型 | `YFrame/YFrame/Model/PluginsModel.cs` |
 | 插件实例模型 | `YFrame/YFrame/Model/CtrlDataModel.cs` |
 | 性能监视器 | `YFrame/YFrame/View/UC/PerformanceMonitor.xaml.cs` |
+| 消息中介（Mediator） | `YFrame/YF_Manager/Common/YF_Messenger.cs` |
+| 消息类型定义 | `YFrame/YF_Manager/Common/YF_Messages.cs` |
 | 接口定义 | `YFrame/YF_Manager/Interface/I_YF_Detail.cs` + `I_YF_Command.cs` |
 | AOP 拦截器 | `YFrame/YF_Manager/Common/Interceptors/LogInterceptor.cs` |
 | 日志系统 | `YFrame/YF_Manager/Common/Tools/YF_Manager_Log.cs` |
@@ -356,6 +452,7 @@ MainWindowViewModel.OnHotkeyPressed()
 | 工具类 | `YFrame/YF_Manager/Common/Tools/YF_TcpHelper.cs` |
 | 主题 | `YFrame/YFrame/Common/Themes/*.xaml` |
 | 语言 | `YFrame/YFrame/Common/Language/*.xaml` |
+| 单元测试项目 | `YFrame/YFrame.Tests/` |
 
 ---
 
@@ -366,12 +463,17 @@ MainWindowViewModel.OnHotkeyPressed()
 3. **当前只支持 x64 / Any CPU** 配置
 4. **AOP 代理要求方法为 virtual** 且有 `[Log]` 特性
 5. **全局热键 Ctrl+Y 由框架 HotkeyService 统一管理**，插件无需各自注册热键，只需实现 `ExecuteCommand("ToggleClick" / "CaptureScreen" / "HotkeyTrigger")`
-6. **已知问题：**
-   - `CtrlParamModel.cs` 为空壳
+6. **Mediator 模式（重要）：**
+   - 新增跨组件通信请使用 `YF_Messenger.Instance.Send()` / `Register()`，不要直接引用其他服务
+   - MainWindowViewModel 是薄门面，复杂逻辑应放在 LogService 或 PluginService 中
+   - PluginService 和 LogService **不需要 AOP**（已由 MainWindowViewModel 的 virtual 方法提供 AOP 入口）
+7. **运行单元测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
+8. **已知问题：**
    - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
    - 目录名 `Plugins` vs `plugins` 大小写不一致
    - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
    - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）
    - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
-7. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
-8. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
+9. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
+10. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
+11. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame + YF_KMScript，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余 107 个测试均为纯逻辑测试
