@@ -39,16 +39,21 @@ namespace YFrame
 
         #region 构造函数
 
-        public LogService(YF_Manager_Log logger)
+        /// <summary>
+        /// 创建日志面板服务
+        /// </summary>
+        /// <param name="logger">日志记录器</param>
+        /// <param name="messenger">消息中介（DI 注入）</param>
+        public LogService(YF_Manager_Log logger, YF_Messenger messenger)
         {
             // 订阅 Mediator 消息：任意组件发送的日志追加请求
-            YF_Messenger.Instance.Register<LogAppendMessage>(msg =>
+            messenger.Register<LogAppendMessage>(msg =>
             {
                 AppendLog(msg.Text);
             });
 
             // 订阅 Mediator 消息：任意组件发送的日志清除请求
-            YF_Messenger.Instance.Register<LogClearMessage>(_ =>
+            messenger.Register<LogClearMessage>(_ =>
             {
                 ClearLog();
                 logger.LogInfo("日志面板已清除（通过 Mediator）");

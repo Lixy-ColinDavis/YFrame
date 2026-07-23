@@ -1,4 +1,5 @@
-﻿using System;
+﻿using YF_Manager;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,7 +52,7 @@ namespace YFrame
 
         public PerformanceMonitor()
         {
-            MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-开始");
+            YF_Manager_Main.logger.LogInfo("性能监视器初始化-开始");
             InitializeComponent();
 
             // UI 线程：初始化图表（6个初始数据点，5秒采样间隔，共30秒窗口）
@@ -113,7 +114,7 @@ namespace YFrame
                     timer.Tick += UpdatePerformanceData;
                     timer.Start();
 
-                    MainWindowViewModel.Instance.logger.LogInfo("性能监视器初始化-完成");
+                    YF_Manager_Main.logger.LogInfo("性能监视器初始化-完成");
                 });
             });
         }
@@ -131,7 +132,7 @@ namespace YFrame
                     }
                 }
             }
-            MainWindowViewModel.Instance.logger.LogInfo(
+            YF_Manager_Main.logger.LogInfo(
                 $"总系统内存：{totalMemoryMB}MB, {(totalMemoryMB / 1024).ToString("0.0")}GB");
 
             cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
@@ -169,7 +170,7 @@ namespace YFrame
                 MainWindowViewModel.dlg_Show_Cpu_Memory(cpuUsage.ToString("0.0"), $"{(usedMemoryMB / 1024).ToString("0.0")}/{(totalMemoryMB / 1024).ToString("0.0")}");
 
                 if (CounterTimes++ % 12 == 0)
-                    MainWindowViewModel.Instance.logger.LogInfo($"" +
+                    YF_Manager_Main.logger.LogInfo($"" +
                         $"CPU:{cpuUsage.ToString("0.0")}%  " +
                         $"内存:{(usedMemoryMB / 1024).ToString("0.0")}GB/{(totalMemoryMB / 1024).ToString("0.0")}GB"
                         );
@@ -177,7 +178,7 @@ namespace YFrame
             catch (Exception ex)
             {
                 // 由于 Windows 性能计数器损坏 => cmd lodctr / R
-                MainWindowViewModel.Instance.logger.ErrorInfo("UpdatePerformanceData", ex.Message);
+                YF_Manager_Main.logger.ErrorInfo("UpdatePerformanceData", ex.Message);
             }
         }
 
@@ -206,7 +207,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindowViewModel.Instance.logger.ErrorInfo("UpdateChartData", ex.Message);
+                YF_Manager_Main.logger.ErrorInfo("UpdateChartData", ex.Message);
             }
         }
 

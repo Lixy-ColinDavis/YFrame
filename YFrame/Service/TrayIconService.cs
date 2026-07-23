@@ -13,13 +13,7 @@ namespace YFrame
     /// </summary>
     public class TrayIconService
     {
-        #region AOP单例
-        public static readonly Lazy<TrayIconService> _instance = new Lazy<TrayIconService>(
-            () => new ProxyGenerator().CreateClassProxy<TrayIconService>(new LogInterceptor())
-        );
 
-        public static TrayIconService Instance => _instance.Value;
-        #endregion
 
         #region Win32 API
         [DllImport("shell32.dll")]

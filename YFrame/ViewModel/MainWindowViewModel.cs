@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
-using Castle.DynamicProxy;
 using System.IO;
 
 namespace YFrame
@@ -235,17 +234,6 @@ namespace YFrame
 
         #endregion
 
-        #region 单例 + AOP
-
-        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
-        // 单例模式+日志拦截器
-        public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
-            () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor()));
-
-        public static MainWindowViewModel Instance => _instance.Value;
-
-        #endregion
-
         #region 全局委托（保持向后兼容）
 
         // 委托-显示CPU、内存信息
@@ -260,12 +248,42 @@ namespace YFrame
 
         #endregion
 
-        #region 子服务（通过 Mediator 通信）
+        #region DI 注入的依赖（通过 InitializeDependencies 属性注入）
 
         // 日志对象
-        public YF_Manager_Log logger = null!;
+        private YF_Manager_Log _logger = null!;
         private LogService _logService = null!;
         private PluginService _pluginService = null!;
+        private UserControlsService _userControlsService = null!;
+        private HotkeyService _hotkeyService = null!;
+        private TrayIconService _trayIconService = null!;
+        private YF_Messenger _messenger = null!;
+        private YF_FileHelper _fileHelper = null!;
+
+        /// <summary>
+        /// 设置依赖项（由 DI 容器创建 AOP 代理后调用）
+        /// 因为 Castle CreateClassProxy 需要无参构造函数，
+        /// 所以通过此方法进行属性注入
+        /// </summary>
+        public void InitializeDependencies(
+            YF_Manager_Log logger,
+            LogService logService,
+            PluginService pluginService,
+            UserControlsService userControlsService,
+            HotkeyService hotkeyService,
+            TrayIconService trayIconService,
+            YF_Messenger messenger,
+            YF_FileHelper fileHelper)
+        {
+            _logger = logger;
+            _logService = logService;
+            _pluginService = pluginService;
+            _userControlsService = userControlsService;
+            _hotkeyService = hotkeyService;
+            _trayIconService = trayIconService;
+            _messenger = messenger;
+            _fileHelper = fileHelper;
+        }
 
         #endregion
 
@@ -275,17 +293,12 @@ namespace YFrame
 
         /// <summary>
         /// 初始化入口（由 MainWindow.xaml.cs 调用）
-        /// 创建子服务 → 初始化 UI → 绑定命令 → 连接外部服务
+        /// 子服务已通过 DI 注入，此处仅执行初始化流程
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "主框架初始化")]
         public virtual void Init()
         {
-            logger = new YF_Manager_Log(YF_Name, YF_ID);
-            logger.LogInfo("主框架初始化-开始");
-
-            // 创建子服务（它们之间通过 YF_Messenger 通信）
-            _logService = new LogService(logger);
-            _pluginService = new PluginService(logger);
+            _logger.LogInfo("主框架初始化-开始");
 
             // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性
             _logService.OnLogTextChanged = text =>
@@ -303,21 +316,21 @@ namespace YFrame
             // 都将发送到 Mediator，由 LogService 统一处理
             YF_Manager_Log.d_LogWrite = msg =>
             {
-                YF_Messenger.Instance.Send(new LogAppendMessage(msg));
+                _messenger.Send(new LogAppendMessage(msg));
             };
 
             // 订阅全局热键事件
-            HotkeyService.Instance.OnHotkeyPressed += () =>
+            _hotkeyService.OnHotkeyPressed += () =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     // 通过 Mediator 发送热键消息，PluginService 订阅并处理
-                    YF_Messenger.Instance.Send(new HotkeyTriggeredMessage());
+                    _messenger.Send(new HotkeyTriggeredMessage());
                 });
             };
 
             // 订阅托盘图标服务事件
-            TrayIconService.Instance.OnShowWindow += () =>
+            _trayIconService.OnShowWindow += () =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -329,7 +342,7 @@ namespace YFrame
                     }
                 });
             };
-            TrayIconService.Instance.OnExitApplication += () =>
+            _trayIconService.OnExitApplication += () =>
             {
                 Application.Current.Dispatcher.Invoke(() => ExitApplication());
             };
@@ -337,7 +350,7 @@ namespace YFrame
             // 委托绑定：性能监视器回调
             dlg_Show_Cpu_Memory = Show_Cpu_Memory;
 
-            logger.LogInfo("主框架初始化-完成");
+            _logger.LogInfo("主框架初始化-完成");
         }
 
         /// <summary>
@@ -358,8 +371,8 @@ namespace YFrame
                 _pluginService.SetGridShowArea(Grid_Show_Array);
 
                 // 加载插件列表
-                UserControlsService.Instance.LoadAndShowUserControl();
-                foreach (var item in UserControlsService.Instance.DctControls)
+                _userControlsService.LoadAndShowUserControl();
+                foreach (var item in _userControlsService.DctControls)
                 {
                     lsPlugins.Add(new PluginsModel
                     {
@@ -371,7 +384,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("InitUI", ex.Message);
+                _logger.ErrorInfo("InitUI", ex.Message);
             }
         }
 
@@ -387,12 +400,12 @@ namespace YFrame
                 ToggleLeftToolWindowCommand = new YF_RelayCommand(() =>
                 {
                     LeftVisible = !LeftVisible;
-                    logger.LogInfo("左侧边栏-" + (LeftVisible ? "开" : "关"));
+                    _logger.LogInfo("左侧边栏-" + (LeftVisible ? "开" : "关"));
                 });
                 ToggleRightToolWindowCommand = new YF_RelayCommand(() =>
                 {
                     RightVisible = !RightVisible;
-                    logger.LogInfo("右侧边栏-" + (RightVisible ? "开" : "关"));
+                    _logger.LogInfo("右侧边栏-" + (RightVisible ? "开" : "关"));
                 });
 
                 // ===== 窗口管理 =====
@@ -400,7 +413,7 @@ namespace YFrame
                 Btn_Minimize_Command = new YF_RelayCommand(() =>
                 {
                     Application.Current.MainWindow.WindowState = WindowState.Minimized;
-                    logger.LogInfo("窗体最小化");
+                    _logger.LogInfo("窗体最小化");
                 });
                 Title_Move_Command = new YF_RelayCommand<object>(param =>
                 {
@@ -413,7 +426,7 @@ namespace YFrame
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorInfo("Title_Move_Command", ex.Message);
+                        _logger.ErrorInfo("Title_Move_Command", ex.Message);
                     }
                 });
 
@@ -430,20 +443,20 @@ namespace YFrame
                         _ => fileName
                     };
                     App.ChangeTheme(themePath);
-                    logger.LogInfo("主题切换-" + themeDisplayName);
-                    YF_Messenger.Instance.Send(new ThemeChangedMessage(themeDisplayName, themePath));
+                    _logger.LogInfo("主题切换-" + themeDisplayName);
+                    _messenger.Send(new ThemeChangedMessage(themeDisplayName, themePath));
                 });
                 ToggleChineseCommand = new YF_RelayCommand(() =>
                 {
                     App.ChangeLanguage("zh");
-                    logger.LogInfo("语言切换-中文");
-                    YF_Messenger.Instance.Send(new LanguageChangedMessage("zh"));
+                    _logger.LogInfo("语言切换-中文");
+                    _messenger.Send(new LanguageChangedMessage("zh"));
                 });
                 ToggleEnglishCommand = new YF_RelayCommand(() =>
                 {
                     App.ChangeLanguage("en");
-                    logger.LogInfo("语言切换-英文");
-                    YF_Messenger.Instance.Send(new LanguageChangedMessage("en"));
+                    _logger.LogInfo("语言切换-英文");
+                    _messenger.Send(new LanguageChangedMessage("en"));
                 });
 
                 // ===== 插件管理（委托给 PluginService） =====
@@ -456,7 +469,7 @@ namespace YFrame
                     if (int.TryParse(panelIndex, out var idx))
                     {
                         ActiveLeftPanel = idx;
-                        YF_Messenger.Instance.Send(new PanelSwitchMessage("Left", idx));
+                        _messenger.Send(new PanelSwitchMessage("Left", idx));
                     }
                 });
                 SwitchRightPanelCommand = new YF_RelayCommand<string>(panelIndex =>
@@ -464,7 +477,7 @@ namespace YFrame
                     if (int.TryParse(panelIndex, out var idx))
                     {
                         ActiveRightPanel = idx;
-                        YF_Messenger.Instance.Send(new PanelSwitchMessage("Right", idx));
+                        _messenger.Send(new PanelSwitchMessage("Right", idx));
                     }
                 });
 
@@ -475,23 +488,23 @@ namespace YFrame
                 OpenLogFolderCommand = new YF_RelayCommand(() => OpenLogFolder());
                 ClearLogCommand = new YF_RelayCommand(() =>
                 {
-                    YF_Messenger.Instance.Send(new LogClearMessage());
+                    _messenger.Send(new LogClearMessage());
                 });
 
                 // ===== 脚本操作（通过 Mediator → PluginService） =====
                 NewScriptCommand = new YF_RelayCommand(() =>
-                    YF_Messenger.Instance.Send(new ScriptCommandMessage("NewScript")));
+                    _messenger.Send(new ScriptCommandMessage("NewScript")));
                 OpenScriptCommand = new YF_RelayCommand(() =>
-                    YF_Messenger.Instance.Send(new ScriptCommandMessage("OpenScript")));
+                    _messenger.Send(new ScriptCommandMessage("OpenScript")));
                 SaveScriptCommand = new YF_RelayCommand(() =>
-                    YF_Messenger.Instance.Send(new ScriptCommandMessage("SaveScript")));
+                    _messenger.Send(new ScriptCommandMessage("SaveScript")));
 
                 // ===== 关于 =====
                 Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("InitCommond", ex.Message);
+                _logger.ErrorInfo("InitCommond", ex.Message);
             }
         }
 
@@ -506,32 +519,32 @@ namespace YFrame
             {
                 if (!IsHotkeyEnabled)
                 {
-                    if (HotkeyService.Instance.Register())
+                    if (_hotkeyService.Register())
                     {
                         IsHotkeyEnabled = true;
-                        logger.LogInfo("全局热键 Ctrl+Y 注册成功");
+                        _logger.LogInfo("全局热键 Ctrl+Y 注册成功");
                     }
                     else
                     {
-                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注册失败");
+                        _logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注册失败");
                     }
                 }
                 else
                 {
-                    if (HotkeyService.Instance.Unregister())
+                    if (_hotkeyService.Unregister())
                     {
                         IsHotkeyEnabled = false;
-                        logger.LogInfo("全局热键 Ctrl+Y 注销成功");
+                        _logger.LogInfo("全局热键 Ctrl+Y 注销成功");
                     }
                     else
                     {
-                        logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注销失败");
+                        _logger.ErrorInfo("ToggleHotkey", "全局热键 Ctrl+Y 注销失败");
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("ToggleHotkey", ex.Message);
+                _logger.ErrorInfo("ToggleHotkey", ex.Message);
             }
         }
 
@@ -558,12 +571,12 @@ namespace YFrame
             try
             {
                 string logPath = Path.GetFullPath(Config.LogPath);
-                YF_FileHelper.Instance.OpenFolder(logPath);
-                logger.LogInfo("打开日志文件夹: " + logPath);
+                _fileHelper.OpenFolder(logPath);
+                _logger.LogInfo("打开日志文件夹: " + logPath);
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("OpenLogFolder", ex.Message);
+                _logger.ErrorInfo("OpenLogFolder", ex.Message);
             }
         }
 
@@ -574,7 +587,7 @@ namespace YFrame
         public virtual void ClearLog()
         {
             LogText = _logService.ClearLog();
-            logger.LogInfo("日志面板已清除");
+            _logger.LogInfo("日志面板已清除");
         }
 
         /// <summary>
@@ -643,11 +656,11 @@ namespace YFrame
                     Owner = Application.Current.MainWindow
                 };
                 aboutWindow.ShowDialog();
-                logger.LogInfo("关于窗口已打开");
+                _logger.LogInfo("关于窗口已打开");
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("ShowAbout", ex.Message);
+                _logger.ErrorInfo("ShowAbout", ex.Message);
             }
         }
 
@@ -664,7 +677,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("Move_Window", ex.Message);
+                _logger.ErrorInfo("Move_Window", ex.Message);
             }
         }
 
@@ -677,11 +690,11 @@ namespace YFrame
             {
                 Txt_Cpu = "CPU: " + cpu + "%";
                 Txt_Memory = "内存: " + memory + "GB";
-                YF_Messenger.Instance.Send(new PerformanceDataMessage(cpu, memory));
+                _messenger.Send(new PerformanceDataMessage(cpu, memory));
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
+                _logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
             }
         }
 
@@ -695,11 +708,11 @@ namespace YFrame
                     if (Application.Current.MainWindow is MainWindow mainWindow)
                         mainWindow.Hide();
                 });
-                logger.LogInfo("最小化到系统托盘");
+                _logger.LogInfo("最小化到系统托盘");
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("MinimizeToTray", ex.Message);
+                _logger.ErrorInfo("MinimizeToTray", ex.Message);
             }
         }
 
@@ -708,13 +721,13 @@ namespace YFrame
         {
             try
             {
-                TrayIconService.Instance.MarkExiting();
-                logger.LogInfo("退出应用程序");
+                _trayIconService.MarkExiting();
+                _logger.LogInfo("退出应用程序");
                 Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                logger.ErrorInfo("ExitApplication", ex.Message);
+                _logger.ErrorInfo("ExitApplication", ex.Message);
             }
         }
 

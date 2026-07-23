@@ -26,26 +26,44 @@ namespace YFrame
 
         #endregion
 
+        #region 依赖
+
+        /// <summary>消息中介（DI 注入）</summary>
+        private readonly YF_Messenger _messenger;
+
+        /// <summary>插件加载服务（DI 注入）</summary>
+        private readonly UserControlsService _userControlsService;
+
+        #endregion
+
         #region 构造函数
 
-        public PluginService(YF_Manager_Log logger)
+        /// <summary>
+        /// 创建插件管理服务
+        /// </summary>
+        /// <param name="logger">日志记录器</param>
+        /// <param name="messenger">消息中介（DI 注入）</param>
+        /// <param name="userControlsService">插件加载服务（DI 注入）</param>
+        public PluginService(YF_Manager_Log logger, YF_Messenger messenger, UserControlsService userControlsService)
         {
             _logger = logger;
+            _messenger = messenger;
+            _userControlsService = userControlsService;
 
             // 订阅 Mediator 消息：收到显示插件请求
-            YF_Messenger.Instance.Register<PluginShownMessage>(msg =>
+            messenger.Register<PluginShownMessage>(msg =>
             {
                 ShowPluginInternal(msg.PluginId);
             });
 
             // 订阅 Mediator 消息：收到热键触发
-            YF_Messenger.Instance.Register<HotkeyTriggeredMessage>(_ =>
+            messenger.Register<HotkeyTriggeredMessage>(_ =>
             {
                 OnHotkeyPressedInternal();
             });
 
             // 订阅 Mediator 消息：收到脚本命令
-            YF_Messenger.Instance.Register<ScriptCommandMessage>(msg =>
+            messenger.Register<ScriptCommandMessage>(msg =>
             {
                 ExecuteScriptCommand(msg.Command);
             });
@@ -92,20 +110,20 @@ namespace YFrame
 
                 _gridShowArea.Children.Clear();
 
-                if (!UserControlsService.Instance.DctControls.TryGetValue(pluginId, out var ctrlData))
+                if (!_userControlsService.DctControls.TryGetValue(pluginId, out var ctrlData))
                 {
                     _logger.ErrorInfo("PluginService.ShowPlugin", $"插件 {pluginId} 未找到");
                     return false;
                 }
 
                 CurrentPlugin = ctrlData;
-                UserControlsService.Instance.ShowUserControl(pluginId);
+                _userControlsService.ShowUserControl(pluginId);
                 UserControl? uc = CurrentPlugin.userControl;
                 if (uc != null)
                 {
                     _gridShowArea.Children.Add(uc);
                     // 通过 Mediator 通知：插件已切换
-                    YF_Messenger.Instance.Send(new LogAppendMessage($"已切换到插件: {pluginId}"));
+                    _messenger.Send(new LogAppendMessage($"已切换到插件: {pluginId}"));
                     return true;
                 }
                 else
@@ -172,7 +190,7 @@ namespace YFrame
 
                 // 查找当前插件的 ID
                 string pluginId = string.Empty;
-                foreach (var kvp in UserControlsService.Instance.DctControls)
+                foreach (var kvp in _userControlsService.DctControls)
                 {
                     if (kvp.Value == CurrentPlugin)
                     {
@@ -254,7 +272,7 @@ namespace YFrame
                 _logger.LogInfo(msg);
 
                 // 通过 Mediator 发送到日志面板
-                YF_Messenger.Instance.Send(new LogAppendMessage(msg));
+                _messenger.Send(new LogAppendMessage(msg));
             }
             catch (Exception ex)
             {

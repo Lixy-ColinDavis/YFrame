@@ -13,13 +13,7 @@ namespace YFrame
     /// </summary>
     public class HotkeyService
     {
-        #region AOP单例
-        public static readonly Lazy<HotkeyService> _instance = new Lazy<HotkeyService>(
-            () => new ProxyGenerator().CreateClassProxy<HotkeyService>(new LogInterceptor())
-        );
 
-        public static HotkeyService Instance => _instance.Value;
-        #endregion
 
         #region Win32 API
         [DllImport("user32.dll")]

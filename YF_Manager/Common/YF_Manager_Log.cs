@@ -18,10 +18,27 @@ namespace YF_Manager
 
         private static long maxFileSize = 1024 * 1024; // 1MB
 
-        public YF_Manager_Log(string Name, string ID)
+        // DI 注入的文件操作工具（可选，未注入时回退到静态 Instance）
+        private readonly YF_FileHelper? _fileHelper;
+
+        /// <summary>
+        /// 创建日志对象（向后兼容旧版插件）
+        /// </summary>
+        /// <param name="Name">日志名称（通常为组件名称）</param>
+        /// <param name="ID">日志标识</param>
+        public YF_Manager_Log(string Name, string ID) : this(Name, ID, null) { }
+
+        /// <summary>
+        /// 创建日志对象（支持 DI 注入文件操作工具）
+        /// </summary>
+        /// <param name="Name">日志名称（通常为组件名称）</param>
+        /// <param name="ID">日志标识</param>
+        /// <param name="fileHelper">文件操作工具（DI 注入，为空时回退到静态实例）</param>
+        public YF_Manager_Log(string Name, string ID, YF_FileHelper? fileHelper)
         {
             _name = Name;
             _id = ID;
+            _fileHelper = fileHelper;
         }
 
         // log锁
@@ -66,18 +83,20 @@ namespace YF_Manager
         /// <summary>
         /// log路径可用检查,自动创建
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
-        private static string CheckPath(string path)
+        /// <param name="path">日志目录路径</param>
+        /// <returns>完整的日志文件路径</returns>
+        private string CheckPath(string path)
         {
             string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".htm";
             string fullPath = Path.Combine(path, fileName);
 
-            YF_FileHelper.Instance.EnsureDirectoryForFile(fullPath);
+            // 优先使用 DI 注入的实例，否则回退到静态实例（向后兼容）
+            var fileHelper = _fileHelper ?? YF_FileHelper.Instance;
+            fileHelper.EnsureDirectoryForFile(fullPath);
 
             if (!File.Exists(fullPath))
             {
-                using (File.Create(fullPath)) { } // 创建后立即释放资源‌
+                using (File.Create(fullPath)) { } // 创建后立即释放资源
             }
 
             return fullPath;

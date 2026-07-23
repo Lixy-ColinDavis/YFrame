@@ -18,16 +18,29 @@ namespace YFrame
 {
     public class UserControlsService
     {
-        // 使用Lazy<T>确保线程安全的延迟初始化，避免双重检查锁定的复杂性
-        // 单例模式+日志拦截器
-        public static readonly Lazy<UserControlsService> _instance = new Lazy<UserControlsService>(
-            () => new ProxyGenerator().CreateClassProxy<UserControlsService>(new LogInterceptor())
-            );
+        #region 依赖（通过 InitializeDependencies 属性注入）
 
-        public static UserControlsService Instance => _instance.Value;
+        /// <summary>日志记录器（DI 属性注入）</summary>
+        private YF_Manager_Log _logger = null!;
+
+        /// <summary>插件回调处理器（DI 属性注入，将插件回调转发到 PluginService）</summary>
+        public Action<string, PluginEventArgs>? OnPluginCallback { get; set; }
+
+        #endregion
 
         // <ID, Name> => <YF_AIHelper, AI 助手>
         public Dictionary<string, CtrlDataModel> DctControls = new Dictionary<string, CtrlDataModel>();
+
+        /// <summary>
+        /// 设置依赖项（由 DI 容器创建代理后调用）
+        /// </summary>
+        /// <param name="logger">日志记录器</param>
+        /// <param name="onPluginCallback">插件回调处理器，用于将插件回调转发到 PluginService</param>
+        public void InitializeDependencies(YF_Manager_Log logger, Action<string, PluginEventArgs> onPluginCallback)
+        {
+            _logger = logger;
+            OnPluginCallback = onPluginCallback;
+        }
 
         /// <summary>
         /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例
@@ -73,7 +86,7 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "添加插件")]
         public virtual void AddControl(string name, string ID)
         {
-            MainWindowViewModel.Instance.logger.DebugInfo($"加载模块：{name}, {ID}");
+            _logger.DebugInfo($"加载模块：{name}, {ID}");
             // 插件添加
             // 插件添加<ID, 名称>
             DctControls.Add(ID, new CtrlDataModel() 
@@ -93,7 +106,7 @@ namespace YFrame
             {
                 if (!Directory.Exists("plugins"))
                 {
-                    Directory.CreateDirectory("plugins"); // 自动创建多级目录‌
+                    Directory.CreateDirectory("plugins"); // 自动创建多级目录
                 }
 
                 // 读取插件的文件夹列表
@@ -111,22 +124,22 @@ namespace YFrame
                     {
                         if (s == "YF_Manager")
                             continue;
-                        MainWindowViewModel.Instance.logger.DebugInfo($"读取到插件: {s}");
+                        _logger.DebugInfo($"读取到插件: {s}");
                         string assemblyPath = @$"{item}\{s}.dll";
                         if (TryLoadPlugin(assemblyPath, s, out _, out var detail, out _))
                         {
                             if (detail != null)
                             {
-                                UserControlsService.Instance.AddControl(detail.YF_Name.ToString(), detail.YF_ID.ToString());
+                                AddControl(detail.YF_Name.ToString(), detail.YF_ID.ToString());
                             }
                             else
                             {
-                                MainWindowViewModel.Instance.logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
+                                _logger.LogInfo("LoadAndShowUserControl: ", s + "插件IDetail接口读取失败");
                             }
                         }
                         else
                         {
-                            MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl/MainControlViewModel 加载失败");
+                            _logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl/MainControlViewModel 加载失败");
                         }
 
                     }
@@ -135,7 +148,7 @@ namespace YFrame
             }
             catch (Exception ex)
             {
-                MainWindowViewModel.Instance.logger.ErrorInfo("LoadAndShowUserControl", ex.Message);
+                _logger.ErrorInfo("LoadAndShowUserControl", ex.Message);
             }
         }
 
@@ -157,21 +170,21 @@ namespace YFrame
             {
                 if (s == "YF_Manager")
                     continue;
-                MainWindowViewModel.Instance.logger.DebugInfo($"准备显示插件: {s}");
+                _logger.DebugInfo($"准备显示插件: {s}");
 
                 string assemblyPath = @$"{path}\{s}.dll";
                 if (TryLoadPlugin(assemblyPath, s, out var userControl, out var detail, out var commandHandler))
                 {
                     if (detail != null)
                     {
-                        if (UserControlsService.Instance.DctControls.TryGetValue(plugin_Id, out var ctrlData))
+                        if (DctControls.TryGetValue(plugin_Id, out var ctrlData))
                         {
                             ctrlData.userControl = userControl;
                             ctrlData.CommandHandler = commandHandler;
                         }
                         else
                         {
-                            MainWindowViewModel.Instance.logger.ErrorInfo("ShowUserControl",
+                            _logger.ErrorInfo("ShowUserControl",
                                 $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
                         }
 
@@ -179,7 +192,11 @@ namespace YFrame
                         {
                             commandHandler.OnPluginCallback += (sender, e) =>
                             {
-                                MainWindowViewModel.Instance.HandlePluginCallback(detail.YF_ID, e);
+                                // 通过 DI 注入的回调转发到 PluginService
+                                if (OnPluginCallback != null)
+                                    OnPluginCallback(detail.YF_ID, e);
+                                else
+                                    _logger.ErrorInfo("ShowUserControl", "OnPluginCallback 回调未设置，插件回调丢失");
                             };
                         }
                     }
@@ -190,13 +207,13 @@ namespace YFrame
         /// <summary>
         /// 插件回调
         /// </summary>
-        /// <param name="pluginId"></param>
-        /// <param name="e"></param>
+        /// <param name="pluginId">插件 ID</param>
+        /// <param name="e">回调事件参数</param>
         [Log(Level = LogLevel.Info, Message = "插件回调")]
         public virtual void HandlePluginCallback(string pluginId, PluginEventArgs e)
         {
             // 处理插件回调
-            MainWindowViewModel.Instance.logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
+            _logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
 
             // 在主线程中更新UI
             Application.Current.Dispatcher.Invoke(() =>
