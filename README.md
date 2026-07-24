@@ -75,6 +75,7 @@
 | **YFrame** | WPF Application (`WinExe`) | `YFrame.exe` | 主框架外壳，负责窗口管理、插件加载、主题/语言切换、性能监控 |
 | **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架、消息中介 |
 | **YFrame.Tests** | xUnit Test Project | — | 单元测试（141 个用例），覆盖 YF_Manager、YFrame、YF_KMScript |
+| **YFrame.Installer** | WPF Application (`WinExe`) | `YFrame.Installer.exe` | 框架安装程序，向导式 3 步安装流程，仅安装框架本体（不含插件和 AI 模型），payload.zip 内嵌于 exe |
 
 ### 1.3 依赖关系
 
@@ -320,6 +321,19 @@ YFrame/
 │   │       └── CtrlDataModelTests.cs
 │   └── Plugins/KMScript/
 │       └── ScriptInterpreterTests.cs   # 34 个 — DSL 脚本解析
+│
+├── YFrame.Installer/                   # 框架安装程序（WPF 向导式，仅安装本体）
+│   ├── YFrame.Installer.csproj         # 自包含单文件发布，payload.zip 嵌入资源
+│   ├── App.xaml/.cs                    # 入口逻辑
+│   ├── MainWindow.xaml/.cs             # 主窗口（无边框，粒子动画，3步向导）
+│   ├── Views/                          # WelcomePage / InstallConfigPage / ProgressPage / FinishPage
+│   ├── ViewModels/                     # MainViewModel + RelayCommand + ViewModelBase
+│   ├── Services/                       # InstallService（文件复制/快捷方式/注册表）+ PayloadExtractor
+│   ├── Models/InstallConfig.cs         # 安装配置模型
+│   ├── Controls/                       # ParticleBackground + RainbowProgressBar
+│   ├── Converters/Converters.cs        # Bool 转换器
+│   ├── Resources/Logo.ico + payload.zip
+│   └── CollectPayload.ps1              # 构建时从 YFrame bin 收集核心文件
 │
 ├── .github/workflows/
 │   └── ci.yml                          # GitHub Actions CI 流水线

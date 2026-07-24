@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-24 — 补齐服务层单元测试 + 引入 CI/CD 流水线
+> **最后更新：** 2026-07-24 — YFrame.Installer 改为仅安装框架本体，Debug/Release 均嵌入 payload.zip
 
 ---
 
@@ -21,6 +21,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 | YFrame | `YFrame\` | WPF Application | `YFrame.exe`（主框架 Shell） |
 | YF_Manager | `YF_Manager\` | Class Library | `YF_Manager.dll`（共享基础设施库） |
 | YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（94 个用例） |
+| YFrame.Installer | `YFrame.Installer\` | WPF Application | `YFrame.Installer.exe`（框架安装程序，仅安装本体） |
 
 ### 插件（位于上层目录 `C:\Users\Administrator\Desktop\code\C#\`）
 
@@ -109,6 +110,21 @@ YFrame/
 │   │   └── Model/
 │   │       ├── PluginsModelTests.cs           # 8 个 — INotifyPropertyChanged
 │   │       └── CtrlDataModelTests.cs          # 5 个 — 插件实例数据模型
+│
+├── YFrame.Installer/                   # 框架安装程序（WPF 向导式，仅安装本体）
+│   ├── YFrame.Installer.csproj         # 发布为自包含单文件，payload.zip 嵌入资源
+│   ├── App.xaml/.cs                    # 入口逻辑
+│   ├── MainWindow.xaml/.cs             # 主窗口（无边框，粒子背景动画，3步向导）
+│   ├── Views/                          # WelcomePage / InstallConfigPage / ProgressPage / FinishPage
+│   ├── ViewModels/                     # MainViewModel + RelayCommand + ViewModelBase
+│   ├── Services/
+│   │   ├── InstallService.cs           # 安装核心（文件复制、快捷方式、注册表）
+│   │   └── PayloadExtractor.cs         # 从嵌入资源解压 payload.zip 到临时目录
+│   ├── Models/InstallConfig.cs         # 安装配置模型
+│   ├── Controls/                       # ParticleBackground + RainbowProgressBar
+│   ├── Converters/Converters.cs        # Bool 转换器
+│   ├── Resources/Logo.ico + payload.zip
+│   └── CollectPayload.ps1              # 构建时从 YFrame bin 目录收集核心文件
 │
 ├── Review/                             # 代码审查报告（多个HTML报告）
 ├── .github/workflows/
@@ -375,6 +391,56 @@ App.OnStartup 构建 DI 容器
 | `MainWindowViewModel` 获取所有依赖 | 8 处 `XXX.Instance` | `InitializeDependencies()` 一次设置 |
 | 测试 PluginService | 需初始化全部单例链 | `new PluginService(logger, mockMessenger, mockUCService)` |
 
+### 3.11 YFrame 安装程序
+
+**YFrame.Installer** 是独立的 WPF 向导式安装程序，**仅安装框架本体**（不含插件和 AI 模型）。
+
+**安装流程（3 步向导）：**
+
+| 步骤 | 页面 | 说明 |
+|------|------|------|
+| 1 | WelcomePage | 欢迎页，粒子背景动画 |
+| 2 | InstallConfigPage | 安装路径选择 + 桌面/开始菜单快捷方式选项 |
+| 3 | ProgressPage | 彩虹渐变进度条 + 实时日志输出 |
+| 完成 | FinishPage | 弹性勾号动画 + 安装成功提示 |
+
+**Payload 机制：**
+
+```
+构建时：
+  CollectPayload.ps1 → 从 YFrame\bin\ 收集核心文件（不含 plugins/、Log/、Config/、*.pdb）
+       ↓
+  System.IO.Compression.ZipFile → Resources\payload.zip
+       ↓
+  MSBuild 目标动态添加 EmbeddedResource → 嵌入 YFrame.Installer.dll
+
+运行时：
+  PayloadExtractor.GetPayloadPath()
+       ↓ 优先
+  从嵌入资源提取 payload.zip → %TEMP%\YFrame_Setup_xxx\
+       ↓ 备用
+  本地文件系统 payload/ 目录（VS 直接运行场景）
+```
+
+**关键设计：**
+- **Debug 和 Release 均嵌入 payload.zip**，生成的 exe 可独立分发
+- `PayloadExtractor` 优先从嵌入资源解压，文件系统仅为备用
+- `CollectPayload.ps1` 仅收集核心文件 + `runtimes/` 子目录，不收集 `.pdb`、`plugins/`、`Log/`、`Config/`、`File/`
+- MSBuild 目标 `PreparePayloadZip` 在 `BeforeTargets="BeforeBuild"` 执行，在目标内部动态添加 `EmbeddedResource`（解决条件求值时机问题）
+- 安装到 `Program Files` 时自动请求管理员权限
+- 快捷方式使用 `WScript.Shell` COM 创建 .lnk 文件
+- 卸载信息写入 `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\YFrame`
+
+**生成可分发 exe：**
+```powershell
+# Debug（开发调试，含 payload.zip）
+dotnet build "YFrame.Installer\YFrame.Installer.csproj" -c Debug
+
+# Release（自包含单文件）
+dotnet publish "YFrame.Installer\YFrame.Installer.csproj" -c Release
+# 输出: Installer\YFrame.Installer.exe
+```
+
 ---
 
 ## 四、CI/CD 流水线
@@ -544,6 +610,12 @@ push/PR to main → 自动触发
 | 单元测试项目 | `YFrame/YFrame.Tests/` |
 | CI 工作流（Actions） | `YFrame/.github/workflows/ci.yml` |
 | CI 流水线（GitLab） | `YFrame/.gitlab-ci.yml` |
+| 安装程序入口 | `YFrame/YFrame.Installer/App.xaml.cs` |
+| 安装程序主窗口 | `YFrame/YFrame.Installer/MainWindow.xaml` |
+| 安装核心服务 | `YFrame/YFrame.Installer/Services/InstallService.cs` |
+| Payload 提取器 | `YFrame/YFrame.Installer/Services/PayloadExtractor.cs` |
+| 安装程序 ViewModel | `YFrame/YFrame.Installer/ViewModels/MainViewModel.cs` |
+| Payload 收集脚本 | `YFrame/YFrame.Installer/CollectPayload.ps1` |
 
 ---
 
@@ -577,3 +649,8 @@ push/PR to main → 自动触发
 10. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
 11. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
 12. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余测试均为纯逻辑测试
+13. **YFrame.Installer：**
+    - 仅安装框架本体（不含插件和 AI 模型），Debug 和 Release 均将 payload.zip 嵌入 exe
+    - 独立分发时只需 `YFrame.Installer.exe` 一个文件，Payload 自动从嵌入资源解压
+    - 安装流程 3 步：欢迎 → 配置安装路径和快捷方式 → 安装进度 → 完成
+    - 收集脚本 `CollectPayload.ps1` 仅拷贝核心文件 + runtimes 目录，排除 plugins/、Log/、Config/、File/、*.pdb
