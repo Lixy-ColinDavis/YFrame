@@ -4,15 +4,15 @@
 # 项目: C# .NET 8.0 WPF 模块化桌面框架
 # =============================================================================
 # 说明:
-#   - 本流水线仅编译 YFrame 和 YF_Manager 两个核心项目
-#   - 测试项目 YFrame.Tests 依赖外部 YF_KMScript 插件，不在 CI 中编译
-#   - 本地测试请使用: dotnet test YFrame.Tests/YFrame.Tests.csproj
+#   - 本流水线编译 YFrame、YF_Manager 两个核心项目及 YFrame.Tests 测试项目
+#   - KMScript 相关的单元测试已移除（对应 YF_KMScript 插件不在此仓库中）
 #   - 需要 Windows Runner，gitcode.com 共享 runner 可能只有 Linux，
 #     若无 Windows runner 请到 Settings → CI/CD → Runners 自行注册
 # =============================================================================
 
 stages:
   - build
+  - test
 
 variables:
   DOTNET_VERSION: "8.0"
@@ -30,3 +30,17 @@ build:
     - dotnet build YF_Manager/YF_Manager.csproj --no-restore --configuration Release
     - Write-Host "=== 编译 YFrame (Release) ==="
     - dotnet build YFrame/YFrame.csproj --no-restore --configuration Release
+    - Write-Host "=== 还原 YFrame.Tests 依赖 ==="
+    - dotnet restore YFrame.Tests/YFrame.Tests.csproj
+    - Write-Host "=== 编译 YFrame.Tests (Release) ==="
+    - dotnet build YFrame.Tests/YFrame.Tests.csproj --no-restore --configuration Release
+
+test:
+  stage: test
+  tags:
+    - windows
+  script:
+    - Write-Host "=== 运行单元测试 ==="
+    - dotnet test YFrame.Tests/YFrame.Tests.csproj --no-restore --configuration Release --verbosity normal
+  needs:
+    - build

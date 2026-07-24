@@ -20,7 +20,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 |------|------|------|------|
 | YFrame | `YFrame\` | WPF Application | `YFrame.exe`（主框架 Shell） |
 | YF_Manager | `YF_Manager\` | Class Library | `YF_Manager.dll`（共享基础设施库） |
-| YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（141 个用例） |
+| YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（94 个用例） |
 
 ### 插件（位于上层目录 `C:\Users\Administrator\Desktop\code\C#\`）
 
@@ -87,7 +87,7 @@ YFrame/
 │       └── YF_DelegateFunctionModel.cs # 委托类型声明（dvFunc_Vs, dvFunc_Vs_s）
 │
 ├── YFrame.Tests/                       # 单元测试项目
-│   ├── YFrame.Tests.csproj             # 引用 YF_Manager + YFrame + YF_KMScript，含 xUnit + coverlet
+│   ├── YFrame.Tests.csproj             # 引用 YF_Manager + YFrame，含 xUnit + coverlet
 │   ├── YF_Manager/                     # YF_Manager 相关测试
 │   │   ├── YF_RelayCommandTests.cs          # 6 个 — 无参 RelayCommand
 │   │   ├── YF_RelayCommandGenericTests.cs   # 6 个 — 泛型 RelayCommand
@@ -109,12 +109,10 @@ YFrame/
 │   │   └── Model/
 │   │       ├── PluginsModelTests.cs           # 8 个 — INotifyPropertyChanged
 │   │       └── CtrlDataModelTests.cs          # 5 个 — 插件实例数据模型
-│   └── Plugins/KMScript/               # 插件相关测试
-│       └── ScriptInterpreterTests.cs          # 34 个 — DSL 脚本解析
 │
 ├── Review/                             # 代码审查报告（多个HTML报告）
 ├── .github/workflows/
-│   └── ci.yml                          # GitHub Actions CI 流水线（仅编译核心项目，不含测试）
+│   └── ci.yml                          # GitHub Actions CI 流水线（编译核心项目及运行单元测试）
 ├── .gitlab-ci.yml                      # GitLab CI 流水线（备选格式）
 └── .gitignore                          # 排除 bin/obj/Log/Review 等
 ```
@@ -395,13 +393,16 @@ push/PR to main → 自动触发
   └── Build Job (windows-latest)
        ├── dotnet restore YF_Manager/YF_Manager.csproj
        ├── dotnet restore YFrame/YFrame.csproj
+       ├── dotnet restore YFrame.Tests/YFrame.Tests.csproj
        ├── dotnet build YF_Manager --configuration Release
-       └── dotnet build YFrame --configuration Release
+       ├── dotnet build YFrame --configuration Release
+       ├── dotnet build YFrame.Tests --configuration Release
+       └── dotnet test YFrame.Tests --configuration Release
 ```
 
 ### 设计决策
 
-- **仅编译核心项目：** YF_Manager + YFrame，不编译 YFrame.Tests（因测试项目依赖外部 YF_KMScript 插件，该插件不在此仓库中）
+- **编译核心项目及测试：** YF_Manager + YFrame + YFrame.Tests（KMScript 相关测试已移除，不再依赖外部 YF_KMScript 插件）
 - **本地运行测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
 - **触发分支：** main / master，忽略 .md / Review / Log 目录变更
 - **Windows Runner：** WPF 项目 `net8.0-windows` 只能在 Windows 上编译，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册 Windows runner
@@ -488,7 +489,6 @@ push/PR to main → 自动触发
 - **新增服务:** `ImageMatcher`（OpenCV 找图）、`LogEntry`（日志模型）、`RegionSelectionWindow`（截图选区）、`ScreenCapture`（截图工具）
 - **文件格式:** `.ys` 脚本文件
 - **内部 RelayCommand:** 自定义简单 RelayCommand，未使用框架的 `YF_RelayCommand`
-- **单元测试覆盖:** YFrame.Tests 中 `ScriptInterpreterTests` 包含 34 个测试用例，覆盖定义/输出/等待/如果-否则/循环/嵌套/缩进/注释/错误格式
 
 ### YF_Penetration（NAT 内网穿透）
 - **ID:** YF_Penetration，名称："NAT 内网穿透"
@@ -565,7 +565,7 @@ push/PR to main → 自动触发
    - PluginService 和 LogService **不需要 AOP**（已由 MainWindowViewModel 的 virtual 方法提供 AOP 入口）
 8. **运行单元测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
 8. **CI/CD：**
-   - CI 流水线仅编译核心项目（YF_Manager + YFrame），不编译 YFrame.Tests（因为依赖外部 YF_KMScript 插件）
+   - CI 流水线编译核心项目（YF_Manager + YFrame）并运行 YFrame.Tests 单元测试
    - `.github/workflows/ci.yml` 和 `.gitlab-ci.yml` 二选一使用，gitcode.com 同时支持两种格式
    - WPF 项目需要 Windows Runner，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册
 9. **已知问题：**
@@ -576,4 +576,4 @@ push/PR to main → 自动触发
    - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
 10. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
 11. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
-12. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame + YF_KMScript，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余 107 个测试均为纯逻辑测试
+12. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余测试均为纯逻辑测试

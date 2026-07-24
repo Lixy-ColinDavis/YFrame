@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\YF_Manager\YF_Manager.csproj" />
-    <ProjectReference Include="..\..\YF_KMScript\YF_KMScript\YF_KMScript.csproj" />
     <ProjectReference Include="..\YFrame\YFrame.csproj" />
   </ItemGroup>
 

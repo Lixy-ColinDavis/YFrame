@@ -4,12 +4,11 @@
 # 项目: C# .NET 8.0 WPF 模块化桌面框架
 # =============================================================================
 # 说明:
-#   - 本工作流仅编译 YFrame 和 YF_Manager 两个核心项目
-#   - 测试项目 YFrame.Tests 依赖外部 YF_KMScript 插件，不在 CI 中编译
-#   - 本地测试请使用: dotnet test YFrame.Tests/YFrame.Tests.csproj
+#   - 本工作流编译 YFrame、YF_Manager 两个核心项目及 YFrame.Tests 测试项目
+#   - KMScript 相关的单元测试已移除（对应 YF_KMScript 插件不在此仓库中）
 # =============================================================================
 
-name: .NET 编译检查
+name: .NET 编译与测试
 
 on:
   push: # 触发条件
@@ -43,12 +42,15 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # ---- 还原 NuGet 包（仅核心项目，不含测试项目） ----
+      # ---- 还原 NuGet 包 ----
       - name: 还原 YF_Manager 依赖
         run: dotnet restore YF_Manager/YF_Manager.csproj
 
       - name: 还原 YFrame 依赖
         run: dotnet restore YFrame/YFrame.csproj
+
+      - name: 还原 YFrame.Tests 依赖
+        run: dotnet restore YFrame.Tests/YFrame.Tests.csproj
 
       # ---- 编译核心项目 (Release) ----
       - name: 编译 YF_Manager
@@ -56,3 +58,10 @@ jobs:
 
       - name: 编译 YFrame
         run: dotnet build YFrame/YFrame.csproj --no-restore --configuration Release
+
+      # ---- 编译并运行单元测试 ----
+      - name: 编译 YFrame.Tests
+        run: dotnet build YFrame.Tests/YFrame.Tests.csproj --no-restore --configuration Release
+
+      - name: 运行单元测试
+        run: dotnet test YFrame.Tests/YFrame.Tests.csproj --no-build --configuration Release --verbosity normal
