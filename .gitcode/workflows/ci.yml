@@ -68,7 +68,7 @@ jobs:
   # ==========================================================================
   test:
     name: 单元测试 (Test)
-    runs-on: windows-latest
+    runs-on: euleros-2.10.1
     needs: build
     # 如果 YF_KMScript 仓库不可用，测试仍会尝试运行
     # 在 gitcode.com 上需要确保 YF_KMScript 仓库存在

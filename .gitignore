@@ -15,3 +15,5 @@
 /Review
 /YFrame.Tests/bin/Debug/net8.0-windows
 /YFrame.Tests/obj
+/YFrame/bin/Release/net8.0-windows
+/YF_Manager/bin/Release/net8.0-windows

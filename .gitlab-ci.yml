@@ -3,75 +3,30 @@
 # 平台: gitcode.com (AtomGit) — 基于 GitLab
 # 项目: C# .NET 8.0 WPF 模块化桌面框架
 # =============================================================================
-# 使用说明:
-#   此文件与 .github/workflows/ci.yml 二选一使用（GitLab CI 格式）。
-#   gitcode.com 同时支持 GitLab CI (Pipeline) 和 GitHub Actions 两种格式，
-#   如果 Actions 格式无法正常运行，可尝试使用此文件。
-#
-#   Windows Runner 说明:
-#   gitcode.com 的共享 runner 可能只提供 Linux 环境。
-#   如果 Windows runner 不可用，需要自行注册 Windows runner:
-#     https://gitcode.com/qq_42789677/YFrame/-/settings/ci_cd
+# 说明:
+#   - 本流水线仅编译 YFrame 和 YF_Manager 两个核心项目
+#   - 测试项目 YFrame.Tests 依赖外部 YF_KMScript 插件，不在 CI 中编译
+#   - 本地测试请使用: dotnet test YFrame.Tests/YFrame.Tests.csproj
+#   - 需要 Windows Runner，gitcode.com 共享 runner 可能只有 Linux，
+#     若无 Windows runner 请到 Settings → CI/CD → Runners 自行注册
 # =============================================================================
 
 stages:
   - build
-  - test
 
 variables:
   DOTNET_VERSION: "8.0"
-  SOLUTION_PATH: "YFrame.sln"
-  TEST_PROJECT: "YFrame.Tests/YFrame.Tests.csproj"
 
-# ==========================================================================
-# 编译阶段：验证所有项目能否成功编译
-# ==========================================================================
 build:
   stage: build
   tags:
-    - windows      # 需要 Windows runner（WPF 项目）
+    - windows
   script:
-    - Write-Host "=== 还原 NuGet 依赖 ==="
-    - dotnet restore $env:SOLUTION_PATH
-    - Write-Host "=== 编译项目 (Release) ==="
-    - dotnet build $env:SOLUTION_PATH --no-restore --configuration Release
-  artifacts:
-    paths:
-      - "*/bin/Release/"
-    expire_in: 1 day
-
-# ==========================================================================
-# 测试阶段：运行 xUnit 测试
-# ==========================================================================
-test:
-  stage: test
-  tags:
-    - windows      # 需要 Windows runner
-  needs:
-    - build
-  before_script:
-    # 尝试从上级目录克隆 YF_KMScript 依赖
-    - |
-      Write-Host "=== 准备 YF_KMScript 依赖 ==="
-      $kmsPath = Join-Path $CI_PROJECT_DIR "..\YF_KMScript"
-      try {
-        if (Test-Path $kmsPath) { Remove-Item -Recurse -Force $kmsPath }
-        git clone --depth 1 https://gitcode.com/qq_42789677/YF_KMScript.git $kmsPath 2>&1
-        Write-Host "YF_KMScript 克隆成功"
-      } catch {
-        Write-Host "警告: YF_KMScript 克隆失败，测试可能无法运行"
-        Write-Host "请确保 YF_KMScript 仓库存在于 gitcode.com"
-      }
-  script:
-    - Write-Host "=== 还原测试项目依赖 ==="
-    - dotnet restore $env:TEST_PROJECT
-    - Write-Host "=== 运行 xUnit 测试 ==="
-    - dotnet test $env:TEST_PROJECT --configuration Release --no-restore --verbosity normal --collect:"XPlat Code Coverage" --results-directory "$CI_PROJECT_DIR\TestResults"
-  artifacts:
-    when: always
-    paths:
-      - TestResults/
-    expire_in: 7 days
-    reports:
-      junit: TestResults/**/*.xml
-  allow_failure: true   # 测试失败不阻塞流水线（依赖缺失时可能失败）
+    - Write-Host "=== 还原 YF_Manager 依赖 ==="
+    - dotnet restore YF_Manager/YF_Manager.csproj
+    - Write-Host "=== 还原 YFrame 依赖 ==="
+    - dotnet restore YFrame/YFrame.csproj
+    - Write-Host "=== 编译 YF_Manager (Release) ==="
+    - dotnet build YF_Manager/YF_Manager.csproj --no-restore --configuration Release
+    - Write-Host "=== 编译 YFrame (Release) ==="
+    - dotnet build YFrame/YFrame.csproj --no-restore --configuration Release
