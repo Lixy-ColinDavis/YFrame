@@ -18,3 +18,5 @@
 /YFrame/bin/Release/net8.0-windows
 /YF_Manager/bin/Release/net8.0-windows
 /YFrame.Tests/bin/Release/net8.0-windows
+/YFrame.Installer/bin
+/YFrame.Installer/obj
