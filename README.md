@@ -68,17 +68,18 @@
 
 ### 1.2 解决方案组成
 
-解决方案 `YFrame.sln` 包含两个项目：
+解决方案 `YFrame.sln` 包含三个项目：
 
 | 项目 | 类型 | 输出 | 说明 |
 |------|------|------|------|
 | **YFrame** | WPF Application (`WinExe`) | `YFrame.exe` | 主框架外壳，负责窗口管理、插件加载、主题/语言切换、性能监控 |
-| **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架 |
+| **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架、消息中介 |
+| **YFrame.Tests** | xUnit Test Project | — | 单元测试（107 个用例），覆盖 YF_Manager、YFrame、YF_KMScript |
 
 ### 1.3 依赖关系
 
 ```
-YFrame.exe ──→ YF_Manager.dll ──→ Castle.Core (AOP)
+YFrame.exe ──→ YF_Manager.dll ──→ Castle.Core (AOP) + Microsoft.Extensions.DI
     │                                 │
     │  运行时反射加载                  │  编译时引用
     ▼                                 ▼
@@ -119,7 +120,8 @@ plugins/                       所有插件项目
 
 | 设计模式 | 应用位置 | 解决的问题 |
 |----------|----------|-----------|
-| **单例模式 (Singleton)** | `MainWindowViewModel`、`UserControlsService`、所有插件 ViewModel | 确保全局唯一实例，避免状态分散 |
+| **依赖注入 (DI)** | `App.xaml.cs` DI 容器 + 全部 6 个服务 | 消除 `XXX.Instance` 硬编码，松耦合，可单元测试 |
+| **属性注入** | `MainWindowViewModel`、`UserControlsService` | 兼容 Castle `CreateClassProxy` 无参构造要求 |
 | **代理模式 (Proxy) / AOP** | `LogInterceptor` + Castle.Core `ProxyGenerator` | 在不修改业务代码的前提下，透明地注入日志记录逻辑 |
 | **观察者模式 (Observer)** | `INotifyPropertyChanged` + 数据绑定、`OnPluginCallback` 事件 | View 与 ViewModel 解耦；插件向宿主回传数据 |
 | **命令模式 (Command)** | `YF_RelayCommand` / `YF_RelayCommand<T>` | 将 UI 操作抽象为可绑定、可测试的命令对象 |
@@ -128,43 +130,48 @@ plugins/                       所有插件项目
 | **外观模式 (Facade)** | `YF_Manager_Log` | 将文件 I/O、日志分类、轮转、UI 回传等复杂性封装为简单接口 |
 | **模板方法 (Template Method)** | `LogInterceptor.Intercept()` | 定义日志拦截骨架（记录开始→记录参数→执行→记录结果），子步骤可定制 |
 | **依赖倒置 (DIP)** | `I_YF_Detail`、`I_YF_Command` 接口 | 宿主依赖抽象接口而非具体插件实现 |
+| **服务定位器 (Service Locator)** | `YF_Di` | 全局 `IServiceProvider` 持有者，供插件按需解析服务 |
 
-### 2.2 单例 + AOP 代理（核心模式）
+### 2.2 依赖注入 + AOP 代理（核心组合模式）
 
-这是整个框架中**使用最广泛**的组合模式，每一个核心组件都遵循此模式：
+这是整个框架中**最重要的组合模式**。2026-07-23 前所有组件使用静态 `Lazy<T>` 单例，现已迁移到 DI 容器管理：
 
 ```csharp
-// 模式定义（以 MainWindowViewModel 为例）
-public static readonly Lazy<MainWindowViewModel> _instance = new Lazy<MainWindowViewModel>(
-    () => new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor())
-);
-public static MainWindowViewModel Instance => _instance.Value;
+// YFrame 项目的 AOP 服务不再使用 static Instance，由 DI 容器创建
+// App.xaml.cs 中注册：
+services.AddSingleton(sp => {
+    var proxy = new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(new LogInterceptor());
+    proxy.InitializeDependencies(/* 8个依赖 */);
+    return proxy;
+});
+
+// YF_Manager 的 AOP 服务保留 static Instance，向后兼容插件：
+// YF_Messenger.Instance / YF_FileHelper.Instance / YF_TcpHelper.Instance
 ```
 
 **设计要点：**
 
-1. **`Lazy<T>` 保证线程安全** — 避免 `double-check locking` 的复杂性和潜在 bug
-2. **`ProxyGenerator.CreateClassProxy<T>()`** — Castle.Core 动态生成代理类，继承目标类并拦截所有 `virtual` 方法
-3. **`LogInterceptor`** — 在方法调用前后自动注入日志逻辑（记录方法名、参数、返回值、耗时）
-4. **方法必须为 `virtual`** — Castle.Core 的类代理要求被拦截方法可重写
+1. **`CreateClassProxy<T>()`** — Castle.Core 动态生成代理类，覆盖所有 `virtual` 方法
+2. **`LogInterceptor`** — 在方法调用前后自动注入日志逻辑（记录方法名、参数、返回值、耗时）
+3. **属性注入** — 因为 Castle 需要无参构造函数来创建代理，依赖通过 `InitializeDependencies()` 方法注入
+4. **构造函数注入** — 非 AOP 的普通服务（`LogService`、`PluginService`）直接构造函数注入
 
-**采用此模式的类：**
+**采用 AOP 代理的 YFrame 类（DI 管理）：**
+
+| 类 | 所属项目 | 角色 | 获取方式 |
+|----|----------|------|----------|
+| `MainWindowViewModel` | YFrame | 主窗口视图模型 | DI 容器解析 |
+| `UserControlsService` | YFrame | 插件加载服务 | DI 容器解析 |
+| `HotkeyService` | YFrame | 全局热键服务 | DI 容器解析 |
+| `TrayIconService` | YFrame | 托盘图标服务 | DI 容器解析 |
+
+**YF_Manager 层（保留 static Instance，插件兼容）：**
 
 | 类 | 所属项目 | 角色 |
 |----|----------|------|
-| `MainWindowViewModel` | YFrame | 主窗口视图模型 |
-| `UserControlsService` | YFrame | 插件加载服务 |
-| `HotkeyService` | YFrame | 全局热键服务 |
+| `YF_Messenger` | YF_Manager | 消息中介 |
 | `YF_FileHelper` | YF_Manager | 文件操作助手 |
-| `YF_AIHelper.MainControlViewModel` | 插件 | AI 助手视图模型 |
-| `YF_Clicker.MainControlViewModel` | 插件 | 鼠标连点器视图模型 |
-| `YF_HttpServer.MainControlViewModel` | 插件 | HTTP 服务器视图模型 |
-| `YF_HttpServer.HttpService` | 插件 | HTTP 服务器核心服务 |
-| `YF_KMScript.MainControlViewModel` | 插件 | 脚本编辑器视图模型 |
-| `YF_Penetration.MainControlViewModel` | 插件 | NAT 内网穿透视图模型 |
-| `YF_ScreenOCRTranslate.MainControlViewModel` | 插件 | OCR 翻译视图模型 |
-| `YF_ScreenOCRTranslate.ScreenShotViewModel` | 插件 | 截图选区域视图模型 |
-| `YF_ScreenOCRTranslate.TranslateService` | 插件 | 翻译服务 |
+| `YF_TcpHelper` | YF_Manager | 网络工具 |
 
 ### 2.3 MVVM 架构模式
 
@@ -194,6 +201,7 @@ public static MainWindowViewModel Instance => _instance.Value;
 - ViewModel 通过 `OnPropertyChanged()` 通知 View 更新
 - 按钮 Command 通过 `{Binding Btn_Plugin_Show_Command}` 绑定到 `YF_RelayCommand`
 - 插件列表通过 `ItemsControl` + `DataTemplate` + `ObservableCollection<PluginsModel>` 动态渲染
+- MainWindow 通过 DI 容器注入 ViewModel（`new MainWindow(vm, hotkey, tray)`），再赋给 `DataContext`
 
 ### 2.4 插件契约模式（接口隔离）
 

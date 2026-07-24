@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-22 — 引入 Mediator 模式 + 单元测试项目
+> **最后更新：** 2026-07-23 — 引入依赖注入（DI）替代静态单例
 
 ---
 
@@ -43,18 +43,18 @@ YFrame/
 ├── README.md                           # 详细项目文档
 │
 ├── YFrame/                             # 主框架 WPF 项目
-│   ├── App.xaml                        # 应用入口 XAML（默认主题+语言资源字典、全局Style）
-│   ├── App.xaml.cs                     # 入口逻辑：ChangeTheme() / ChangeLanguage()，静态 logger
+│   ├── App.xaml                        # 应用入口 XAML（默认主题+语言资源字典、全局Style，无 StartupUri）
+│   ├── App.xaml.cs                     # 入口逻辑：OnStartup构建DI容器，ChangeTheme() / ChangeLanguage()
 │   ├── MainWindow.xaml                 # 主窗口布局（DockPanel三栏+Menu+StatusBar）
-│   ├── MainWindow.xaml.cs              # 代码后置：DataContext = MainWindowViewModel.Instance
+│   ├── MainWindow.xaml.cs              # 代码后置：构造函数注入ViewModel+Hook服务，OnSourceInitialized初始化
 │   ├── ViewModel/
 │   │   └── MainWindowViewModel.cs      # 核心 ViewModel（~440行，薄门面，委托给子服务）
 │   ├── Service/                        # 服务层（从 ViewModel/Service 迁移）
 │   │   ├── LogService.cs               # 日志面板服务（缓冲区管理、500行上限、通过 Mediator 接收日志消息）
 │   │   ├── PluginService.cs            # 插件管理服务（插件切换、命令转发、热键路由、脚本操作）
 │   │   ├── UserControlsService.cs      # 插件加载服务（200行，反射扫描/加载/实例化）
-│   │   ├── HotkeyService.cs            # 全局热键服务（Win32 RegisterHotKey，AOP单例）
-│   │   └── TrayIconService.cs          # 系统托盘图标服务（Win32 Shell_NotifyIcon，AOP单例）
+│   │   ├── HotkeyService.cs            # 全局热键服务（Win32 RegisterHotKey，AOP代理）
+│   │   └── TrayIconService.cs          # 系统托盘图标服务（Win32 Shell_NotifyIcon，AOP代理）
 │   ├── Model/
 │   │   ├── PluginsModel.cs             # 插件列表模型（Name, ID, Status）
 │   │   └── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
@@ -73,6 +73,7 @@ YFrame/
 │   │   ├── I_YF_Detail.cs              # 插件元数据接口（YF_ID, YF_Name）
 │   │   └── I_YF_Command.cs             # 插件命令接口（ExecuteCommand, OnPluginCallback）
 │   └── Common/
+│       ├── YF_Di.cs                     # DI 容器全局持有者（IServiceProvider 静态引用）
 │       ├── Config.cs                   # 全局常量（LogPath, PluginPath, TCP端口, PaddlePath）
 │       ├── YF_Messenger.cs             # 轻量级消息中介（Mediator 模式核心，Register/Send/Unregister）
 │       ├── YF_Messages.cs              # 9 种消息类型定义（LogAppend、PluginShown、HotkeyTriggered 等）
@@ -119,7 +120,7 @@ YFrame/
 ### 3.1 依赖关系
 
 ```
-YFrame.exe ──编译依赖──→ YF_Manager.dll ──→ Castle.Core 5.2.1
+YFrame.exe ──编译依赖──→ YF_Manager.dll ──→ Castle.Core 5.2.1 + Microsoft.Extensions.DI
     │                        │
     │ 运行时反射加载（无编译依赖） │  插件编译时引用
     ▼                        ▼
@@ -172,29 +173,42 @@ interface I_YF_Command {
 | 输出目录 | 编译到 `plugins/{命名空间}/` 目录下 |
 | 必须引用 | `YF_Manager.dll` |
 
-### 3.5 单例 + AOP 代理（最核心模式）
+### 3.5 AOP 代理模式
 
-所有关键组件使用此模式：
+**AOP 核心不变：** 被代理的方法必须声明为 `virtual`，有 `[Log]` 特性才被拦截记录。`CreateClassProxy<T>` + `LogInterceptor` 的机制完全保留。
 
+**2026-07 重构前：** 所有组件使用静态 `Lazy<T>` 单例模式：
 ```csharp
-// YF_Manager 中对 Castle.Core 的 static 引用保证优先初始化（避免日志系统空引用）
+// 旧模式（已在 YFrame 项目中移除，YF_Manager 中仍保留以兼容插件）
 private static readonly Lazy<T> _instance = new Lazy<T>(
     () => new ProxyGenerator().CreateClassProxy<T>(new LogInterceptor())
 );
 public static T Instance => _instance.Value;
 ```
 
-**要求：** 被代理的方法必须声明为 `virtual`，有 `[Log]` 特性才被拦截记录。
+**2026-07-23 重构后（DI 模式）：** YFrame 项目的 AOP 代理由 DI 容器创建，通过属性注入填充依赖：
+```csharp
+// App.xaml.cs 中注册
+services.AddSingleton(sp => {
+    var proxy = new ProxyGenerator().CreateClassProxy<MainWindowViewModel>(
+        new LogInterceptor()
+    );
+    proxy.InitializeDependencies(
+        sp.GetRequiredService<YF_Manager_Log>(),
+        sp.GetRequiredService<LogService>(),
+        // ... 其余依赖
+    );
+    return proxy;
+});
+```
 
-**采用此模式的类：**
-- YFrame: `MainWindowViewModel`, `UserControlsService`, `HotkeyService`, `TrayIconService`, `YF_Messenger`
-- YF_Manager: `YF_FileHelper`, `YF_TcpHelper`
-- YF_AIHelper: `MainControlViewModel`
-- YF_Clicker: `MainControlViewModel`
-- YF_HttpServer: `MainControlViewModel`, `HttpService`
-- YF_KMScript: `MainControlViewModel`
-- YF_Penetration: `MainControlViewModel`
-- YF_ScreenOCRTranslate: `MainControlViewModel`, `ScreenShotViewModel`, `TranslateService`
+**采用 AOP 代理的类分布：**
+
+| 层级 | 类 | 获取方式 |
+|------|-----|---------|
+| YF_Manager | `YF_Messenger`, `YF_FileHelper`, `YF_TcpHelper` | 保留 `static Instance`（插件兼容） |
+| YFrame | `MainWindowViewModel`, `UserControlsService`, `HotkeyService`, `TrayIconService` | DI 容器解析，无 `Instance` |
+| 各插件 | `MainControlViewModel` 等 | 各自使用 `static Lazy<T>` Instance（不受影响） |
 
 ### 3.6 Mediator 模式（2026-07 重构引入）
 
@@ -204,7 +218,7 @@ public static T Instance => _instance.Value;
 
 ```
 MainWindowViewModel（~440行，薄门面）
-  │  保留：XAML 绑定属性 + 17 个命令属性 + AOP 单例
+  │  保留：XAML 绑定属性 + 17 个命令属性 + AOP 代理
   │  删除：日志缓冲区、插件调度、热键路由、脚本命令的具体实现
   │
   ├──→ LogService ──→ YF_Messenger ←── PluginService
@@ -319,6 +333,43 @@ PluginService.OnHotkeyPressedInternal()
 | **右侧面板** | 参数 | 1 | 参数面板（待扩展） |
 
 切换通过 `SwitchLeftPanelCommand` / `SwitchRightPanelCommand` 命令绑定，ViewModel 维护 `ActiveLeftPanel` / `ActiveRightPanel` 属性。面板切换会通过 `YF_Messenger` 发送 `PanelSwitchMessage`。
+
+### 3.10 依赖注入（DI）（2026-07-23 引入）
+
+**背景：** 6 个 YFrame 核心组件使用静态 `Lazy<T>` 单例模式，内部大量硬编码 `XXX.Instance` 导致紧耦合，无法注入 Mock 进行单元测试。
+
+**解决方案：** 引入 `Microsoft.Extensions.DependencyInjection`，采用**属性注入**策略兼容 Castle `CreateClassProxy` 的无参构造函数要求。
+
+```
+App.OnStartup 构建 DI 容器
+    │
+    ├── 注册 YF_Manager 层 AOP 服务（保留 static Instance，插件兼容）
+    │   └── YF_Messenger / YF_FileHelper / YF_TcpHelper
+    │
+    ├── 注册 YFrame 层非 AOP 服务（构造函数注入）
+    │   └── LogService(YF_Manager_Log, YF_Messenger)
+    │   └── PluginService(YF_Manager_Log, YF_Messenger, UserControlsService)
+    │
+    ├── 注册 YFrame 层 AOP 服务（CreateClassProxy + 属性注入）
+    │   └── MainWindowViewModel → InitializeDependencies(8个依赖)
+    │   └── UserControlsService → InitializeDependencies(logger, 回调)
+    │   └── HotkeyService / TrayIconService → 纯代理，无额外依赖
+    │
+    └── 注册 MainWindow（构造函数注入 ViewModel + Services）
+```
+
+**属性注入原理：** Castle `CreateClassProxy<T>` 要求在构造阶段调用无参 `new T()`。DI 容器在工厂方法中先创建代理，再通过 `InitializeDependencies(...)` 方法注入所有依赖。AOP 的 `virtual` + `[Log]` 机制完全不受影响。
+
+**YF_Di 全局持有者：** 位于 `YF_Manager/Common/YF_Di.cs`，提供 `YF_Di.Provider`（`IServiceProvider`）和 `YF_Di.Get<T>()` 便捷方法，供插件按需解析服务。
+
+**注入前后对比：**
+
+| | 改造前 | 改造后 |
+|------|--------|--------|
+| `PluginService` 获取 `YF_Messenger` | `YF_Messenger.Instance` | 构造函数参数 `messenger` |
+| `PluginService` 获取 `UserControlsService` | `UserControlsService.Instance` | 构造函数参数 `userControlsService` |
+| `MainWindowViewModel` 获取所有依赖 | 8 处 `XXX.Instance` | `InitializeDependencies()` 一次设置 |
+| 测试 PluginService | 需初始化全部单例链 | `new PluginService(logger, mockMessenger, mockUCService)` |
 
 ---
 
@@ -442,6 +493,7 @@ PluginService.OnHotkeyPressedInternal()
 | 性能监视器 | `YFrame/YFrame/View/UC/PerformanceMonitor.xaml.cs` |
 | 消息中介（Mediator） | `YFrame/YF_Manager/Common/YF_Messenger.cs` |
 | 消息类型定义 | `YFrame/YF_Manager/Common/YF_Messages.cs` |
+| DI 全局持有者 | `YFrame/YF_Manager/Common/YF_Di.cs` |
 | 接口定义 | `YFrame/YF_Manager/Interface/I_YF_Detail.cs` + `I_YF_Command.cs` |
 | AOP 拦截器 | `YFrame/YF_Manager/Common/Interceptors/LogInterceptor.cs` |
 | 日志系统 | `YFrame/YF_Manager/Common/Tools/YF_Manager_Log.cs` |
@@ -463,17 +515,22 @@ PluginService.OnHotkeyPressedInternal()
 3. **当前只支持 x64 / Any CPU** 配置
 4. **AOP 代理要求方法为 virtual** 且有 `[Log]` 特性
 5. **全局热键 Ctrl+Y 由框架 HotkeyService 统一管理**，插件无需各自注册热键，只需实现 `ExecuteCommand("ToggleClick" / "CaptureScreen" / "HotkeyTrigger")`
-6. **Mediator 模式（重要）：**
+6. **DI 模式（2026-07 新增）：**
+   - YFrame 项目的服务（MainWindowViewModel / PluginService / LogService / UserControlsService / HotkeyService / TrayIconService）**不再使用 static Instance**
+   - 所有依赖通过 DI 容器的构造函数注入（非 AOP 类）或 `InitializeDependencies()` 属性注入（AOP 类）
+   - 如需在 YFrame 内部解析服务，使用 `YF_Di.Provider.GetRequiredService<T>()`
+   - 插件端继续使用 `YF_Messenger.Instance` / `YF_FileHelper.Instance`（不受影响）
+7. **Mediator 模式（重要）：**
    - 新增跨组件通信请使用 `YF_Messenger.Instance.Send()` / `Register()`，不要直接引用其他服务
    - MainWindowViewModel 是薄门面，复杂逻辑应放在 LogService 或 PluginService 中
    - PluginService 和 LogService **不需要 AOP**（已由 MainWindowViewModel 的 virtual 方法提供 AOP 入口）
-7. **运行单元测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
-8. **已知问题：**
+8. **运行单元测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
+9. **已知问题：**
    - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
    - 目录名 `Plugins` vs `plugins` 大小写不一致
    - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
    - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）
    - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
-9. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
-10. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
-11. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame + YF_KMScript，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余 107 个测试均为纯逻辑测试
+10. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
+11. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
+12. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame + YF_KMScript，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余 107 个测试均为纯逻辑测试
