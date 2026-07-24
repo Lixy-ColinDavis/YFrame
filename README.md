@@ -74,7 +74,7 @@
 |------|------|------|------|
 | **YFrame** | WPF Application (`WinExe`) | `YFrame.exe` | 主框架外壳，负责窗口管理、插件加载、主题/语言切换、性能监控 |
 | **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架、消息中介 |
-| **YFrame.Tests** | xUnit Test Project | — | 单元测试（107 个用例），覆盖 YF_Manager、YFrame、YF_KMScript |
+| **YFrame.Tests** | xUnit Test Project | — | 单元测试（141 个用例），覆盖 YF_Manager、YFrame、YF_KMScript |
 
 ### 1.3 依赖关系
 
@@ -134,7 +134,7 @@ plugins/                       所有插件项目
 
 ### 2.2 依赖注入 + AOP 代理（核心组合模式）
 
-这是整个框架中**最重要的组合模式**。2026-07-23 前所有组件使用静态 `Lazy<T>` 单例，现已迁移到 DI 容器管理：
+这是整个框架中**最重要的组合模式**。早前所有组件使用静态 `Lazy<T>` 单例，现已迁移到 DI 容器管理：
 
 ```csharp
 // YFrame 项目的 AOP 服务不再使用 static Instance，由 DI 容器创建
@@ -296,6 +296,34 @@ YFrame/
 │       ├── YF_RelayCommand.cs          # ICommand 实现（无参版 + 泛型版）
 │       └── YF_DelegateFunctionModel.cs # 委托类型声明
 │
+├── YFrame.Tests/                       # xUnit 单元测试项目
+│   ├── YFrame.Tests.csproj             # 引用 YF_Manager + YFrame + YF_KMScript
+│   ├── YF_Manager/                     # YF_Manager 相关测试（57 个）
+│   │   ├── YF_RelayCommandTests.cs
+│   │   ├── YF_RelayCommandGenericTests.cs
+│   │   ├── ConfigTests.cs
+│   │   ├── YF_Manager_MainTests.cs
+│   │   ├── Common/
+│   │   │   ├── YF_DelegateFunctionModelTests.cs
+│   │   │   ├── Attributes/LogAttributeTests.cs
+│   │   │   └── Tools/
+│   │   │       ├── YF_FileHelperTests.cs
+│   │   │       ├── YF_TcpHelperTests.cs
+│   │   │       └── YF_Manager_LogTests.cs
+│   │   └── Interface/PluginEventArgsTests.cs
+│   ├── YFrame/                         # YFrame 服务 + 模型测试（47 个）
+│   │   ├── Service/
+│   │   │   ├── LogServiceTests.cs      # 14 个 — 日志缓冲区管理
+│   │   │   └── PluginServiceTests.cs   # 20 个 — 插件调度、命令路由
+│   │   └── Model/
+│   │       ├── PluginsModelTests.cs
+│   │       └── CtrlDataModelTests.cs
+│   └── Plugins/KMScript/
+│       └── ScriptInterpreterTests.cs   # 34 个 — DSL 脚本解析
+│
+├── .github/workflows/
+│   └── ci.yml                          # GitHub Actions CI 流水线
+├── .gitlab-ci.yml                      # GitLab CI 流水线（备选）
 └── Review/                             # 代码审查报告与项目文档
 ```
 
@@ -636,6 +664,38 @@ MainWindowViewModel.OnHotkeyPressed()
 
 ---
 
+### 4.8 CI/CD 持续集成
+
+#### 4.8.1 工作流概览
+
+```
+git push → GitCode Actions/Pipeline 自动触发
+  │
+  └── Build Job (windows-latest)
+       ├── 1. dotnet restore YF_Manager/YF_Manager.csproj
+       ├── 2. dotnet restore YFrame/YFrame.csproj
+       ├── 3. dotnet build YF_Manager --configuration Release
+       └── 4. dotnet build YFrame --configuration Release
+```
+
+#### 4.8.2 配置文件
+
+| 文件 | 格式 | 触发方式 |
+|------|------|----------|
+| `.github/workflows/ci.yml` | GitHub Actions | gitcode.com Actions 页面触发 |
+| `.gitlab-ci.yml` | GitLab CI | gitcode.com Pipeline 页面触发 |
+
+#### 4.8.3 设计说明
+
+- **仅编译核心项目**（YF_Manager + YFrame），测试项目不参与 CI 编译
+  - 原因：`YFrame.Tests` 依赖上层目录的 `YF_KMScript` 插件，该插件不在本仓库中
+  - 本地运行测试：`dotnet test YFrame.Tests/YFrame.Tests.csproj`
+- **需要 Windows Runner**：WPF 项目在 Linux 上无法编译，需自行注册 Windows runner
+- **触发分支**：`main` / `master`，忽略 `.md`、`Review/`、`Log/` 目录变更
+- **手动触发**：支持 `workflow_dispatch` 手动运行
+
+---
+
 ## 5. 插件生态
 
 当前已开发六款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透等场景。
@@ -947,7 +1007,7 @@ logger.LogInfo("msg")
 >
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR
 >
-> **最后更新：** 2026-07-15
+> **最后更新：** 2026-07-24
 
 
 

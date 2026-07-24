@@ -12,16 +12,16 @@
 name: .NET 编译检查
 
 on:
-  push:
-    branches: [ main, master ]
-    paths-ignore:
+  push: # 触发条件
+    branches: [ main, master ] # 监听的分支
+    paths-ignore: # 当变更仅涉及以下目录不触发
       - "**.md"
       - "Review/**"
       - "Log/**"
       - ".gitignore"
-  pull_request:
+  pull_request: # 合并分支到
     branches: [ main, master ]
-  workflow_dispatch:   # 允许手动触发
+  workflow_dispatch:   # 允许 GitHub Actions 手动触发
 
 env:
   DOTNET_VERSION: "8.0.x"

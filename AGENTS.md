@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-23 — 引入依赖注入（DI）替代静态单例
+> **最后更新：** 2026-07-24 — 补齐服务层单元测试 + 引入 CI/CD 流水线
 
 ---
 
@@ -20,7 +20,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 |------|------|------|------|
 | YFrame | `YFrame\` | WPF Application | `YFrame.exe`（主框架 Shell） |
 | YF_Manager | `YF_Manager\` | Class Library | `YF_Manager.dll`（共享基础设施库） |
-| YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（107 个用例） |
+| YFrame.Tests | `YFrame.Tests\` | xUnit Test Project | 单元测试（141 个用例） |
 
 ### 插件（位于上层目录 `C:\Users\Administrator\Desktop\code\C#\`）
 
@@ -103,6 +103,9 @@ YFrame/
 │   │   └── Interface/
 │   │       └── PluginEventArgsTests.cs        # 2 个 — 事件参数
 │   ├── YFrame/                         # YFrame 主项目相关测试
+│   │   ├── Service/
+│   │   │   ├── LogServiceTests.cs             # 14 个 — 日志缓冲区管理
+│   │   │   └── PluginServiceTests.cs          # 20 个 — 插件调度、命令路由
 │   │   └── Model/
 │   │       ├── PluginsModelTests.cs           # 8 个 — INotifyPropertyChanged
 │   │       └── CtrlDataModelTests.cs          # 5 个 — 插件实例数据模型
@@ -110,6 +113,9 @@ YFrame/
 │       └── ScriptInterpreterTests.cs          # 34 个 — DSL 脚本解析
 │
 ├── Review/                             # 代码审查报告（多个HTML报告）
+├── .github/workflows/
+│   └── ci.yml                          # GitHub Actions CI 流水线（仅编译核心项目，不含测试）
+├── .gitlab-ci.yml                      # GitLab CI 流水线（备选格式）
 └── .gitignore                          # 排除 bin/obj/Log/Review 等
 ```
 
@@ -177,7 +183,7 @@ interface I_YF_Command {
 
 **AOP 核心不变：** 被代理的方法必须声明为 `virtual`，有 `[Log]` 特性才被拦截记录。`CreateClassProxy<T>` + `LogInterceptor` 的机制完全保留。
 
-**2026-07 重构前：** 所有组件使用静态 `Lazy<T>` 单例模式：
+**重构前：** 所有组件使用静态 `Lazy<T>` 单例模式：
 ```csharp
 // 旧模式（已在 YFrame 项目中移除，YF_Manager 中仍保留以兼容插件）
 private static readonly Lazy<T> _instance = new Lazy<T>(
@@ -186,7 +192,7 @@ private static readonly Lazy<T> _instance = new Lazy<T>(
 public static T Instance => _instance.Value;
 ```
 
-**2026-07-23 重构后（DI 模式）：** YFrame 项目的 AOP 代理由 DI 容器创建，通过属性注入填充依赖：
+**重构后（DI 模式）：** YFrame 项目的 AOP 代理由 DI 容器创建，通过属性注入填充依赖：
 ```csharp
 // App.xaml.cs 中注册
 services.AddSingleton(sp => {
@@ -210,7 +216,7 @@ services.AddSingleton(sp => {
 | YFrame | `MainWindowViewModel`, `UserControlsService`, `HotkeyService`, `TrayIconService` | DI 容器解析，无 `Instance` |
 | 各插件 | `MainControlViewModel` 等 | 各自使用 `static Lazy<T>` Instance（不受影响） |
 
-### 3.6 Mediator 模式（2026-07 重构引入）
+### 3.6 Mediator 模式
 
 **背景：** `MainWindowViewModel.cs` 原为 854 行的"上帝对象"，承担 UI 管理 + 命令绑定 + 热键路由 + 日志面板 + 脚本操作等多项职责，无法单元测试，修改风险高。
 
@@ -286,7 +292,7 @@ YF_Messenger.Instance.Unregister<LogAppendMessage>(handler);
 - **UI 回显（Mediator 重构后）：** `YF_Manager_Log.d_LogWrite` → `YF_Messenger.Send(LogAppendMessage)` → `LogService.AppendLog()` → 回调更新 `MainWindowViewModel.LogText`
 - **日志面板可清除：** 通过 `YF_Messenger.Send(LogClearMessage)` 或 `MainWindowViewModel.ClearLog()`
 
-### 3.8 全局热键系统（2026-07 新增）
+### 3.8 全局热键系统
 
 ```
 MainWindow 加载
@@ -321,7 +327,7 @@ PluginService.OnHotkeyPressedInternal()
 
 **HotkeyService** 位于 `YFrame\Service\HotkeyService.cs`，遵循 AOP 单例模式。热键由**框架统一管理**而非各插件独立注册，避免热键冲突。热键路由由 PluginService 通过 Mediator 消息实现。
 
-### 3.9 面板切换（2026-07 新增）
+### 3.9 面板切换
 
 主窗口的左右侧边栏支持**多标签页切换**：
 
@@ -334,7 +340,7 @@ PluginService.OnHotkeyPressedInternal()
 
 切换通过 `SwitchLeftPanelCommand` / `SwitchRightPanelCommand` 命令绑定，ViewModel 维护 `ActiveLeftPanel` / `ActiveRightPanel` 属性。面板切换会通过 `YF_Messenger` 发送 `PanelSwitchMessage`。
 
-### 3.10 依赖注入（DI）（2026-07-23 引入）
+### 3.10 依赖注入（DI）
 
 **背景：** 6 个 YFrame 核心组件使用静态 `Lazy<T>` 单例模式，内部大量硬编码 `XXX.Instance` 导致紧耦合，无法注入 Mock 进行单元测试。
 
@@ -373,7 +379,36 @@ App.OnStartup 构建 DI 容器
 
 ---
 
-## 四、主题与多语言
+## 四、CI/CD 流水线
+
+### 配置文件
+
+| 文件 | 格式 | 说明 |
+|------|------|------|
+| `.github/workflows/ci.yml` | GitHub Actions | **主用**，gitcode.com Actions 页面触发 |
+| `.gitlab-ci.yml` | GitLab CI | **备用**，gitcode.com Pipeline 页面触发 |
+
+### 工作流内容
+
+```
+push/PR to main → 自动触发
+  └── Build Job (windows-latest)
+       ├── dotnet restore YF_Manager/YF_Manager.csproj
+       ├── dotnet restore YFrame/YFrame.csproj
+       ├── dotnet build YF_Manager --configuration Release
+       └── dotnet build YFrame --configuration Release
+```
+
+### 设计决策
+
+- **仅编译核心项目：** YF_Manager + YFrame，不编译 YFrame.Tests（因测试项目依赖外部 YF_KMScript 插件，该插件不在此仓库中）
+- **本地运行测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
+- **触发分支：** main / master，忽略 .md / Review / Log 目录变更
+- **Windows Runner：** WPF 项目 `net8.0-windows` 只能在 Windows 上编译，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册 Windows runner
+
+---
+
+## 五、主题与多语言
 
 ### 主题（4套）
 | 主题 | 文件 | 主色调 |
@@ -393,7 +428,7 @@ App.OnStartup 构建 DI 容器
 
 ---
 
-## 五、重要配置常量
+## 六、重要配置常量
 
 | 常量 | 值 | 位置 |
 |------|-----|------|
@@ -417,7 +452,7 @@ App.OnStartup 构建 DI 容器
 
 ---
 
-## 六、插件详情速查
+## 七、插件详情速查
 
 ### YF_AIHelper（AI 助手）
 - **ID:** YF_AIHelper，名称："AI 助手"
@@ -428,7 +463,7 @@ App.OnStartup 构建 DI 容器
 - **初始化分离:** `Init(false)` 仅返回元数据不加载模型（避免文件占用），`Init(true)` 完整加载
 - **已知问题:** KeyDown 事件未绑定到 XAML（Enter/Ctrl+Enter 功能不生效），`ExecuteCommand` 未区分命令类型，`Microsoft.Extensions.Configuration` 包已添加但未使用
 
-### YF_Clicker（鼠标连点器）（2026-07 新增）
+### YF_Clicker（鼠标连点器）
 - **ID:** YF_Clicker，名称："鼠标连点器"
 - **核心依赖:** WindowsInput（InputSimulator 模拟鼠标点击）
 - **功能:** 可设定点击间隔(ms)，后台线程连续点击，10 秒自动停止
@@ -455,7 +490,7 @@ App.OnStartup 构建 DI 容器
 - **内部 RelayCommand:** 自定义简单 RelayCommand，未使用框架的 `YF_RelayCommand`
 - **单元测试覆盖:** YFrame.Tests 中 `ScriptInterpreterTests` 包含 34 个测试用例，覆盖定义/输出/等待/如果-否则/循环/嵌套/缩进/注释/错误格式
 
-### YF_Penetration（NAT 内网穿透）（2026-07 新增）
+### YF_Penetration（NAT 内网穿透）
 - **ID:** YF_Penetration，名称："NAT 内网穿透"
 - **核心依赖:** 自研 NatTraversal 库（Client + Server + Shared 三层）
 - **功能:** Host 创建房间 → 生成加入码 → Player 加入 → P2P 中继转发
@@ -473,7 +508,7 @@ App.OnStartup 构建 DI 容器
 
 ---
 
-## 七、关键文件路径映射
+## 八、关键文件路径映射
 
 | 文件 | 路径 |
 |------|------|
@@ -485,6 +520,8 @@ App.OnStartup 构建 DI 容器
 | 核心 ViewModel | `YFrame/YFrame/ViewModel/MainWindowViewModel.cs` |
 | 日志面板服务 | `YFrame/YFrame/Service/LogService.cs` |
 | 插件管理服务 | `YFrame/YFrame/Service/PluginService.cs` |
+| LogService 测试 | `YFrame/YFrame.Tests/YFrame/Service/LogServiceTests.cs` |
+| PluginService 测试 | `YFrame/YFrame.Tests/YFrame/Service/PluginServiceTests.cs` |
 | 插件加载服务 | `YFrame/YFrame/Service/UserControlsService.cs` |
 | 热键服务 | `YFrame/YFrame/Service/HotkeyService.cs` |
 | 托盘图标服务 | `YFrame/YFrame/Service/TrayIconService.cs` |
@@ -505,17 +542,19 @@ App.OnStartup 构建 DI 容器
 | 主题 | `YFrame/YFrame/Common/Themes/*.xaml` |
 | 语言 | `YFrame/YFrame/Common/Language/*.xaml` |
 | 单元测试项目 | `YFrame/YFrame.Tests/` |
+| CI 工作流（Actions） | `YFrame/.github/workflows/ci.yml` |
+| CI 流水线（GitLab） | `YFrame/.gitlab-ci.yml` |
 
 ---
 
-## 八、开发注意事项
+## 九、开发注意事项
 
 1. **添加新插件：** 在 `C:\Users\Administrator\Desktop\code\C#\` 下创建 `YF_XXX` 目录，按约定编写 `MainControl.xaml` + `MainControlViewModel.cs`，输出到 `plugins/YF_XXX/`
 2. **修改主框架：** 编辑 `YFrame/` 和 `YF_Manager/` 下的代码，用 Visual Studio 2022 打开 `YFrame.sln`
 3. **当前只支持 x64 / Any CPU** 配置
 4. **AOP 代理要求方法为 virtual** 且有 `[Log]` 特性
 5. **全局热键 Ctrl+Y 由框架 HotkeyService 统一管理**，插件无需各自注册热键，只需实现 `ExecuteCommand("ToggleClick" / "CaptureScreen" / "HotkeyTrigger")`
-6. **DI 模式（2026-07 新增）：**
+6. **DI 模式：**
    - YFrame 项目的服务（MainWindowViewModel / PluginService / LogService / UserControlsService / HotkeyService / TrayIconService）**不再使用 static Instance**
    - 所有依赖通过 DI 容器的构造函数注入（非 AOP 类）或 `InitializeDependencies()` 属性注入（AOP 类）
    - 如需在 YFrame 内部解析服务，使用 `YF_Di.Provider.GetRequiredService<T>()`
@@ -525,6 +564,10 @@ App.OnStartup 构建 DI 容器
    - MainWindowViewModel 是薄门面，复杂逻辑应放在 LogService 或 PluginService 中
    - PluginService 和 LogService **不需要 AOP**（已由 MainWindowViewModel 的 virtual 方法提供 AOP 入口）
 8. **运行单元测试：** `dotnet test "YFrame\YFrame.Tests\YFrame.Tests.csproj"`
+8. **CI/CD：**
+   - CI 流水线仅编译核心项目（YF_Manager + YFrame），不编译 YFrame.Tests（因为依赖外部 YF_KMScript 插件）
+   - `.github/workflows/ci.yml` 和 `.gitlab-ci.yml` 二选一使用，gitcode.com 同时支持两种格式
+   - WPF 项目需要 Windows Runner，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册
 9. **已知问题：**
    - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
    - 目录名 `Plugins` vs `plugins` 大小写不一致
