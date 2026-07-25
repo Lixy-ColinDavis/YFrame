@@ -118,4 +118,28 @@
     <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
     <sys:String x:Key="key_PluginLabel">Plugins: </sys:String>
      
+    <!--Serialport-->
+    <sys:String x:Key="key_Serialport_Config">⚙ Serial Config</sys:String>
+    <sys:String x:Key="key_Serialport_Port">COM Port</sys:String>
+    <sys:String x:Key="key_Serialport_BaudRate">Baud Rate</sys:String>
+    <sys:String x:Key="key_Serialport_DataBits">Data Bits</sys:String>
+    <sys:String x:Key="key_Serialport_StopBits">Stop Bits</sys:String>
+    <sys:String x:Key="key_Serialport_Parity">Parity</sys:String>
+    <sys:String x:Key="key_Serialport_Encoding">Encoding</sys:String>
+    <sys:String x:Key="key_Serialport_Connect">Connect</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnect">Disconnect</sys:String>
+    <sys:String x:Key="key_Serialport_Connected">Connected:</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnected">Disconnected</sys:String>
+    <sys:String x:Key="key_Serialport_ReceiveLog">◀ Send/Receive</sys:String>
+    <sys:String x:Key="key_Serialport_Text">Text</sys:String>
+    <sys:String x:Key="key_Serialport_Clear">Clear</sys:String>
+    <sys:String x:Key="key_Serialport_SendTitle">➤ Send</sys:String>
+    <sys:String x:Key="key_Serialport_AutoNewLine">Auto NewLine</sys:String>
+    <sys:String x:Key="key_Serialport_SendBtn">Send</sys:String>
+    <sys:String x:Key="key_Serialport_Presets">📋 Presets</sys:String>
+    <sys:String x:Key="key_Serialport_NewCmdName">New Name:</sys:String>
+    <sys:String x:Key="key_Serialport_AddPreset">Add</sys:String>
+    <sys:String x:Key="key_Serialport_DeletePreset">Delete</sys:String>
+    <sys:String x:Key="key_Serialport_SendPreset">Send</sys:String>
+
 </ResourceDictionary>

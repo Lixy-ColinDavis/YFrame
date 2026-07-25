@@ -118,4 +118,28 @@
     <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
     <sys:String x:Key="key_PluginLabel">插件: </sys:String>
 
+    <!--串口通讯助手-->
+    <sys:String x:Key="key_Serialport_Config">⚙ 串口配置</sys:String>
+    <sys:String x:Key="key_Serialport_Port">COM口</sys:String>
+    <sys:String x:Key="key_Serialport_BaudRate">波特率</sys:String>
+    <sys:String x:Key="key_Serialport_DataBits">数据位</sys:String>
+    <sys:String x:Key="key_Serialport_StopBits">停止位</sys:String>
+    <sys:String x:Key="key_Serialport_Parity">校验位</sys:String>
+    <sys:String x:Key="key_Serialport_Encoding">编码</sys:String>
+    <sys:String x:Key="key_Serialport_Connect">打开串口</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnect">断开串口</sys:String>
+    <sys:String x:Key="key_Serialport_Connected">已连接:</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnected">未连接</sys:String>
+    <sys:String x:Key="key_Serialport_ReceiveLog">◀ 收发记录</sys:String>
+    <sys:String x:Key="key_Serialport_Text">文本</sys:String>
+    <sys:String x:Key="key_Serialport_Clear">清空</sys:String>
+    <sys:String x:Key="key_Serialport_SendTitle">➤ 发送</sys:String>
+    <sys:String x:Key="key_Serialport_AutoNewLine">自动换行</sys:String>
+    <sys:String x:Key="key_Serialport_SendBtn">发送</sys:String>
+    <sys:String x:Key="key_Serialport_Presets">📋 预设命令</sys:String>
+    <sys:String x:Key="key_Serialport_NewCmdName">新命令名:</sys:String>
+    <sys:String x:Key="key_Serialport_AddPreset">新增</sys:String>
+    <sys:String x:Key="key_Serialport_DeletePreset">删除</sys:String>
+    <sys:String x:Key="key_Serialport_SendPreset">发送</sys:String>
+
 </ResourceDictionary>
