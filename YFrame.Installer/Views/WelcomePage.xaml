@@ -1,0 +1,43 @@
+<UserControl x:Class="YFrame.Installer.Views.WelcomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:YFrame.Installer.Controls"
+             Height="450" Width="700">
+
+    <Grid>
+        <controls:ParticleBackground ParticleCount="50">
+            <controls:ParticleBackground.ParticleColor>
+                <SolidColorBrush Color="#4D96FF"/>
+            </controls:ParticleBackground.ParticleColor>
+        </controls:ParticleBackground>
+
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock x:Name="TitleText" Text="YFrame 工具集"
+                       FontSize="48" FontWeight="Bold" Foreground="#E6EDF3"
+                       HorizontalAlignment="Center" Opacity="0"
+                       RenderTransformOrigin="0.5,0.5">
+                <TextBlock.RenderTransform>
+                    <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+
+            <TextBlock x:Name="SubtitleText" Text="模块化插件桌面框架 安装程序"
+                       FontSize="18" Foreground="#8B949E"
+                       HorizontalAlignment="Center" Margin="0,16,0,0" Opacity="0">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform Y="20"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+
+            <TextBlock Text="本安装程序将安装 YFrame 框架本体，不包含插件和模型"
+                       FontSize="13" Foreground="#6E7681"
+                       HorizontalAlignment="Center" Margin="0,24,0,0"
+                       TextWrapping="Wrap" MaxWidth="550" TextAlignment="Center" Opacity="0"
+                       x:Name="DescText">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform Y="20"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -118,4 +118,59 @@
     <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
     <sys:String x:Key="key_PluginLabel">Plugins: </sys:String>
      
+    <!--Serialport-->
+    <sys:String x:Key="key_Serialport_Config">⚙ Serial Config</sys:String>
+    <sys:String x:Key="key_Serialport_Port">COM Port</sys:String>
+    <sys:String x:Key="key_Serialport_BaudRate">Baud Rate</sys:String>
+    <sys:String x:Key="key_Serialport_DataBits">Data Bits</sys:String>
+    <sys:String x:Key="key_Serialport_StopBits">Stop Bits</sys:String>
+    <sys:String x:Key="key_Serialport_Parity">Parity</sys:String>
+    <sys:String x:Key="key_Serialport_Encoding">Encoding</sys:String>
+    <sys:String x:Key="key_Serialport_Connect">Connect</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnect">Disconnect</sys:String>
+    <sys:String x:Key="key_Serialport_Connected">Connected:</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnected">Disconnected</sys:String>
+    <sys:String x:Key="key_Serialport_ReceiveLog">◀ Send/Receive</sys:String>
+    <sys:String x:Key="key_Serialport_Text">Text</sys:String>
+    <sys:String x:Key="key_Serialport_Clear">Clear</sys:String>
+    <sys:String x:Key="key_Serialport_SendTitle">➤ Send</sys:String>
+    <sys:String x:Key="key_Serialport_AutoNewLine">Auto NewLine</sys:String>
+    <sys:String x:Key="key_Serialport_SendBtn">Send</sys:String>
+    <sys:String x:Key="key_Serialport_Presets">📋 Presets</sys:String>
+    <sys:String x:Key="key_Serialport_NewCmdName">New Name:</sys:String>
+    <sys:String x:Key="key_Serialport_AddPreset">Add</sys:String>
+    <sys:String x:Key="key_Serialport_DeletePreset">Delete</sys:String>
+    <sys:String x:Key="key_Serialport_SendPreset">Send</sys:String>
+
+    <!--TCP Helper-->
+    <sys:String x:Key="key_TcpHelper_Title">🔌 TCP Helper</sys:String>
+    <sys:String x:Key="key_TcpHelper_ServerMode">Server</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientMode">Client</sys:String>
+    <sys:String x:Key="key_TcpHelper_ListenPort">Listen Port</sys:String>
+    <sys:String x:Key="key_TcpHelper_Start">Start</sys:String>
+    <sys:String x:Key="key_TcpHelper_Stop">Stop</sys:String>
+    <sys:String x:Key="key_TcpHelper_Listening">Listening:</sys:String>
+    <sys:String x:Key="key_TcpHelper_NotListening">Not Running</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastListen">UDP Broadcast Listen</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastPort">Broadcast Port</sys:String>
+    <sys:String x:Key="key_TcpHelper_Separator">Separator</sys:String>
+    <sys:String x:Key="key_TcpHelper_StartBroadcast">Start Broadcast</sys:String>
+    <sys:String x:Key="key_TcpHelper_StopBroadcast">Stop Broadcast</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastInfo">Broadcast Info</sys:String>
+    <sys:String x:Key="key_TcpHelper_ReverseConnect">Reverse Connect</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientsList">Connected Clients</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientsCount"> connected</sys:String>
+    <sys:String x:Key="key_TcpHelper_RemoteIP">Target IP</sys:String>
+    <sys:String x:Key="key_TcpHelper_RemotePort">Target Port</sys:String>
+    <sys:String x:Key="key_TcpHelper_Connected">Connected:</sys:String>
+    <sys:String x:Key="key_TcpHelper_Disconnected">Disconnected</sys:String>
+    <sys:String x:Key="key_TcpHelper_Connect">Connect</sys:String>
+    <sys:String x:Key="key_TcpHelper_Disconnect">Disconnect</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastSend">UDP Broadcast Send</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastContent">Broadcast Content</sys:String>
+    <sys:String x:Key="key_TcpHelper_SendBroadcastBtn">Send Broadcast</sys:String>
+    <sys:String x:Key="key_TcpHelper_ReceiveLog">◀ Send/Receive</sys:String>
+    <sys:String x:Key="key_TcpHelper_AutoReverse">Auto reverse connect on broadcast</sys:String>
+    <sys:String x:Key="key_TcpHelper_PeriodicBroadcast">Periodic broadcast</sys:String>
+
 </ResourceDictionary>
