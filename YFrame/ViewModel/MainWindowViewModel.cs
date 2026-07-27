@@ -409,7 +409,7 @@ namespace YFrame
                 });
 
                 // ===== 窗口管理 =====
-                Btn_Exit_Command = new YF_RelayCommand(() => MinimizeToTray());
+                Btn_Exit_Command = new YF_RelayCommand(() => ExitApplication());
                 Btn_Minimize_Command = new YF_RelayCommand(() =>
                 {
                     Application.Current.MainWindow.WindowState = WindowState.Minimized;
