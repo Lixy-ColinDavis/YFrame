@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-24 — YFrame.Installer 改为仅安装框架本体，Debug/Release 均嵌入 payload.zip
+> **最后更新：** 2026-07-27 — 新增 YF_Serialport（串口通讯助手）和 YF_TcpHelper（TCP通讯助手）两个插件
 
 ---
 
@@ -33,6 +33,8 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 | YF_KMScript | `YF_KMScript\` | 中文 DSL 键鼠自动化脚本 | 无额外依赖 |
 | YF_Penetration | `YF_Penetration\` | NAT 内网穿透（P2P 联机） | NatTraversal 自研库 |
 | YF_ScreenOCRTranslate | `YF_ScreenOCRTranslate\` | 截图 OCR + 翻译 | PaddleOCRSharp + 百度翻译 API |
+| YF_Serialport | `YF_Serialport\` | 串口调试助手（文本/HEX收发+预设命令） | System.IO.Ports 8.0.0 |
+| YF_TcpHelper | `YF_TcpHelper\` | TCP通讯助手（服务端/客户端+UDP广播发现） | System.Net.Sockets（内置） |
 
 ---
 
@@ -150,7 +152,9 @@ plugins/              所有插件项目
   ├── YF_HttpServer.dll ──→ YF_Manager.dll
   ├── YF_KMScript.dll ──→ YF_Manager.dll
   ├── YF_Penetration.dll ──→ YF_Manager.dll + NatTraversal 自研库
-  └── YF_ScreenOCRTranslate.dll ──→ YF_Manager.dll + PaddleOCRSharp
+  ├── YF_ScreenOCRTranslate.dll ──→ YF_Manager.dll + PaddleOCRSharp
+  ├── YF_Serialport.dll ──→ YF_Manager.dll + System.IO.Ports
+  └── YF_TcpHelper.dll ──→ YF_Manager.dll
 ```
 
 **关键设计：** YFrame 与插件间**零编译时依赖**，完全通过 `I_YF_Detail` + `I_YF_Command` 接口契约通信。
@@ -572,6 +576,25 @@ push/PR to main → 自动触发
 - **模型:** PP-OCRv5 mobile（det/rec/cls）
 - **已知问题:** 百度 API 密钥硬编码在源码中（appId/secretKey），`PaddleOCREngine` 未释放可能导致 GPU 内存泄漏，翻译 API 使用 HTTP 而非 HTTPS
 
+### YF_Serialport（串口通讯助手）
+- **ID:** YF_Serialport，名称："串口通讯助手"
+- **核心依赖:** System.IO.Ports 8.0.0
+- **功能:** 串口参数配置（端口/波特率/数据位/停止位/校验位/编码）、文本/HEX 双模式收发、预设命令管理（增删+JSON持久化）
+- **架构:** ViewModel（870行）→ SerialPortService（457行，串口核心）+ PresetCommandService（292行，预设命令CRUD）
+- **接收处理:** 文本模式用 StringBuilder 按 `\n` 换行累积输出；HEX 模式即时逐帧触发
+- **预设命令:** 存储于 `Config\PortCommand\presets_index.json`，内存中用 `Dictionary<string, PresetCommand>` 缓存（忽略大小写）
+- **已知问题:** `ExecuteCommand` 仅触发 `OnPluginCallback` 通知处理已开始，未解析命令参数
+
+### YF_TcpHelper（TCP通讯助手）
+- **ID:** YF_TcpHelper，名称："TCP通讯助手"
+- **核心依赖:** 无额外 NuGet 依赖（使用 .NET 内置 `System.Net.Sockets`）
+- **功能:** TCP 服务端（多客户端管理+广播发送）/ 客户端（连接+广播接收）双模式，UDP 广播自动发现
+- **架构:** ViewModel（1031行）→ TcpServerService（721行，服务端TCP+UDP广播监听）+ TcpClientService（436行，客户端TCP+UDP广播发送）
+- **广播发现流程:** 服务端 `UdpClient.Send(IPAddress.Broadcast)` 宣告 `IP:Port` → 客户端 `UdpClient` 接收 → 按分隔符解析 → 自动/手动反向 TCP 连接
+- **并发安全:** `ConcurrentDictionary<string, ClientSession>` 管理客户端会话；UI 更新通过 `Dispatcher.Invoke` Marshal
+- **接收处理:** 与串口助手相同的按行累积逻辑，500 行上限裁剪
+- **已知问题:** 广播由 `TcpClientService.SendBroadcast` 发送但监听由 `TcpServerService.StartBroadcastListen` 接收，职责划分不够清晰；`ExecuteCommand` 未区分命令类型
+
 ---
 
 ## 八、关键文件路径映射
@@ -640,12 +663,14 @@ push/PR to main → 自动触发
    - CI 流水线编译核心项目（YF_Manager + YFrame）并运行 YFrame.Tests 单元测试
    - `.github/workflows/ci.yml` 和 `.gitlab-ci.yml` 二选一使用，gitcode.com 同时支持两种格式
    - WPF 项目需要 Windows Runner，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册
-9. **已知问题：**
-   - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
-   - 目录名 `Plugins` vs `plugins` 大小写不一致
-   - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
-   - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）
-   - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
+ 9. **已知问题：**
+    - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
+    - 目录名 `Plugins` vs `plugins` 大小写不一致
+    - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
+    - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）
+    - YF_ScreenOCRTranslate: 百度 API 密钥硬编码，PaddleOCREngine 未释放
+    - YF_Serialport: `ExecuteCommand` 未解析命令参数
+    - YF_TcpHelper: 广播发送/监听职责分散在两个 Service 中，`ExecuteCommand` 未区分命令类型
 10. **Logo.png 引用绝对路径**（`.csproj` 第22行），移植时需注意
 11. **YF_FileHelper 现采用 AOP 单例模式**，新增 `OpenFolder()` 方法可打开任意文件夹（不存在则自动创建）
 12. **测试项目 YFrame.Tests** 引用 YF_Manager + YFrame，需要联网环境（YF_TcpHelper 测试）和临时文件系统权限（YF_FileHelper 测试），其余测试均为纯逻辑测试

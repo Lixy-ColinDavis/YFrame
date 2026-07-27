@@ -90,7 +90,9 @@ plugins/                       所有插件项目
   ├── YF_HttpServer.dll ────────→ YF_Manager.dll
   ├── YF_KMScript.dll ──────────→ YF_Manager.dll
   ├── YF_Penetration.dll ───────→ YF_Manager.dll + NatTraversal 自研库
-  └── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
+  ├── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
+  ├── YF_Serialport.dll ─────────→ YF_Manager.dll + System.IO.Ports
+  └── YF_TcpHelper.dll ─────────→ YF_Manager.dll
 ```
 
 **关键设计决策：** YFrame 与插件之间**没有编译时依赖**。框架通过 `YF_Manager.dll` 中定义的接口契约（`I_YF_Detail`、`I_YF_Command`）与插件通信，插件在运行时通过反射被发现和加载，实现了完全的**编译时解耦**。
@@ -712,7 +714,7 @@ git push → GitCode Actions/Pipeline 自动触发
 
 ## 5. 插件生态
 
-当前已开发六款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透等场景。
+当前已开发八款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透、串口通讯、TCP 通讯等场景。
 
 ### 5.1 插件总览
 
@@ -724,6 +726,8 @@ git push → GitCode Actions/Pipeline 自动触发
 | **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | OpenCvSharp4 | 中文 DSL 键鼠自动化脚本引擎 |
 | **YF_Penetration** | `YF_Penetration` | NAT 内网穿透 | NatTraversal 自研库 | NAT 穿透 P2P 联机（房间制中继转发）|
 | **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
+| **YF_Serialport** | `YF_Serialport` | 串口通讯助手 | System.IO.Ports 8.0.0 | 串口调试助手（文本/HEX收发+预设命令管理） |
+| **YF_TcpHelper** | `YF_TcpHelper` | TCP通讯助手 | System.Net.Sockets（内置） | TCP服务端/客户端通讯+UDP广播自动发现 |
 
 ### 5.2 YF_AIHelper — AI 助手
 
@@ -867,6 +871,54 @@ git push → GitCode Actions/Pipeline 自动触发
 - `Newtonsoft.Json` 13.0.4 — JSON 序列化/反序列化
 - Win32 API（`user32.dll`）：`RegisterHotKey`、`UnregisterHotKey`、`SetWindowPos`
 
+### 5.8 YF_Serialport — 串口通讯助手
+
+**功能描述：** 基于 `System.IO.Ports` 实现的串口调试助手。支持常用串口参数配置（端口/波特率/数据位/停止位/校验位/编码），文本/HEX 双模式收发，预设命令管理（增删+JSON 持久化）。
+
+**技术实现：**
+- `SerialPortService`（457行）封装 `System.IO.Ports.SerialPort`，管理串口打开/关闭/发送/接收，提供 5 个事件和 3 个公开属性
+- `PresetCommandService`（292行）管理预设命令的 CRUD 操作，存储于 `Config\PortCommand\presets_index.json`，内存中用 `Dictionary<string, PresetCommand>` 缓存（键名忽略大小写）
+- 文本接收模式使用 `StringBuilder` 缓冲区累积，按 `\n` 换行后再输出完整行；HEX 接收模式即时逐帧触发
+- 发送支持文本（可自动追加换行）、HEX（空格分隔）、字节三种模式
+- 预设命令通过 `System.Text.Json` 持久化，PrettyPrint 格式
+- 串口收发数据自动记录到 TcpLog
+
+**UI 功能：**
+- 串口参数全配置：波特率（15 个常用值，默认 9600）、数据位（5~8，默认 8）、停止位（1/1.5/2，默认 1）、校验位（5 种）、编码（5 种，默认 UTF-8）
+- 收发区 Text/HEX 模式独立切换，两个蓝色高亮切换按钮
+- 连接后 `DtrEnable=true`、`RtsEnable=true`，读写超时 500ms
+- 预设命令面板：名称输入 → 从发送区创建 → 列表显示（含模式标签+数据预览）→ 一键发送/删除
+
+**核心 NuGet 依赖：**
+- `System.IO.Ports` 8.0.0 — .NET 串口通讯实现
+
+### 5.9 YF_TcpHelper — TCP通讯助手
+
+**功能描述：** 基于 .NET 内置 `System.Net.Sockets` 实现的 TCP 通讯助手。支持 TCP 服务端（多客户端管理+广播发送）和客户端（连接+广播接收）两种模式，以及 UDP 广播自动发现功能。
+
+**广播自动发现流程：**
+
+```
+服务端发送 UDP 广播宣告地址 → 客户端监听广播 → 按分隔符解析 IP:Port
+    → 自动或手动反向建立 TCP 连接 → 双向文本通讯
+```
+
+**技术实现：**
+- `TcpServerService`（721行）：TCP 异步监听（`AcceptTcpClientAsync`）+ 多客户端管理（`ConcurrentDictionary<string, ClientSession>`）+ UDP 广播监听与解析
+- `TcpClientService`（436行）：TCP 连接/收发 + UDP 广播发送（`UdpClient.Send` 到 `IPAddress.Broadcast`）
+- 接收区按行累积逻辑（`StringBuilder` 缓冲区 + `\n` 拆分），500 行上限裁剪
+- ViewModel 定时广播使用 `System.Timers.Timer`（3 秒间隔），回调通过 `Dispatcher.Invoke` Marshal 到 UI 线程
+- 自动反向连接：客户端收到广播后，若勾选 `AutoReverseConnect` 且未连接，自动填入 IP/Port 并连接
+
+**UI 功能：**
+- 双模式切换：服务端/客户端按钮，驱动对应配置面板可见性
+- 服务端：监听端口配置 + UDP 广播（端口/内容/定时） + 已连接客户端列表（选中后点对点发送）
+- 客户端：远程 IP/端口配置 + UDP 广播监听（端口/分隔符/自动反向连接） + 广播信息面板
+- 收发区：文本模式，支持自动添加换行
+
+**核心依赖：**
+- `System.Net.Sockets` — .NET 内置，无需额外 NuGet 包
+
 ---
 
 ## 6. 技术栈详情
@@ -903,6 +955,7 @@ git push → GitCode Actions/Pipeline 自动触发
 | **Paddle.Runtime.win_x64** | 3.4.0 | YF_ScreenOCRTranslate | Paddle 推理运行时 |
 | **PaddleOCRSharp** | 6.1.0 | YF_ScreenOCRTranslate | PaddleOCR .NET 封装（PP-OCRv5） |
 | **Newtonsoft.Json** | 13.0.4 | YF_ScreenOCRTranslate | JSON 解析（百度翻译 API 响应） |
+| **System.IO.Ports** | 8.0.0 | YF_Serialport | 串口通讯实现 |
 
 ### 6.4 系统 API
 
@@ -914,6 +967,8 @@ git push → GitCode Actions/Pipeline 自动触发
 | `PerformanceCounter` | `System.Diagnostics` | YFrame | CPU 和内存使用率采集 |
 | `ManagementObjectSearcher` | `System.Management` | YFrame | WMI 查询 `Win32_ComputerSystem` |
 | `HttpListener` | `System.Net` | YF_HttpServer | HTTP 服务器核心 |
+| `TcpClient` / `TcpListener` | `System.Net.Sockets` | YF_TcpHelper | TCP 通讯与 UDP 广播 |
+| `SerialPort` | `System.IO.Ports` | YF_Serialport | 串口通讯 |
 
 ---
 
@@ -1019,9 +1074,9 @@ logger.LogInfo("msg")
 
 > **项目状态：** 持续开发中
 >
-> **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR
+> **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
 >
-> **最后更新：** 2026-07-24
+> **最后更新：** 2026-07-27
 
 
 
