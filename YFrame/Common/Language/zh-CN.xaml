@@ -118,4 +118,59 @@
     <sys:String x:Key="key_CpuLabel">CPU: </sys:String>
     <sys:String x:Key="key_PluginLabel">插件: </sys:String>
 
+    <!--串口通讯助手-->
+    <sys:String x:Key="key_Serialport_Config">⚙ 串口配置</sys:String>
+    <sys:String x:Key="key_Serialport_Port">COM口</sys:String>
+    <sys:String x:Key="key_Serialport_BaudRate">波特率</sys:String>
+    <sys:String x:Key="key_Serialport_DataBits">数据位</sys:String>
+    <sys:String x:Key="key_Serialport_StopBits">停止位</sys:String>
+    <sys:String x:Key="key_Serialport_Parity">校验位</sys:String>
+    <sys:String x:Key="key_Serialport_Encoding">编码</sys:String>
+    <sys:String x:Key="key_Serialport_Connect">打开串口</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnect">断开串口</sys:String>
+    <sys:String x:Key="key_Serialport_Connected">已连接:</sys:String>
+    <sys:String x:Key="key_Serialport_Disconnected">未连接</sys:String>
+    <sys:String x:Key="key_Serialport_ReceiveLog">◀ 收发记录</sys:String>
+    <sys:String x:Key="key_Serialport_Text">文本</sys:String>
+    <sys:String x:Key="key_Serialport_Clear">清空</sys:String>
+    <sys:String x:Key="key_Serialport_SendTitle">➤ 发送</sys:String>
+    <sys:String x:Key="key_Serialport_AutoNewLine">自动换行</sys:String>
+    <sys:String x:Key="key_Serialport_SendBtn">发送</sys:String>
+    <sys:String x:Key="key_Serialport_Presets">📋 预设命令</sys:String>
+    <sys:String x:Key="key_Serialport_NewCmdName">新命令名:</sys:String>
+    <sys:String x:Key="key_Serialport_AddPreset">新增</sys:String>
+    <sys:String x:Key="key_Serialport_DeletePreset">删除</sys:String>
+    <sys:String x:Key="key_Serialport_SendPreset">发送</sys:String>
+
+    <!--TCP通讯助手-->
+    <sys:String x:Key="key_TcpHelper_Title">🔌 TCP 通讯助手</sys:String>
+    <sys:String x:Key="key_TcpHelper_ServerMode">服务端</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientMode">客户端</sys:String>
+    <sys:String x:Key="key_TcpHelper_ListenPort">监听端口</sys:String>
+    <sys:String x:Key="key_TcpHelper_Start">启动</sys:String>
+    <sys:String x:Key="key_TcpHelper_Stop">停止</sys:String>
+    <sys:String x:Key="key_TcpHelper_Listening">监听中:</sys:String>
+    <sys:String x:Key="key_TcpHelper_NotListening">未启动</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastListen">UDP 广播监听</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastPort">广播端口</sys:String>
+    <sys:String x:Key="key_TcpHelper_Separator">分隔符</sys:String>
+    <sys:String x:Key="key_TcpHelper_StartBroadcast">启动广播监听</sys:String>
+    <sys:String x:Key="key_TcpHelper_StopBroadcast">停止广播监听</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastInfo">广播解析信息</sys:String>
+    <sys:String x:Key="key_TcpHelper_ReverseConnect">反向连接</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientsList">已连接客户端</sys:String>
+    <sys:String x:Key="key_TcpHelper_ClientsCount"> 个已连接</sys:String>
+    <sys:String x:Key="key_TcpHelper_RemoteIP">目标 IP</sys:String>
+    <sys:String x:Key="key_TcpHelper_RemotePort">目标端口</sys:String>
+    <sys:String x:Key="key_TcpHelper_Connected">已连接:</sys:String>
+    <sys:String x:Key="key_TcpHelper_Disconnected">未连接</sys:String>
+    <sys:String x:Key="key_TcpHelper_Connect">连接</sys:String>
+    <sys:String x:Key="key_TcpHelper_Disconnect">断开</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastSend">UDP 广播发送</sys:String>
+    <sys:String x:Key="key_TcpHelper_BroadcastContent">广播内容</sys:String>
+    <sys:String x:Key="key_TcpHelper_SendBroadcastBtn">发送广播</sys:String>
+    <sys:String x:Key="key_TcpHelper_ReceiveLog">◀ 收发记录</sys:String>
+    <sys:String x:Key="key_TcpHelper_AutoReverse">收到广播后自动反向连接</sys:String>
+    <sys:String x:Key="key_TcpHelper_PeriodicBroadcast">定时广播通知</sys:String>
+
 </ResourceDictionary>

@@ -1,0 +1,14 @@
+<Application x:Class="YFrame.Installer.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:YFrame.Installer.Converters">
+    <Application.Resources>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <Style TargetType="Window" x:Key="InstallerWindow">
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="Background" Value="#0D1117"/>
+            <Setter Property="Foreground" Value="#E6EDF3"/>
+        </Style>
+    </Application.Resources>
+</Application>

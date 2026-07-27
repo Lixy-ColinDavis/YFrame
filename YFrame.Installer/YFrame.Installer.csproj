@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
+    <AssemblyName>YFrame.Installer</AssemblyName>
+    <RootNamespace>YFrame.Installer</RootNamespace>
+    <Version>1.0.0</Version>
+    <Authors>YFrame</Authors>
+    <Description>YFrame 框架安装程序（仅安装框架本体，自包含单文件）</Description>
+
+    <!-- 发布配置：自包含 + 单文件（仅 Release 生效） -->
+    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
+    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(Configuration)' == 'Release'">true</IncludeNativeLibrariesForSelfExtract>
+    <RuntimeIdentifier Condition="'$(Configuration)' == 'Release'">win-x64</RuntimeIdentifier>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+
+    <!-- 路径推导 -->
+    <_YFrameSolutionDir Condition="'$(SolutionDir)' != '' and '$(SolutionDir)' != '*Undefined*'">$(SolutionDir)</_YFrameSolutionDir>
+    <_YFrameSolutionDir Condition="'$(_YFrameSolutionDir)' == ''">$(MSBuildProjectDirectory)\..\</_YFrameSolutionDir>
+    <_YFrameBinDir>$(_YFrameSolutionDir)YFrame\bin\$(Configuration)\net8.0-windows</_YFrameBinDir>
+    <_InstallerOutDir>$(_YFrameSolutionDir)Installer</_InstallerOutDir>
+
+    <!-- Release 发布时直接输出到 Installer 目录 -->
+    <PublishDir Condition="'$(Configuration)' == 'Release'">$(_InstallerOutDir)\</PublishDir>
+  </PropertyGroup>
+
+  <!-- Debug/Release 通用：构建前收集 YFrame 核心文件 → 打包为 payload.zip → 嵌入资源 -->
+  <Target Name="PreparePayloadZip" BeforeTargets="BeforeBuild">
+    <Message Importance="high" Text="========================================" />
+    <Message Importance="high" Text="  YFrame Setup - Preparing payload ($(Configuration))" />
+    <Message Importance="high" Text="  Source: $(_YFrameBinDir)" />
+    <Message Importance="high" Text="========================================" />
+
+    <!-- 收集 YFrame 核心文件到临时目录 -->
+    <MakeDir Directories="$(ProjectDir)payload_staging" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)CollectPayload.ps1&quot; -SourceBinDir &quot;$(_YFrameBinDir)&quot; -OutputDir &quot;$(ProjectDir)payload_staging&quot;" />
+
+    <!-- 打包为 ZIP -->
+    <Message Importance="high" Text="  Creating payload.zip..." />
+    <MakeDir Directories="$(ProjectDir)Resources" />
+    <Exec Command="powershell -NoProfile -Command $zip='$(ProjectDir)Resources\payload.zip'; if (Test-Path $zip) { try { Remove-Item $zip -Force -ErrorAction Stop } catch { Write-Host 'zip locked, exit gracefully'; exit 0 } }; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('$(ProjectDir)payload_staging\payload', $zip); Write-Host 'zip created successfully'" />
+    <RemoveDir Directories="$(ProjectDir)payload_staging" />
+
+    <!-- 动态添加嵌入资源（必须在目标内部才能使用刚生成的文件） -->
+    <ItemGroup>
+      <EmbeddedResource Include="$(ProjectDir)Resources\payload.zip" />
+    </ItemGroup>
+    <Message Importance="high" Text="  payload.zip embedded as resource." />
+  </Target>
+
+</Project>
