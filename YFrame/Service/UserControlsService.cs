@@ -55,6 +55,8 @@ namespace YFrame
     out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
         {
             userControl = null; detail = null; commandHandler = null;
+            // 框架定位为随主程序生命周期加载的桌面工具聚合，
+            // 有意不引入 AssemblyLoadContext 做隔离 / 热卸载 / 热更新
             Assembly assembly = Assembly.LoadFrom(assemblyPath);
             Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
             Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
@@ -155,12 +157,22 @@ namespace YFrame
 
         /// <summary>
         /// 显示指定的插件
+        /// 说明（T2 取舍）：每次显示都重建 UserControl 实例，仅把"当前显示"的实例暂存到 ctrlData.userControl，
+        ///       切换后旧实例失去引用即被 GC 回收；不长期保留全部插件实例，避免内存/性能开销。
+        /// 说明（T1 修复）：通过 LastSubscribedHandler 记录已订阅的 commandHandler 引用，
+        ///       对静态单例型插件不重复 += 回调，根治事件泄漏与重复触发。
         /// </summary>
         /// <param name="plugin_Id">插件ID</param>
         [Log(Level = LogLevel.Info, Message = "显示指定的插件")]
         public virtual void ShowUserControl(string plugin_Id)
         {
             string path = "plugins\\" + plugin_Id;
+            if (!Directory.Exists(path))
+            {
+                _logger.ErrorInfo("ShowUserControl", $"插件目录不存在: {path}");
+                return;
+            }
+
             // 读取插件主dll
             string[] array = Directory.GetFiles(path, "YF_*.dll")
                 .Select(p => System.IO.Path.GetFileNameWithoutExtension(p))
@@ -175,34 +187,56 @@ namespace YFrame
                 string assemblyPath = @$"{path}\{s}.dll";
                 if (TryLoadPlugin(assemblyPath, s, out var userControl, out var detail, out var commandHandler))
                 {
-                    if (detail != null)
+                    if (detail == null)
                     {
-                        if (DctControls.TryGetValue(plugin_Id, out var ctrlData))
-                        {
-                            ctrlData.userControl = userControl;
-                            ctrlData.CommandHandler = commandHandler;
-                        }
-                        else
-                        {
-                            _logger.ErrorInfo("ShowUserControl",
-                                $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
-                        }
+                        _logger.LogInfo("ShowUserControl: ", s + "插件 I_YF_Detail 接口读取失败");
+                        continue;
+                    }
 
-                        if (commandHandler != null)
-                        {
-                            commandHandler.OnPluginCallback += (sender, e) =>
-                            {
-                                // 通过 DI 注入的回调转发到 PluginService
-                                if (OnPluginCallback != null)
-                                    OnPluginCallback(detail.YF_ID, e);
-                                else
-                                    _logger.ErrorInfo("ShowUserControl", "OnPluginCallback 回调未设置，插件回调丢失");
-                            };
-                        }
+                    if (!DctControls.TryGetValue(plugin_Id, out var ctrlData))
+                    {
+                        _logger.ErrorInfo("ShowUserControl",
+                            $"插件 {plugin_Id} 未在插件列表中找到，请先执行插件扫描。");
+                        continue;
+                    }
+
+                    // 仅暂存当前显示的实例（旧实例随本次赋值失去引用被回收，不长期持有）
+                    ctrlData.userControl = userControl;
+                    ctrlData.CommandHandler = commandHandler;
+                    ctrlData.PluginId = detail.YF_ID;
+
+                    // 仅当该 commandHandler 引用尚未订阅过时才订阅，避免对静态单例插件重复 += 造成事件泄漏
+                    if (commandHandler != null && !ReferenceEquals(ctrlData.LastSubscribedHandler, commandHandler))
+                    {
+                        SubscribeCallback(ctrlData);
+                        ctrlData.LastSubscribedHandler = commandHandler;
                     }
                 }
-
+                else
+                {
+                    _logger.ErrorInfo("ShowUserControl", s + " MainControl/MainControlViewModel 加载失败");
+                }
             }
+        }
+
+        /// <summary>
+        /// 为指定插件订阅回调（调用方需保证同一 commandHandler 引用只调用一次，见 ShowUserControl 中的引用比较）
+        /// </summary>
+        /// <param name="ctrlData">插件数据模型</param>
+        private void SubscribeCallback(CtrlDataModel ctrlData)
+        {
+            if (ctrlData.CommandHandler == null)
+                return;
+
+            string pluginId = ctrlData.PluginId;
+            ctrlData.CommandHandler.OnPluginCallback += (sender, e) =>
+            {
+                // 通过 DI 注入的回调转发到 PluginService
+                if (OnPluginCallback != null)
+                    OnPluginCallback(pluginId, e);
+                else
+                    _logger.ErrorInfo("ShowUserControl", "OnPluginCallback 回调未设置，插件回调丢失");
+            };
         }
         /// <summary>
         /// 插件回调
