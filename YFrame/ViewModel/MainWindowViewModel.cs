@@ -300,14 +300,8 @@ namespace YFrame
         {
             _logger.LogInfo("主框架初始化-开始");
 
-            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性
-            _logService.OnLogTextChanged = text =>
-            {
-                if (Application.Current?.Dispatcher.CheckAccess() == true)
-                    LogText = text;
-                else
-                    Application.Current?.Dispatcher.Invoke(() => LogText = text);
-            };
+            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性。
+            _logService.OnLogTextChanged = text => LogText = text;
 
             InitUI();
             InitCommond();

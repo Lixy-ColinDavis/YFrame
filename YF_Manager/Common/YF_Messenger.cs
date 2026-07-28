@@ -50,13 +50,15 @@ namespace YF_Manager
             var messageType = typeof(TMessage);
             lock (_lock)
             {
-                // 如果键存在，则在委托函数列表里面加一个，
-                // 如果键不存在，则创建这个键和对应的一个空的委托函数列表，然后在委托函数列表中加入当前的函数
+                // 如果键不存在，则创建这个键和对应的一个空的委托函数列表
                 if (!_subscribers.TryGetValue(messageType, out var handlers))
                 {
                     handlers = new List<Delegate>();
                     _subscribers[messageType] = handlers;
                 }
+                // 去重：同一 handler（Delegate.Equals 按方法+目标判断）已存在则跳过，避免重复触发
+                if (handlers.Contains(handler))
+                    return;
                 handlers.Add(handler);
             }
         }
