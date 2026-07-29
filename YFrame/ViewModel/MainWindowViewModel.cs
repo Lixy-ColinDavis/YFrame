@@ -11,12 +11,9 @@ using System.IO;
 namespace YFrame
 {
     /// <summary>
-    /// 主窗口 ViewModel — 薄门面层
-    /// 职责：持有 XAML 绑定所需的属性和命令，将业务逻辑委托给子服务
-    /// 
+    /// 主窗口 ViewModel 
     /// 架构变更（Mediator 模式）：
-    ///   原：MainWindowViewModel（854行上帝对象，承担所有逻辑）
-    ///   新：MainWindowViewModel（~280行门面） + LogService + PluginService
+    ///   新：MainWindowViewModel + LogService + PluginService
     ///   跨组件通信：YF_Messenger（消息中介，组件间松耦合）
     /// 
     /// 依赖关系图：
@@ -396,6 +393,7 @@ namespace YFrame
                     LeftVisible = !LeftVisible;
                     _logger.LogInfo("左侧边栏-" + (LeftVisible ? "开" : "关"));
                 });
+
                 ToggleRightToolWindowCommand = new YF_RelayCommand(() =>
                 {
                     RightVisible = !RightVisible;
