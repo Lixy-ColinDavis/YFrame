@@ -66,7 +66,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Cpu = "CPU: --%";  // CPU显示状态
+        private string _txt_Cpu = "--%";  // CPU显示状态
         public string Txt_Cpu
         {
             get => _txt_Cpu;
@@ -80,7 +80,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Memory = "内存: --GB";  // 内存显示状态
+        private string _txt_Memory = "--GB";  // 内存显示状态
         public string Txt_Memory
         {
             get => _txt_Memory;
@@ -682,9 +682,8 @@ namespace YFrame
         {
             try
             {
-                Txt_Cpu = "CPU: " + cpu + "%";
-                Txt_Memory = "内存: " + memory + "GB";
-                _messenger.Send(new PerformanceDataMessage(cpu, memory));
+                Txt_Cpu = cpu + "%";
+                Txt_Memory = memory + "GB";
             }
             catch (Exception ex)
             {
