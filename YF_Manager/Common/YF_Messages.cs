@@ -35,11 +35,6 @@ namespace YF_Manager
     public record ScriptCommandMessage(string Command);
 
     /// <summary>
-    /// 性能数据更新消息 — CPU/内存数据刷新
-    /// </summary>
-    public record PerformanceDataMessage(string Cpu, string Memory);
-
-    /// <summary>
     /// 面板切换消息 — 左侧/右侧面板标签页切换
     /// Side 取值: "Left", "Right"; TabIndex: 标签页索引
     /// </summary>

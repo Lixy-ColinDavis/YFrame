@@ -1,4 +1,5 @@
 using System.Text;
+using System.Windows;
 using YF_Manager;
 
 namespace YFrame
@@ -88,12 +89,20 @@ namespace YFrame
                 }
             }
 
-            // 通知 UI 刷新
+            // 取出当前完整文本用于刷新
             string currentText;
             lock (_logLock) { 
                 currentText = _logBuilder.ToString(); 
             }
-            OnLogTextChanged?.Invoke(currentText);
+
+          
+            // 避免跨线程直接更新控件导致 InvalidOperationException 甚至崩溃。
+            // 若当前无可用的 Dispatcher（如单元测试环境），则退化为同步直接调用，保证行为一致。
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+                dispatcher.Invoke(() => OnLogTextChanged?.Invoke(currentText));
+            else
+                OnLogTextChanged?.Invoke(currentText);
         }
 
         /// <summary>

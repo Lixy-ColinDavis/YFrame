@@ -11,12 +11,9 @@ using System.IO;
 namespace YFrame
 {
     /// <summary>
-    /// 主窗口 ViewModel — 薄门面层
-    /// 职责：持有 XAML 绑定所需的属性和命令，将业务逻辑委托给子服务
-    /// 
+    /// 主窗口 ViewModel 
     /// 架构变更（Mediator 模式）：
-    ///   原：MainWindowViewModel（854行上帝对象，承担所有逻辑）
-    ///   新：MainWindowViewModel（~280行门面） + LogService + PluginService
+    ///   新：MainWindowViewModel + LogService + PluginService
     ///   跨组件通信：YF_Messenger（消息中介，组件间松耦合）
     /// 
     /// 依赖关系图：
@@ -66,7 +63,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Cpu = "CPU: --%";  // CPU显示状态
+        private string _txt_Cpu = "--%";  // CPU显示状态
         public string Txt_Cpu
         {
             get => _txt_Cpu;
@@ -80,7 +77,7 @@ namespace YFrame
             }
         }
 
-        private string _txt_Memory = "内存: --GB";  // 内存显示状态
+        private string _txt_Memory = "--GB";  // 内存显示状态
         public string Txt_Memory
         {
             get => _txt_Memory;
@@ -300,14 +297,8 @@ namespace YFrame
         {
             _logger.LogInfo("主框架初始化-开始");
 
-            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性
-            _logService.OnLogTextChanged = text =>
-            {
-                if (Application.Current?.Dispatcher.CheckAccess() == true)
-                    LogText = text;
-                else
-                    Application.Current?.Dispatcher.Invoke(() => LogText = text);
-            };
+            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性。
+            _logService.OnLogTextChanged = text => LogText = text;
 
             InitUI();
             InitCommond();
@@ -402,6 +393,7 @@ namespace YFrame
                     LeftVisible = !LeftVisible;
                     _logger.LogInfo("左侧边栏-" + (LeftVisible ? "开" : "关"));
                 });
+
                 ToggleRightToolWindowCommand = new YF_RelayCommand(() =>
                 {
                     RightVisible = !RightVisible;
@@ -688,9 +680,8 @@ namespace YFrame
         {
             try
             {
-                Txt_Cpu = "CPU: " + cpu + "%";
-                Txt_Memory = "内存: " + memory + "GB";
-                _messenger.Send(new PerformanceDataMessage(cpu, memory));
+                Txt_Cpu = cpu + "%";
+                Txt_Memory = memory + "GB";
             }
             catch (Exception ex)
             {

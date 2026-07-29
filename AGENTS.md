@@ -79,7 +79,7 @@ YFrame/
 │       ├── YF_Di.cs                     # DI 容器全局持有者（IServiceProvider 静态引用）
 │       ├── Config.cs                   # 全局常量（LogPath, PluginPath, TCP端口, PaddlePath）
 │       ├── YF_Messenger.cs             # 轻量级消息中介（Mediator 模式核心，Register/Send/Unregister）
-│       ├── YF_Messages.cs              # 9 种消息类型定义（LogAppend、PluginShown、HotkeyTriggered 等）
+│       ├── YF_Messages.cs              # 8 种消息类型定义（LogAppend、PluginShown、HotkeyTriggered 等）
 │       ├── Attributes/LogAttribute.cs  # [Log] 特性（LogLevel: Debug/Info/Warning/Error）
 │       ├── Interceptors/LogInterceptor.cs  # Castle.Core IInterceptor（AOP 核心）
 │       ├── Tools/
@@ -263,7 +263,7 @@ YF_Messenger.Instance.Send(new LogAppendMessage("Hello"));
 YF_Messenger.Instance.Unregister<LogAppendMessage>(handler);
 ```
 
-**9 种消息类型**（位于 `YF_Manager/Common/YF_Messages.cs`，均为 `record` 类型）：
+**8 种消息类型**（位于 `YF_Manager/Common/YF_Messages.cs`，均为 `record` 类型）：
 
 | 消息 | 发送方 | 接收方 | 场景 |
 |------|--------|--------|------|
@@ -274,7 +274,6 @@ YF_Messenger.Instance.Unregister<LogAppendMessage>(handler);
 | `ScriptCommandMessage` | 脚本按钮命令 | PluginService | 新建/打开/保存脚本 |
 | `ThemeChangedMessage` | SetThemeCommand | 扩展点 | 主题切换通知 |
 | `LanguageChangedMessage` | 语言切换命令 | 扩展点 | 语言切换通知 |
-| `PerformanceDataMessage` | Show_Cpu_Memory | 扩展点 | CPU/内存数据 |
 | `PanelSwitchMessage` | 面板切换命令 | 扩展点 | 侧边栏切换通知 |
 
 **子系统职责划分：**
