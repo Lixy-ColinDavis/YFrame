@@ -92,7 +92,7 @@ namespace YFrame
         }
 
         /// <summary>
-        ///  添加插件
+        /// 添加插件到字典
         /// </summary>
         /// <param name="name">插件名称</param>
         /// <param name="ID">插件ID</param>
@@ -100,12 +100,20 @@ namespace YFrame
         public virtual void AddControl(string name, string ID)
         {
             _logger.DebugInfo($"加载模块：{name}, {ID}");
-            // 插件添加
-            // 插件添加<ID, 名称>
             DctControls.Add(ID, new CtrlDataModel() 
             { 
                 Name = name,
             });
+        }
+
+        /// <summary>
+        /// 清空所有已注册的插件字典，用于重新加载前清理旧数据
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "清空插件字典")]
+        public virtual void ClearAllControls()
+        {
+            DctControls.Clear();
+            _logger.DebugInfo("插件字典已清空");
         }
 
 

@@ -111,7 +111,7 @@
     <sys:String x:Key="key_OCR_ShowTextHint">💡 Click anywhere or press ESC to close translation</sys:String>
 
     <!--菜单-->
-    <sys:String x:Key="key_LoadPlugin">Load Plugin</sys:String>
+    <sys:String x:Key="key_LoadPlugin">Reload Plugins</sys:String>
     <sys:String x:Key="key_PluginManager">Plugin Manager</sys:String>
 
     <!--状态栏标签-->

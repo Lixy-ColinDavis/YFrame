@@ -88,6 +88,19 @@ namespace YFrame
         #region 插件显示
 
         /// <summary>
+        /// 卸载当前显示的插件（清空显示区域并重置当前插件引用）
+        /// </summary>
+        public void UnloadCurrentPlugin()
+        {
+            if (_gridShowArea != null)
+            {
+                _gridShowArea.Children.Clear();
+            }
+            CurrentPlugin = null;
+            _logger.DebugInfo("当前插件已卸载");
+        }
+
+        /// <summary>
         /// 显示指定 ID 的插件（公开入口，由命令绑定调用）
         /// </summary>
         public bool ShowPlugin(string pluginId)

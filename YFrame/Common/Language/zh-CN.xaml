@@ -111,7 +111,7 @@
     <sys:String x:Key="key_OCR_ShowTextHint">💡 点击任意位置或按 ESC 关闭翻译结果</sys:String>
 
     <!--菜单-->
-    <sys:String x:Key="key_LoadPlugin">加载插件</sys:String>
+    <sys:String x:Key="key_LoadPlugin">重新加载插件</sys:String>
     <sys:String x:Key="key_PluginManager">插件管理器</sys:String>
 
     <!--状态栏标签-->

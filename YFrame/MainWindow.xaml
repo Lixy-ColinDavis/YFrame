@@ -37,7 +37,7 @@
                 <MenuItem Header="English"  Command="{Binding ToggleEnglishCommand}"/>
             </MenuItem>
         <MenuItem Header="{DynamicResource key_Plug-in}">
-                <MenuItem Header="{DynamicResource key_LoadPlugin}"/>
+                <MenuItem Header="{DynamicResource key_LoadPlugin}" Command="{Binding ReloadPluginsCommand}"/>
                 <MenuItem Header="{DynamicResource key_PluginManager}" Command="{Binding PluginManagerCommand}"/>
             </MenuItem>
             <MenuItem Header="{DynamicResource key_Help}">
