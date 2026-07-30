@@ -19,7 +19,7 @@
                 <Grid>
                     <TextBlock Text="关于" Foreground="{DynamicResource TextBrush}"
                                FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                    <Button Content="✕" HorizontalAlignment="Right" Width="32" Height="32"
+                    <Button Content="✕" HorizontalAlignment="Right" Width="40" Height="32"
                             Background="Transparent" Foreground="{DynamicResource TextBrush}"
                             BorderThickness="0" FontSize="14" Click="CloseButton_Click"
                             Cursor="Hand"/>
@@ -27,7 +27,7 @@
             </Border>
 
             <!-- 内容 -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Cursor="">
                 <!-- Logo -->
                 <Image Source="/View/Logo.png" Width="64" Height="64"
                        HorizontalAlignment="Center" Margin="0,10,0,15"/>

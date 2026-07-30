@@ -142,6 +142,51 @@
     <sys:String x:Key="key_Serialport_DeletePreset">Delete</sys:String>
     <sys:String x:Key="key_Serialport_SendPreset">Send</sys:String>
 
+    <!--Plugin Server-->
+    <sys:String x:Key="key_PluginServer_ServerConfig">🌐 Plugin Server</sys:String>
+    <sys:String x:Key="key_PluginServer_LocalIP">Local IP:</sys:String>
+    <sys:String x:Key="key_PluginServer_Port">Port:</sys:String>
+    <sys:String x:Key="key_PluginServer_ServerURL">Server URL:</sys:String>
+    <sys:String x:Key="key_PluginServer_Copy">📋 Copy</sys:String>
+    <sys:String x:Key="key_PluginServer_StartServer">▶ Start Server</sys:String>
+    <sys:String x:Key="key_PluginServer_StopServer">■ Stop Server</sys:String>
+    <sys:String x:Key="key_PluginServer_Running">Server Running</sys:String>
+    <sys:String x:Key="key_PluginServer_Stopped">Server Stopped</sys:String>
+    <sys:String x:Key="key_PluginServer_PluginList">📦 Local Plugin List</sys:String>
+    <sys:String x:Key="key_PluginServer_Refresh">🔄 Refresh</sys:String>
+    <sys:String x:Key="key_PluginServer_ColName">Plugin Name</sys:String>
+    <sys:String x:Key="key_PluginServer_ColFileCount">File Count</sys:String>
+    <sys:String x:Key="key_PluginServer_ColSize">Size</sys:String>
+    <sys:String x:Key="key_PluginServer_ColAPI">Download API</sys:String>
+    <sys:String x:Key="key_PluginServer_Total">{0} plugins total</sys:String>
+
+    <!--Plugin Manager Window-->
+    <sys:String x:Key="key_PluginManager_Title">Plugin Manager</sys:String>
+    <sys:String x:Key="key_PluginManager_ServerURL">Server URL</sys:String>
+    <sys:String x:Key="key_PluginManager_Connect">🔗 Connect</sys:String>
+    <sys:String x:Key="key_PluginManager_Disconnect">✖ Disconnect</sys:String>
+    <sys:String x:Key="key_PluginManager_NotConnected">Not Connected</sys:String>
+    <sys:String x:Key="key_PluginManager_Connecting">Connecting...</sys:String>
+    <sys:String x:Key="key_PluginManager_Connected">Connected - {0} plugins found</sys:String>
+    <sys:String x:Key="key_PluginManager_ConnectFailed">Connection failed: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_Timeout">Connection timeout</sys:String>
+    <sys:String x:Key="key_PluginManager_Error">Error: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_ColName">Plugin Name</sys:String>
+    <sys:String x:Key="key_PluginManager_ColFileCount">File Count</sys:String>
+    <sys:String x:Key="key_PluginManager_ColSize">Size</sys:String>
+    <sys:String x:Key="key_PluginManager_ColAction">Action</sys:String>
+    <sys:String x:Key="key_PluginManager_Download">⬇ Download</sys:String>
+    <sys:String x:Key="key_PluginManager_Installed">✔ Installed</sys:String>
+    <sys:String x:Key="key_PluginManager_Downloading">Downloading: {0}...</sys:String>
+    <sys:String x:Key="key_PluginManager_Installing">Installing: {0}...</sys:String>
+    <sys:String x:Key="key_PluginManager_InstallComplete">{0} installed! Restart to take effect</sys:String>
+    <sys:String x:Key="key_PluginManager_DownloadCancelled">{0} download cancelled</sys:String>
+    <sys:String x:Key="key_PluginManager_DownloadFailed">Download failed: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_Empty">Connect to server to get plugin list</sys:String>
+    <sys:String x:Key="key_PluginManager_AvailablePlugins">{0} plugins available</sys:String>
+    <sys:String x:Key="key_PluginManager_Hint">Hint: Start "Plugin Server" in YFrame plugins, then enter URL and connect</sys:String>
+    <sys:String x:Key="key_PluginManager_EnterAddress">Please enter server address</sys:String>
+
     <!--TCP Helper-->
     <sys:String x:Key="key_TcpHelper_Title">🔌 TCP Helper</sys:String>
     <sys:String x:Key="key_TcpHelper_ServerMode">Server</sys:String>

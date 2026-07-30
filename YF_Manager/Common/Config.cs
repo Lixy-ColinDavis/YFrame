@@ -90,5 +90,23 @@ namespace YF_Manager
             get => Get("8022");
             set => Set(value);
         }
+
+        /// <summary>
+        /// 插件服务器端口
+        /// </summary>
+        public static string PluginServerPort
+        {
+            get => Get("9000");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// 插件管理器上次连接的服务器地址（不含端口，端口由 PluginServerPort 独立管理）
+        /// </summary>
+        public static string PluginManagerServerURL
+        {
+            get => Get("http://127.0.0.1");
+            set => Set(value);
+        }
     }
 }

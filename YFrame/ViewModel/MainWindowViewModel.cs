@@ -228,6 +228,7 @@ namespace YFrame
         public ICommand OpenScriptCommand { get; set; } = null!;                 // 打开脚本事件
         public ICommand SaveScriptCommand { get; set; } = null!;                 // 保存脚本事件
         public ICommand Btn_About_Command { get; set; } = null!;                 // 关于事件
+        public ICommand PluginManagerCommand { get; set; } = null!;              // 插件管理器事件
 
         #endregion
 
@@ -493,6 +494,9 @@ namespace YFrame
 
                 // ===== 关于 =====
                 Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
+
+                // ===== 插件管理器 =====
+                PluginManagerCommand = new YF_RelayCommand(() => ShowPluginManager());
             }
             catch (Exception ex)
             {
@@ -653,6 +657,24 @@ namespace YFrame
             catch (Exception ex)
             {
                 _logger.ErrorInfo("ShowAbout", ex.Message);
+            }
+        }
+
+        [Log(Level = LogLevel.Info, Message = "显示插件管理器窗口")]
+        public virtual void ShowPluginManager()
+        {
+            try
+            {
+                var pluginManagerWindow = new View.PluginManagerWindow
+                {
+                    Owner = Application.Current.MainWindow
+                };
+                pluginManagerWindow.ShowDialog();
+                _logger.LogInfo("插件管理器窗口已打开");
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("ShowPluginManager", ex.Message);
             }
         }
 
