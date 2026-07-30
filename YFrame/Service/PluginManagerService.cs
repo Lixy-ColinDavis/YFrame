@@ -2,7 +2,6 @@ using Castle.DynamicProxy;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -154,7 +153,7 @@ namespace YFrame.Service
                 Directory.Delete(pluginDir, true);
             Directory.CreateDirectory(pluginDir);
 
-            ZipFile.ExtractToDirectory(tempZip, pluginDir);
+            YF_ZipHelper.Instance.ExtractToDirectory(tempZip, pluginDir);
 
             // 清理临时文件
             try { File.Delete(tempZip); } catch { }
