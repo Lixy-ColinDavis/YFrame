@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-27 — 新增 YF_Serialport（串口通讯助手）和 YF_TcpHelper（TCP通讯助手）两个插件
+> **最后更新：** 2026-07-30 — 新增 YF_PluginServer（插件服务器）+ PluginManagerWindow（插件管理器窗口）+ PluginManagerService + 插件热重载
 
 ---
 
@@ -34,6 +34,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 | YF_Penetration | `YF_Penetration\` | NAT 内网穿透（P2P 联机） | NatTraversal 自研库 |
 | YF_ScreenOCRTranslate | `YF_ScreenOCRTranslate\` | 截图 OCR + 翻译 | PaddleOCRSharp + 百度翻译 API |
 | YF_Serialport | `YF_Serialport\` | 串口调试助手（文本/HEX收发+预设命令） | System.IO.Ports 8.0.0 |
+| YF_PluginServer | `YF_PluginServer\` | 插件HTTP服务器（列表+下载） | HttpListener（内置） |
 | YF_TcpHelper | `YF_TcpHelper\` | TCP通讯助手（服务端/客户端+UDP广播发现） | System.Net.Sockets（内置） |
 
 ---
@@ -51,16 +52,18 @@ YFrame/
 │   ├── MainWindow.xaml                 # 主窗口布局（DockPanel三栏+Menu+StatusBar）
 │   ├── MainWindow.xaml.cs              # 代码后置：构造函数注入ViewModel+Hook服务，OnSourceInitialized初始化
 │   ├── ViewModel/
-│   │   └── MainWindowViewModel.cs      # 核心 ViewModel（~440行，薄门面，委托给子服务）
+│   │   └── MainWindowViewModel.cs      # 核心 ViewModel（~750行，薄门面，委托给子服务）
 │   ├── Service/                        # 服务层（从 ViewModel/Service 迁移）
 │   │   ├── LogService.cs               # 日志面板服务（缓冲区管理、500行上限、通过 Mediator 接收日志消息）
 │   │   ├── PluginService.cs            # 插件管理服务（插件切换、命令转发、热键路由、脚本操作）
 │   │   ├── UserControlsService.cs      # 插件加载服务（200行，反射扫描/加载/实例化）
+│   │   ├── PluginManagerService.cs     # 插件管理器服务（AOP单例，HTTP通信、下载/解压插件）
 │   │   ├── HotkeyService.cs            # 全局热键服务（Win32 RegisterHotKey，AOP代理）
 │   │   └── TrayIconService.cs          # 系统托盘图标服务（Win32 Shell_NotifyIcon，AOP代理）
 │   ├── Model/
 │   │   ├── PluginsModel.cs             # 插件列表模型（Name, ID, Status）
-│   │   └── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
+│   │   ├── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
+│   │   └── RemotePluginInfo.cs         # 远程插件信息模型（插件管理器用，含下载状态）
 │   ├── View/UC/
 │   │   └── PerformanceMonitor.xaml/.cs # LiveCharts CPU/内存图表（5秒采样，30秒窗口）
 │   ├── Common/
@@ -152,6 +155,7 @@ plugins/              所有插件项目
   ├── YF_HttpServer.dll ──→ YF_Manager.dll
   ├── YF_KMScript.dll ──→ YF_Manager.dll
   ├── YF_Penetration.dll ──→ YF_Manager.dll + NatTraversal 自研库
+  ├── YF_PluginServer.dll ──→ YF_Manager.dll
   ├── YF_ScreenOCRTranslate.dll ──→ YF_Manager.dll + PaddleOCRSharp
   ├── YF_Serialport.dll ──→ YF_Manager.dll + System.IO.Ports
   └── YF_TcpHelper.dll ──→ YF_Manager.dll
@@ -232,6 +236,7 @@ services.AddSingleton(sp => {
 |------|-----|---------|
 | YF_Manager | `YF_Messenger`, `YF_FileHelper`, `YF_TcpHelper` | 保留 `static Instance`（插件兼容） |
 | YFrame | `MainWindowViewModel`, `UserControlsService`, `HotkeyService`, `TrayIconService` | DI 容器解析，无 `Instance` |
+| YFrame | `PluginManagerService` | AOP 单例（`static Instance`，对齐 YF_Manager 风格） |
 | 各插件 | `MainControlViewModel` 等 | 各自使用 `static Lazy<T>` Instance（不受影响） |
 
 ### 3.6 Mediator 模式
@@ -280,9 +285,9 @@ YF_Messenger.Instance.Unregister<LogAppendMessage>(handler);
 
 | 组件 | 文件 | 行数 | 职责 |
 |------|------|------|------|
-| MainWindowViewModel | `YFrame/ViewModel/MainWindowViewModel.cs` | 440 | 薄门面：XAML 绑定属性 + 命令声明 + AOP 入口 |
+| MainWindowViewModel | `YFrame/ViewModel/MainWindowViewModel.cs` | 440 | 薄门面：XAML 绑定属性 + 命令声明 + AOP 入口（含 19 个命令：ReloadPlugins / PluginManager / 脚本操作等） |
 | LogService | `YFrame/Service/LogService.cs` | 106 | 日志缓冲区（500行上限）、追加/清空、Mediator 订阅 |
-| PluginService | `YFrame/Service/PluginService.cs` | 194 | 插件显示/切换、命令转发、热键路由、脚本操作 |
+| PluginService | `YFrame/Service/PluginService.cs` | 194 | 插件显示/切换、命令转发、热键路由、脚本操作、当前插件卸载 |
 
 **可测试性对比：**
 
@@ -514,6 +519,8 @@ push/PR to main → 自动触发
 | 全局热键 | Ctrl+Y (MOD_CONTROL=0x0002, VK_Y=0x59) | HotkeyService.cs |
 | 热键 ID | 9001 | HotkeyService.cs |
 | TCP 端口 | 服务器 8021，客户端 8022 | Config.cs |
+| 插件服务器端口 | 9000 | Config.cs |
+| 插件管理器地址 | http://127.0.0.1 | Config.cs |
 | PaddleOCR 路径 | `plugins\YF_ScreenOCRTranslate\inference` | Config.cs |
 | 窗口尺寸 | 800 x 1200 | MainWindow.xaml |
 | 窗口标题 | "YF Tools" | MainWindow.xaml |
@@ -567,6 +574,14 @@ push/PR to main → 自动触发
 - **UI:** 双标签页切换（Host/Player），连接状态指示器，统计面板
 - **状态:** 开发中，已具备基本房间创建/加入/中继功能
 
+### YF_PluginServer（插件服务器）
+- **ID:** YF_PluginServer，名称："插件服务器"
+- **核心依赖:** HttpListener（内置）
+- **功能:** 扫描本地 plugins/ 目录并启动 HTTP API 服务，提供 `GET /api/plugins` 插件列表（JSON 格式）和 `GET /api/plugins/{id}/download` 插件 ZIP 下载
+- **API:** 返回 JSON 含插件 ID、名称、文件大小、文件数量等元数据
+- **UI:** 服务器启停控制、本机 IP 和端口配置、本地插件列表展示（含文件数/大小/下载 API 路径）
+- **配置持久化:** 端口号写入 `Config.PluginServerPort`
+
 ### YF_ScreenOCRTranslate（OCR 实时翻译）
 - **ID:** YF_ScreenOCRTranslate，名称："OCR 实时翻译"
 - **工作流:** Ctrl+Y热键 → 全屏截图选区 → PaddleOCR识别 → 百度翻译API → Canvas叠加显示
@@ -611,8 +626,11 @@ push/PR to main → 自动触发
 | LogService 测试 | `YFrame/YFrame.Tests/YFrame/Service/LogServiceTests.cs` |
 | PluginService 测试 | `YFrame/YFrame.Tests/YFrame/Service/PluginServiceTests.cs` |
 | 插件加载服务 | `YFrame/YFrame/Service/UserControlsService.cs` |
+| 插件管理器服务 | `YFrame/YFrame/Service/PluginManagerService.cs` |
 | 热键服务 | `YFrame/YFrame/Service/HotkeyService.cs` |
 | 托盘图标服务 | `YFrame/YFrame/Service/TrayIconService.cs` |
+| 插件管理器窗口 | `YFrame/YFrame/View/PluginManagerWindow.xaml` + `.cs` |
+| 插件管理器ViewModel | `YFrame/YFrame/ViewModel/PluginManagerViewModel.cs` |
 | 插件元数据模型 | `YFrame/YFrame/Model/PluginsModel.cs` |
 | 插件实例模型 | `YFrame/YFrame/Model/CtrlDataModel.cs` |
 | 性能监视器 | `YFrame/YFrame/View/UC/PerformanceMonitor.xaml.cs` |
@@ -624,7 +642,7 @@ push/PR to main → 自动触发
 | 日志系统 | `YFrame/YF_Manager/Common/Tools/YF_Manager_Log.cs` |
 | 文件工具 | `YFrame/YF_Manager/Common/Tools/YF_FileHelper.cs` |
 | 日志特性 | `YFrame/YF_Manager/Common/Attributes/LogAttribute.cs` |
-| 全局常量 | `YFrame/YF_Manager/Common/Config.cs` |
+| 全局常量 | `YFrame/YF_Manager/Common/Config.cs` + `Tools/YF_ConfigHelper.cs` |
 | RelayCommand | `YFrame/YF_Manager/Common/YF_RelayCommand.cs` |
 | 工具类 | `YFrame/YF_Manager/Common/Tools/YF_TcpHelper.cs` |
 | 主题 | `YFrame/YFrame/Common/Themes/*.xaml` |
@@ -678,3 +696,5 @@ push/PR to main → 自动触发
     - 独立分发时只需 `YFrame.Installer.exe` 一个文件，Payload 自动从嵌入资源解压
     - 安装流程 3 步：欢迎 → 配置安装路径和快捷方式 → 安装进度 → 完成
     - 收集脚本 `CollectPayload.ps1` 仅拷贝核心文件 + runtimes 目录，排除 plugins/、Log/、Config/、File/、*.pdb
+14. **插件热重载：** 菜单栏→插件→重新加载插件，执行 `ReloadPlugins()`（`MainWindowViewModel.cs` → `PluginService.UnloadCurrentPlugin()` + `UserControlsService.ClearAllControls()` + `LoadAndShowUserControl()`）
+15. **插件服务器与插件管理器：** `YF_PluginServer` 提供 HTTP API 分发插件，`PluginManagerWindow` 作为客户端连接服务器并下载/安装插件，服务器端口（`PluginServerPort`）和客户端地址（`PluginManagerServerURL`）均持久化到 `Config/config.conf`

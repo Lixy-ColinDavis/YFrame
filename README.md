@@ -50,8 +50,12 @@
 ├──────────────────────────────────────────────────────────────────┤
 │                      服务层 (Service)                             │
 │  ┌──────────────────────────────────────────────────────────────┐ │
-│  │  UserControlsService (单例 + AOP)                            │ │
-│  │  · 插件扫描 · 程序集加载 · 类型反射 · 实例化 · 生命周期管理      │ │
+│  │  UserControlsService (AOP)  · 插件扫描·加载·实例化·生命周期     │ │
+│  │  PluginService              · 插件切换·命令转发·热键路由         │ │
+│  │  LogService                 · 日志缓冲区·Mediator 订阅          │ │
+│  │  PluginManagerService (AOP) · HTTP 通信·下载/安装插件            │ │
+│  │  HotkeyService (AOP)        · Win32 全局热键                   │ │
+│  │  TrayIconService (AOP)      · Shell_NotifyIcon 托盘            │ │
 │  └──────────────────────────────────────────────────────────────┘ │
 ├──────────────────────────────────────────────────────────────────┤
 │                   基础设施层 (Infrastructure)                     │
@@ -74,7 +78,7 @@
 |------|------|------|------|
 | **YFrame** | WPF Application (`WinExe`) | `YFrame.exe` | 主框架外壳，负责窗口管理、插件加载、主题/语言切换、性能监控 |
 | **YF_Manager** | Class Library (`UseWPF`) | `YF_Manager.dll` | 共享基础设施库，定义插件契约接口、日志系统、AOP 拦截器、命令框架、消息中介 |
-| **YFrame.Tests** | xUnit Test Project | — | 单元测试（141 个用例），覆盖 YF_Manager、YFrame、YF_KMScript |
+| **YFrame.Tests** | xUnit Test Project | — | 单元测试（94 个用例），覆盖 YF_Manager、YFrame |
 | **YFrame.Installer** | WPF Application (`WinExe`) | `YFrame.Installer.exe` | 框架安装程序，向导式 3 步安装流程，仅安装框架本体（不含插件和 AI 模型），payload.zip 内嵌于 exe |
 
 ### 1.3 依赖关系
@@ -90,6 +94,7 @@ plugins/                       所有插件项目
   ├── YF_HttpServer.dll ────────→ YF_Manager.dll
   ├── YF_KMScript.dll ──────────→ YF_Manager.dll
   ├── YF_Penetration.dll ───────→ YF_Manager.dll + NatTraversal 自研库
+  ├── YF_PluginServer.dll ──────→ YF_Manager.dll
   ├── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
   ├── YF_Serialport.dll ─────────→ YF_Manager.dll + System.IO.Ports
   └── YF_TcpHelper.dll ─────────→ YF_Manager.dll
@@ -167,6 +172,7 @@ services.AddSingleton(sp => {
 | `UserControlsService` | YFrame | 插件加载服务 | DI 容器解析 |
 | `HotkeyService` | YFrame | 全局热键服务 | DI 容器解析 |
 | `TrayIconService` | YFrame | 托盘图标服务 | DI 容器解析 |
+| `PluginManagerService` | YFrame | 插件管理器服务（HTTP + 下载） | AOP 单例（`static Instance`） |
 
 **YF_Manager 层（保留 static Instance，插件兼容）：**
 
@@ -258,15 +264,22 @@ YFrame/
 │   ├── MainWindow.xaml                 # 主窗口布局（三栏 DockPanel + Menu + StatusBar）
 │   ├── MainWindow.xaml.cs              # 主窗口代码后置（设置 DataContext）
 │   ├── ViewModel/
-│   │   ├── MainWindowViewModel.cs      # 核心 ViewModel（单例 + AOP，管理全部 UI 状态和命令）
-│   │   └── Service/
-│   │       ├── UserControlsService.cs  # 插件加载服务（单例 + AOP，反射扫描/加载/实例化）
-│   │       └── HotkeyService.cs        # 全局热键服务（单例 + AOP，Win32 RegisterHotKey 封装）
+│   │   ├── MainWindowViewModel.cs      # 核心 ViewModel（薄门面，AOP）
+│   │   └── PluginManagerViewModel.cs   # 插件管理器 ViewModel（AOP，委托 Service）
+│   ├── Service/                        # 服务层
+│   │   ├── UserControlsService.cs      # 插件加载服务（AOP，反射扫描/加载/实例化）
+│   │   ├── PluginService.cs            # 插件管理服务（切换、命令转发、热键路由）
+│   │   ├── PluginManagerService.cs     # 插件管理器服务（AOP 单例，HTTP 通信、下载/解压）
+│   │   ├── LogService.cs               # 日志面板服务（缓冲区管理、Mediator 订阅）
+│   │   ├── HotkeyService.cs            # 全局热键服务（AOP，Win32 RegisterHotKey）
+│   │   └── TrayIconService.cs          # 托盘图标服务（AOP，Shell_NotifyIcon）
 │   ├── Model/
-│   │   ├── PluginsModel.cs             # 插件列表项模型（Name, ID, Status）
-│   │   ├── CtrlDataModel.cs            # 运行时插件实例数据（UserControl, CommandHandler, Parameters）
-│   │   └── CtrlParamModel.cs           # 参数模型（预留）
-│   ├── View/UC/
+│   │   ├── PluginsModel.cs             # 插件列表项模型
+│   │   ├── CtrlDataModel.cs            # 运行时插件实例数据
+│   │   ├── RemotePluginInfo.cs         # 远程插件信息模型（下载状态、进度）
+│   ├── View/
+│   │   ├── PluginManagerWindow.xaml/.cs  # 插件管理器窗口（连接服务器 + 下载/安装插件）
+│   │   └── UC/
 │   │   └── PerformanceMonitor.xaml/.cs # CPU/内存实时监控图表（LiveCharts）
 │   ├── Common/
 │   │   ├── Images/
@@ -287,7 +300,8 @@ YFrame/
 │   │   ├── I_YF_Detail.cs              # 插件元数据接口（YF_ID, YF_Name）
 │   │   └── I_YF_Command.cs             # 插件命令接口（ExecuteCommand, OnPluginCallback）
 │   └── Common/
-│       ├── Config.cs                   # 全局常量（日志路径、插件路径、TCP 端口等）
+│       ├── Config.cs                   # 全局常量（日志路径、插件路径、TCP 端口、插件服务器端口等）
+│       ├── YF_ConfigHelper.cs          # 配置文件读写助手（Config/config.conf 键值对持久化）
 │       ├── Attributes/
 │       │   └── LogAttribute.cs         # [Log] 自定义特性（Level + Message）
 │       ├── Interceptors/
@@ -301,26 +315,25 @@ YFrame/
 │
 ├── YFrame.Tests/                       # xUnit 单元测试项目
 │   ├── YFrame.Tests.csproj             # 引用 YF_Manager + YFrame + YF_KMScript
-│   ├── YF_Manager/                     # YF_Manager 相关测试（57 个）
-│   │   ├── YF_RelayCommandTests.cs
-│   │   ├── YF_RelayCommandGenericTests.cs
-│   │   ├── ConfigTests.cs
-│   │   ├── YF_Manager_MainTests.cs
-│   │   ├── Common/
-│   │   │   ├── YF_DelegateFunctionModelTests.cs
-│   │   │   ├── Attributes/LogAttributeTests.cs
-│   │   │   └── Tools/
-│   │   │       ├── YF_FileHelperTests.cs
-│   │   │       ├── YF_TcpHelperTests.cs
-│   │   │       └── YF_Manager_LogTests.cs
-│   │   └── Interface/PluginEventArgsTests.cs
-│   ├── YFrame/                         # YFrame 服务 + 模型测试（47 个）
+│   ├── YF_Manager/                     # YF_Manager 相关测试
+│   │   ├── YF_RelayCommandTests.cs      # 6 个 — 无参 RelayCommand
+│   │   ├── YF_RelayCommandGenericTests.cs # 6 个 — 泛型 RelayCommand
+│   │   ├── ConfigTests.cs               # 7 个 — 配置常量
+│   │   ├── YF_Manager_MainTests.cs      # 4 个 — YF_Manager_Main
+│   │   └── Common/
+│   │       ├── YF_DelegateFunctionModelTests.cs  # 2 个 — 委托类型
+│   │       ├── Attributes/LogAttributeTests.cs   # 5 个 — LogAttribute + LogLevel
+│   │       └── Tools/
+│   │           ├── YF_FileHelperTests.cs      # 15 个 — 文件系统操作
+│   │           ├── YF_TcpHelperTests.cs       # 5 个 — 网络工具
+│   │           └── YF_Manager_LogTests.cs     # 8 个 — 日志系统
+│   ├── YFrame/                         # YFrame 相关测试
 │   │   ├── Service/
 │   │   │   ├── LogServiceTests.cs      # 14 个 — 日志缓冲区管理
 │   │   │   └── PluginServiceTests.cs   # 20 个 — 插件调度、命令路由
 │   │   └── Model/
-│   │       ├── PluginsModelTests.cs
-│   │       └── CtrlDataModelTests.cs
+│   │       ├── PluginsModelTests.cs    # 8 个 — INotifyPropertyChanged
+│   │       └── CtrlDataModelTests.cs   # 5 个 — 插件实例数据模型
 │   └── Plugins/KMScript/
 │       └── ScriptInterpreterTests.cs   # 34 个 — DSL 脚本解析
 │
@@ -714,7 +727,7 @@ git push → GitCode Actions/Pipeline 自动触发
 
 ## 5. 插件生态
 
-当前已开发八款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透、串口通讯、TCP 通讯等场景。
+当前已开发九款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透、串口通讯、TCP 通讯、插件分发等场景。
 
 ### 5.1 插件总览
 
@@ -728,6 +741,7 @@ git push → GitCode Actions/Pipeline 自动触发
 | **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
 | **YF_Serialport** | `YF_Serialport` | 串口通讯助手 | System.IO.Ports 8.0.0 | 串口调试助手（文本/HEX收发+预设命令管理） |
 | **YF_TcpHelper** | `YF_TcpHelper` | TCP通讯助手 | System.Net.Sockets（内置） | TCP服务端/客户端通讯+UDP广播自动发现 |
+| **YF_PluginServer** | `YF_PluginServer` | 插件服务器 | `HttpListener`（框架内置） | HTTP API 插件分发服务（列表+下载） |
 
 ### 5.2 YF_AIHelper — AI 助手
 
@@ -919,6 +933,33 @@ git push → GitCode Actions/Pipeline 自动触发
 **核心依赖：**
 - `System.Net.Sockets` — .NET 内置，无需额外 NuGet 包
 
+### 5.10 YF_PluginServer — 插件服务器
+
+**功能描述：** 基于 `HttpListener` 实现的插件 HTTP 分发服务。扫描本地 `plugins/` 目录，通过 HTTP API 对外提供插件列表和 ZIP 下载功能。配合框架内置的 `PluginManagerWindow` 实现插件的远程分发与自动安装。
+
+**HTTP API：**
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/plugins` | GET | 返回 JSON 格式的插件列表（ID、名称、文件大小、文件数量） |
+| `/api/plugins/{id}/download` | GET | 返回插件文件夹的 ZIP 压缩包（流式下载） |
+
+**技术实现：**
+- `HttpListener` 监听指定端口（默认 9000），在后台线程运行
+- `PluginServerService` 扫描 `plugins/` 目录，反射读取 `I_YF_Detail` 获取插件元数据
+- ZIP 打包使用 `System.IO.Compression.ZipFile`
+- 端口配置持久化到 `Config/config.conf`（`PluginServerPort` 键）
+- ViewModel 通过 `INotifyPropertyChanged` 驱动 UI，支持服务器启停、插件列表刷新、URL 复制
+
+**UI 功能：**
+- 本机 IP 自动获取 + 端口配置（读写配置文件）
+- 服务器启停按钮 + 状态指示灯（绿/灰）
+- 服务器地址展示 + 一键复制
+- 本地插件列表展示（插件名称/ID、文件数量、占用空间、下载 API 路径）
+
+**核心依赖：**
+- `HttpListener` — .NET 内置，无需额外 NuGet 包
+- `Castle.Core` 5.2.1 — AOP 日志拦截
+
 ---
 
 ## 6. 技术栈详情
@@ -1076,7 +1117,7 @@ logger.LogInfo("msg")
 >
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
 >
-> **最后更新：** 2026-07-27
+> **最后更新：** 2026-07-30
 
 
 
