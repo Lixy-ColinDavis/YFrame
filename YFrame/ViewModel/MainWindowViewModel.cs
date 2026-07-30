@@ -228,6 +228,8 @@ namespace YFrame
         public ICommand OpenScriptCommand { get; set; } = null!;                 // 打开脚本事件
         public ICommand SaveScriptCommand { get; set; } = null!;                 // 保存脚本事件
         public ICommand Btn_About_Command { get; set; } = null!;                 // 关于事件
+        public ICommand PluginManagerCommand { get; set; } = null!;              // 插件管理器事件
+        public ICommand ReloadPluginsCommand { get; set; } = null!;              // 重新加载所有插件事件
 
         #endregion
 
@@ -493,6 +495,12 @@ namespace YFrame
 
                 // ===== 关于 =====
                 Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
+
+                // ===== 插件管理器 =====
+                PluginManagerCommand = new YF_RelayCommand(() => ShowPluginManager());
+
+                // ===== 重新加载所有插件 =====
+                ReloadPluginsCommand = new YF_RelayCommand(() => ReloadPlugins());
             }
             catch (Exception ex)
             {
@@ -594,6 +602,48 @@ namespace YFrame
 
         #region 插件操作（委托给 PluginService）
 
+        [Log(Level = LogLevel.Info, Message = "重新加载所有插件")]
+        public virtual void ReloadPlugins()
+        {
+            try
+            {
+                _logger.LogInfo("开始重新加载所有插件...");
+
+                // 1. 卸载当前显示的插件 UI
+                _pluginService.UnloadCurrentPlugin();
+
+                // 2. 清空插件列表（UI 自动刷新）
+                lsPlugins.Clear();
+
+                // 3. 清空插件字典
+                _userControlsService.ClearAllControls();
+
+                // 4. 重新扫描并加载所有插件
+                _userControlsService.LoadAndShowUserControl();
+
+                // 5. 重新填充插件列表
+                foreach (var item in _userControlsService.DctControls)
+                {
+                    lsPlugins.Add(new PluginsModel
+                    {
+                        Name = item.Value.Name,
+                        ID = item.Key,
+                        Status = 0
+                    });
+                }
+
+                // 6. 重置选中项，避免指向已清除的旧对象
+                SelectedPlugin = null;
+
+                _logger.LogInfo($"插件重新加载完成，共 {lsPlugins.Count} 个插件");
+                _messenger.Send(new LogAppendMessage($"插件已重新加载，共 {lsPlugins.Count} 个"));
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("ReloadPlugins", ex.Message);
+            }
+        }
+
         [Log(Level = LogLevel.Info, Message = "显示插件")]
         public virtual void ShowPlugin(string pluginId)
         {
@@ -653,6 +703,24 @@ namespace YFrame
             catch (Exception ex)
             {
                 _logger.ErrorInfo("ShowAbout", ex.Message);
+            }
+        }
+
+        [Log(Level = LogLevel.Info, Message = "显示插件管理器窗口")]
+        public virtual void ShowPluginManager()
+        {
+            try
+            {
+                var pluginManagerWindow = new View.PluginManagerWindow
+                {
+                    Owner = Application.Current.MainWindow
+                };
+                pluginManagerWindow.ShowDialog();
+                _logger.LogInfo("插件管理器窗口已打开");
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("ShowPluginManager", ex.Message);
             }
         }
 

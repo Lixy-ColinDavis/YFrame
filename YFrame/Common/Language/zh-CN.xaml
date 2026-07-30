@@ -111,7 +111,7 @@
     <sys:String x:Key="key_OCR_ShowTextHint">💡 点击任意位置或按 ESC 关闭翻译结果</sys:String>
 
     <!--菜单-->
-    <sys:String x:Key="key_LoadPlugin">加载插件</sys:String>
+    <sys:String x:Key="key_LoadPlugin">重新加载插件</sys:String>
     <sys:String x:Key="key_PluginManager">插件管理器</sys:String>
 
     <!--状态栏标签-->
@@ -141,6 +141,51 @@
     <sys:String x:Key="key_Serialport_AddPreset">新增</sys:String>
     <sys:String x:Key="key_Serialport_DeletePreset">删除</sys:String>
     <sys:String x:Key="key_Serialport_SendPreset">发送</sys:String>
+
+    <!--插件服务器-->
+    <sys:String x:Key="key_PluginServer_ServerConfig">🌐 插件服务器</sys:String>
+    <sys:String x:Key="key_PluginServer_LocalIP">本机 IP:</sys:String>
+    <sys:String x:Key="key_PluginServer_Port">端口:</sys:String>
+    <sys:String x:Key="key_PluginServer_ServerURL">服务器地址:</sys:String>
+    <sys:String x:Key="key_PluginServer_Copy">📋 复制</sys:String>
+    <sys:String x:Key="key_PluginServer_StartServer">▶ 启动服务器</sys:String>
+    <sys:String x:Key="key_PluginServer_StopServer">■ 停止服务器</sys:String>
+    <sys:String x:Key="key_PluginServer_Running">服务器运行中</sys:String>
+    <sys:String x:Key="key_PluginServer_Stopped">服务器已停止</sys:String>
+    <sys:String x:Key="key_PluginServer_PluginList">📦 本地插件列表</sys:String>
+    <sys:String x:Key="key_PluginServer_Refresh">🔄 刷新</sys:String>
+    <sys:String x:Key="key_PluginServer_ColName">插件名称</sys:String>
+    <sys:String x:Key="key_PluginServer_ColFileCount">文件数量</sys:String>
+    <sys:String x:Key="key_PluginServer_ColSize">占用空间</sys:String>
+    <sys:String x:Key="key_PluginServer_ColAPI">下载API</sys:String>
+    <sys:String x:Key="key_PluginServer_Total">共 {0} 个插件</sys:String>
+
+    <!--插件管理器窗口-->
+    <sys:String x:Key="key_PluginManager_Title">插件管理器</sys:String>
+    <sys:String x:Key="key_PluginManager_ServerURL">服务器地址</sys:String>
+    <sys:String x:Key="key_PluginManager_Connect">🔗 连接</sys:String>
+    <sys:String x:Key="key_PluginManager_Disconnect">✖ 断开</sys:String>
+    <sys:String x:Key="key_PluginManager_NotConnected">未连接</sys:String>
+    <sys:String x:Key="key_PluginManager_Connecting">正在连接...</sys:String>
+    <sys:String x:Key="key_PluginManager_Connected">已连接 - 发现 {0} 个插件</sys:String>
+    <sys:String x:Key="key_PluginManager_ConnectFailed">连接失败: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_Timeout">连接超时</sys:String>
+    <sys:String x:Key="key_PluginManager_Error">错误: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_ColName">插件名称</sys:String>
+    <sys:String x:Key="key_PluginManager_ColFileCount">文件数量</sys:String>
+    <sys:String x:Key="key_PluginManager_ColSize">占用空间</sys:String>
+    <sys:String x:Key="key_PluginManager_ColAction">操作</sys:String>
+    <sys:String x:Key="key_PluginManager_Download">⬇ 下载</sys:String>
+    <sys:String x:Key="key_PluginManager_Installed">✔ 已安装</sys:String>
+    <sys:String x:Key="key_PluginManager_Downloading">正在下载: {0}...</sys:String>
+    <sys:String x:Key="key_PluginManager_Installing">正在安装: {0}...</sys:String>
+    <sys:String x:Key="key_PluginManager_InstallComplete">{0} 安装完成！重启框架后生效</sys:String>
+    <sys:String x:Key="key_PluginManager_DownloadCancelled">{0} 下载已取消</sys:String>
+    <sys:String x:Key="key_PluginManager_DownloadFailed">下载失败: {0}</sys:String>
+    <sys:String x:Key="key_PluginManager_Empty">请先连接服务器获取插件列表</sys:String>
+    <sys:String x:Key="key_PluginManager_AvailablePlugins">共 {0} 个可用插件</sys:String>
+    <sys:String x:Key="key_PluginManager_Hint">提示：在YFrame插件中启动「插件服务器」后，输入地址并连接即可查看可用插件列表</sys:String>
+    <sys:String x:Key="key_PluginManager_EnterAddress">请输入服务器地址</sys:String>
 
     <!--TCP通讯助手-->
     <sys:String x:Key="key_TcpHelper_Title">🔌 TCP 通讯助手</sys:String>

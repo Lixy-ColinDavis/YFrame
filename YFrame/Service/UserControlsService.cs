@@ -51,37 +51,48 @@ namespace YFrame
         /// <param name="detail">创建的 ViewModel 对应的 I_YF_Detail 接口</param>
         /// <param name="commandHandler">创建的 ViewModel 对应的 I_YF_Command 接口</param>
         /// <returns>加载成功返回 true，类型解析失败返回 false</returns>
-        private static bool TryLoadPlugin(string assemblyPath, string pluginName,
-    out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
+        private static bool TryLoadPlugin(string assemblyPath, YF_Manager_Log _logger, string pluginName,
+            out UserControl? userControl, out I_YF_Detail? detail, out I_YF_Command? commandHandler)
         {
-            userControl = null; detail = null; commandHandler = null;
-            // 框架定位为随主程序生命周期加载的桌面工具聚合，
-            // 有意不引入 AssemblyLoadContext 做隔离 / 热卸载 / 热更新
-            Assembly assembly = Assembly.LoadFrom(assemblyPath);
-            Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
-            Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
-            if (userControlType == null || viewModelType == null)
-                return false;
-            if (!typeof(UserControl).IsAssignableFrom(userControlType))
-                return false;
-            var viewModel = Activator.CreateInstance(viewModelType);
-            object uc = Activator.CreateInstance(userControlType);
-            userControl = uc as UserControl;
-            if (userControl != null)
+            try
             {
-                // 若插件构造函数未自行设置DataContext，则由框架设置
-                // （如YF_AIHelper自行设置了代理单例，YF_KMScript则依赖框架设置）
-                if (userControl.DataContext == null)
-                    userControl.DataContext = viewModel;
-                // 从DataContext提取接口引用，确保commandHandler与UI绑定的是同一实例
-                detail = userControl.DataContext as I_YF_Detail;
-                commandHandler = userControl.DataContext as I_YF_Command;
+                userControl = null; detail = null; commandHandler = null;
+                // 框架定位为随主程序生命周期加载的桌面工具聚合，
+                // 有意不引入 AssemblyLoadContext 做隔离 / 热卸载 / 热更新
+                Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
+                Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
+                if (userControlType == null || viewModelType == null)
+                    return false;
+                if (!typeof(UserControl).IsAssignableFrom(userControlType))
+                    return false;
+                var viewModel = Activator.CreateInstance(viewModelType);
+                object uc = Activator.CreateInstance(userControlType);
+                userControl = uc as UserControl;
+                if (userControl != null)
+                {
+                    // 若插件构造函数未自行设置DataContext，则由框架设置
+                    // （如YF_AIHelper自行设置了代理单例，YF_KMScript则依赖框架设置）
+                    if (userControl.DataContext == null)
+                        userControl.DataContext = viewModel;
+                    // 从DataContext提取接口引用，确保commandHandler与UI绑定的是同一实例
+                    detail = userControl.DataContext as I_YF_Detail;
+                    commandHandler = userControl.DataContext as I_YF_Command;
+                }
+                return userControl != null;
             }
-            return userControl != null;
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("TryLoadPlugin", ex.Message);
+                userControl = null;
+                detail = null;
+                commandHandler = null;
+                return false;
+            }
         }
 
         /// <summary>
-        ///  添加插件
+        /// 添加插件到字典
         /// </summary>
         /// <param name="name">插件名称</param>
         /// <param name="ID">插件ID</param>
@@ -89,12 +100,20 @@ namespace YFrame
         public virtual void AddControl(string name, string ID)
         {
             _logger.DebugInfo($"加载模块：{name}, {ID}");
-            // 插件添加
-            // 插件添加<ID, 名称>
             DctControls.Add(ID, new CtrlDataModel() 
             { 
                 Name = name,
             });
+        }
+
+        /// <summary>
+        /// 清空所有已注册的插件字典，用于重新加载前清理旧数据
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "清空插件字典")]
+        public virtual void ClearAllControls()
+        {
+            DctControls.Clear();
+            _logger.DebugInfo("插件字典已清空");
         }
 
 
@@ -128,7 +147,7 @@ namespace YFrame
                             continue;
                         _logger.DebugInfo($"读取到插件: {s}");
                         string assemblyPath = @$"{item}\{s}.dll";
-                        if (TryLoadPlugin(assemblyPath, s, out _, out var detail, out _))
+                        if (TryLoadPlugin(assemblyPath, _logger, s, out _, out var detail, out _))
                         {
                             if (detail != null)
                             {
@@ -185,7 +204,7 @@ namespace YFrame
                 _logger.DebugInfo($"准备显示插件: {s}");
 
                 string assemblyPath = @$"{path}\{s}.dll";
-                if (TryLoadPlugin(assemblyPath, s, out var userControl, out var detail, out var commandHandler))
+                if (TryLoadPlugin(assemblyPath, _logger, s, out var userControl, out var detail, out var commandHandler))
                 {
                     if (detail == null)
                     {

@@ -102,6 +102,10 @@ namespace YF_Manager
             _configValues["TcpHelper_Port_Server"] = "8021";
             // 客户端端口
             _configValues["TcpHelper_Port_Client"] = "8022";
+            // 插件服务器端口
+            _configValues["PluginServerPort"] = "9000";
+            // 插件管理器上次连接的服务器地址（不含端口）
+            _configValues["PluginManagerServerURL"] = "http://127.0.0.1";
         }
 
         /// <summary>
@@ -170,6 +174,10 @@ namespace YF_Manager
                 _configValues.TryAdd("TcpHelper_Port_Server", "8021");
             if (!existingKeys.Contains("TcpHelper_Port_Client"))
                 _configValues.TryAdd("TcpHelper_Port_Client", "8022");
+            if (!existingKeys.Contains("PluginServerPort"))
+                _configValues.TryAdd("PluginServerPort", "9000");
+            if (!existingKeys.Contains("PluginManagerServerURL"))
+                _configValues.TryAdd("PluginManagerServerURL", "http://127.0.0.1");
         }
 
         /// <summary>

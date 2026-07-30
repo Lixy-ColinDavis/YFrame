@@ -156,14 +156,23 @@ public class InstallService
             var uninstallKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\YFrame";
             using var key = Registry.CurrentUser.CreateSubKey(uninstallKey);
             if (key == null) return;
+
+            // 基本信息
             key.SetValue("DisplayName", "YFrame 工具集");
             key.SetValue("DisplayVersion", "1.0.0");
             key.SetValue("Publisher", "YFrame");
             key.SetValue("DisplayIcon", exePath);
             key.SetValue("InstallLocation", installPath);
-            key.SetValue("UninstallString", $"{exePath} --uninstall");
+
+            // 卸载命令（控制面板"程序和功能"中点击卸载时执行）
+            key.SetValue("UninstallString", $"\"{exePath}\" --uninstall");
+            key.SetValue("QuietUninstallString", $"\"{exePath}\" --uninstall --quiet");
+
+            // 标记为非 MSI 安装（NoModify=1 禁用"更改"按钮，NoRepair=1 禁用"修复"按钮）
             key.SetValue("NoModify", 1);
             key.SetValue("NoRepair", 1);
+            key.SetValue("WindowsInstaller", 0);   // 明确标记为非 MSI 安装
+            key.SetValue("SystemComponent", 0);     // 标记为用户应用程序
         }
         catch { }
     }
