@@ -1,7 +1,9 @@
 using Castle.DynamicProxy;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Windows;
 using YF_Manager;
 
@@ -10,17 +12,25 @@ namespace YFrame
     /// <summary>
     /// Interaction logic for App.xaml
     /// 通过 OnStartup 构建 DI 容器并启动主窗口
+    /// 支持 --uninstall 命令行参数以执行卸载流程
     /// </summary>
     public partial class App : Application
     {
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
 
         /// <summary>
-        /// 应用启动入口：构建 DI 容器、创建主窗口
-        /// 替代 StartupUri，改为代码手动启动以支持依赖注入
+        /// 应用启动入口：处理 --uninstall 命令或构建 DI 容器启动主窗口
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
+            // 处理卸载命令：控制面板"程序和功能"中点击卸载时会传入 --uninstall 参数
+            if (e.Args.Length > 0 && (e.Args.Contains("--uninstall") || e.Args.Contains("-uninstall")))
+            {
+                HandleUninstall(e.Args);
+                Shutdown();
+                return;
+            }
+
             // 调用父类（Application）的 OnStartup 方法, 确保 WPF 框架的标准行为得到执行
             base.OnStartup(e);
 
@@ -199,6 +209,104 @@ namespace YFrame
             {
                 logger.ErrorInfo("ChangeTheme", ex.Message);
                 MessageBox.Show($"主题切换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理 --uninstall 命令行参数：执行卸载流程
+        /// </summary>
+        /// <param name="args">命令行参数数组</param>
+        private static void HandleUninstall(string[] args)
+        {
+            // 获取当前可执行文件所在目录作为安装路径
+            var installPath = AppDomain.CurrentDomain.BaseDirectory;
+            var exePath = Path.Combine(installPath, "YFrame.exe");
+            bool isQuiet = args.Contains("--quiet") || args.Contains("-quiet");
+
+            try
+            {
+                // 确认卸载（非静默模式时弹窗询问）
+                if (!isQuiet)
+                {
+                    var result = MessageBox.Show(
+                        "确定要卸载 YFrame 工具集吗？\n\n这将删除所有框架文件。\n安装的插件将保留在配置目录中。",
+                        "YFrame 卸载",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question,
+                        MessageBoxResult.No);
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        MessageBox.Show("已取消卸载。", "YFrame 卸载", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                }
+
+                // 删除桌面快捷方式
+                var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                var desktopShortcut = Path.Combine(desktopPath, "YFrame 工具集.lnk");
+                if (File.Exists(desktopShortcut))
+                    File.Delete(desktopShortcut);
+
+                // 删除开始菜单项
+                var startMenuPath = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+                var appStartMenuDir = Path.Combine(startMenuPath, "YFrame");
+                if (Directory.Exists(appStartMenuDir))
+                    Directory.Delete(appStartMenuDir, true);
+
+                // 删除注册表卸载信息
+                try
+                {
+                    using var parentKey = Registry.CurrentUser.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", writable: true);
+                    parentKey?.DeleteSubKey("YFrame", throwOnMissingSubKey: false);
+                }
+                catch { }
+
+                // 删除安装目录（延迟删除：创建一个临时批处理脚本来自删除）
+                // 因为当前 exe 正在运行，无法直接删除自身目录
+                var batchPath = Path.Combine(Path.GetTempPath(), "YFrame_Uninstall.bat");
+                var batchContent = $"@echo off{Environment.NewLine}" +
+                    $":loop{Environment.NewLine}" +
+                    $"timeout /t 1 /nobreak >nul{Environment.NewLine}" +
+                    $"if exist \"{exePath}\" goto loop{Environment.NewLine}" +
+                    $"rmdir /s /q \"{installPath}\"{Environment.NewLine}" +
+                    $"del \"%~f0\"{Environment.NewLine}";
+
+                File.WriteAllText(batchPath, batchContent);
+
+                // 启动批处理并以隐藏窗口运行
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c \"{batchPath}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                };
+                System.Diagnostics.Process.Start(psi);
+
+                if (!isQuiet)
+                {
+                    MessageBox.Show(
+                        "YFrame 工具集已成功卸载。\n" +
+                        "快捷方式和注册表信息已清除。\n" +
+                        "安装目录将在下次系统启动后自动删除。",
+                        "卸载完成",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!isQuiet)
+                {
+                    MessageBox.Show(
+                        $"卸载过程中发生错误:\n{ex.Message}",
+                        "卸载失败",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
             }
         }
     }
