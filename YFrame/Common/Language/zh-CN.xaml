@@ -109,6 +109,9 @@
     <sys:String x:Key="key_OCR_ReleaseHint">释放鼠标后自动识别并翻译</sys:String>
     <sys:String x:Key="key_OCR_ESCCancel">按 ESC 取消截图</sys:String>
     <sys:String x:Key="key_OCR_ShowTextHint">💡 点击任意位置或按 ESC 关闭翻译结果</sys:String>
+    <sys:String x:Key="key_OCR_ScaleLabel">缩放设置</sys:String>
+    <sys:String x:Key="key_OCR_ScaleHint">屏幕缩放比例（DPI 缩放，默认125，范围100-200）：</sys:String>
+    <sys:String x:Key="key_OCR_ScaleUnit">%</sys:String>
 
     <!--菜单-->
     <sys:String x:Key="key_LoadPlugin">重新加载插件</sys:String>

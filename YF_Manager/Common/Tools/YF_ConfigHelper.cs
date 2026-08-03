@@ -106,6 +106,8 @@ namespace YF_Manager
             _configValues["PluginServerPort"] = "9000";
             // 插件管理器上次连接的服务器地址（不含端口）
             _configValues["PluginManagerServerURL"] = "http://127.0.0.1";
+            // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
+            _configValues["ScreenScale"] = "125";
         }
 
         /// <summary>
@@ -178,6 +180,8 @@ namespace YF_Manager
                 _configValues.TryAdd("PluginServerPort", "9000");
             if (!existingKeys.Contains("PluginManagerServerURL"))
                 _configValues.TryAdd("PluginManagerServerURL", "http://127.0.0.1");
+            if (!existingKeys.Contains("ScreenScale"))
+                _configValues.TryAdd("ScreenScale", "125");
         }
 
         /// <summary>

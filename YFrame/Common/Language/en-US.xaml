@@ -109,6 +109,9 @@
     <sys:String x:Key="key_OCR_ReleaseHint">Release mouse to auto recognize and translate</sys:String>
     <sys:String x:Key="key_OCR_ESCCancel">Press ESC to cancel</sys:String>
     <sys:String x:Key="key_OCR_ShowTextHint">💡 Click anywhere or press ESC to close translation</sys:String>
+    <sys:String x:Key="key_OCR_ScaleLabel">Scale Settings</sys:String>
+    <sys:String x:Key="key_OCR_ScaleHint">Screen scale percentage (DPI, default 125, range 100-200):</sys:String>
+    <sys:String x:Key="key_OCR_ScaleUnit">%</sys:String>
 
     <!--菜单-->
     <sys:String x:Key="key_LoadPlugin">Reload Plugins</sys:String>
