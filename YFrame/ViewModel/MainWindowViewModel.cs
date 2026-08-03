@@ -11,16 +11,7 @@ using System.IO;
 namespace YFrame
 {
     /// <summary>
-    /// 主窗口 ViewModel 
-    /// 架构变更（Mediator 模式）：
-    ///   新：MainWindowViewModel + LogService + PluginService
-    ///   跨组件通信：YF_Messenger（消息中介，组件间松耦合）
-    /// 
-    /// 依赖关系图：
-    ///   MainWindowViewModel
-    ///     ├─→ LogService ─→ YF_Messenger ←─ PluginService
-    ///     │      ↑ 日志消息         ↑ 插件/热键/脚本消息
-    ///     └──────────────────────────────────┘
+    /// 主窗口
     /// </summary>
     public class MainWindowViewModel : INotifyPropertyChanged, I_YF_Detail
     {
@@ -291,15 +282,13 @@ namespace YFrame
         public MainWindowViewModel() { }
 
         /// <summary>
-        /// 初始化入口（由 MainWindow.xaml.cs 调用）
-        /// 子服务已通过 DI 注入，此处仅执行初始化流程
+        /// 初始化入口
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "主框架初始化")]
         public virtual void Init()
         {
             _logger.LogInfo("主框架初始化-开始");
 
-            // LogService → UI 回调：当日志内容变更时更新 LogText 绑定属性。
             _logService.OnLogTextChanged = text => LogText = text;
 
             InitUI();
@@ -581,7 +570,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 清除日志（兼容方法，推荐使用 ClearLogCommand → Mediator）
+        /// 清除日志（
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "清除日志")]
         public virtual void ClearLog()
@@ -591,7 +580,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 追加日志到面板（兼容方法，推荐使用 LogAppendMessage）
+        /// 追加日志到面板
         /// </summary>
         public virtual void Show_Log(string msg)
         {
@@ -609,19 +598,19 @@ namespace YFrame
             {
                 _logger.LogInfo("开始重新加载所有插件...");
 
-                // 1. 卸载当前显示的插件 UI
+                // 卸载当前显示的插件 UI
                 _pluginService.UnloadCurrentPlugin();
 
-                // 2. 清空插件列表（UI 自动刷新）
+                // 清空插件列表（UI 自动刷新）
                 lsPlugins.Clear();
 
-                // 3. 清空插件字典
+                // 清空插件字典
                 _userControlsService.ClearAllControls();
 
-                // 4. 重新扫描并加载所有插件
+                // 重新扫描并加载所有插件
                 _userControlsService.LoadAndShowUserControl();
 
-                // 5. 重新填充插件列表
+                // 重新填充插件列表
                 foreach (var item in _userControlsService.DctControls)
                 {
                     lsPlugins.Add(new PluginsModel
@@ -632,7 +621,7 @@ namespace YFrame
                     });
                 }
 
-                // 6. 重置选中项，避免指向已清除的旧对象
+                // 重置选中项，避免指向已清除的旧对象
                 SelectedPlugin = null;
 
                 _logger.LogInfo($"插件重新加载完成，共 {lsPlugins.Count} 个插件");

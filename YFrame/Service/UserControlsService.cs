@@ -43,10 +43,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 仅加载插件程序集并创建轻量 ViewModel 实例读取元数据（YF_ID / YF_Name），不创建 UserControl。
-        /// 用于启动扫描阶段：避免实例化 UserControl 从而触发插件完整初始化
-        /// （如 AI 助手加载 GGUF 模型、OCR 插件加载模型等），显著提升框架启动速度。
-        /// 前提约定：插件 ViewModel 构造函数轻量，重初始化均在 Init(true) 中延迟到显示阶段执行。
+        /// 仅加载插件程序集并创建轻量 ViewModel 实例读取元数据，不创建 UserControl。
         /// </summary>
         /// <param name="assemblyPath">插件 DLL 完整路径</param>
         /// <param name="_logger">日志记录器</param>
@@ -77,7 +74,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例（完整实例化，仅用于显示阶段）
+        /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例
         /// </summary>
         /// <param name="assemblyPath">插件 DLL 完整路径</param>
         /// <param name="pluginName">插件名称（命名空间前缀）</param>
@@ -210,11 +207,7 @@ namespace YFrame
 
 
         /// <summary>
-        /// 显示指定的插件
-        /// 说明（T2 取舍）：每次显示都重建 UserControl 实例，仅把"当前显示"的实例暂存到 ctrlData.userControl，
-        ///       切换后旧实例失去引用即被 GC 回收；不长期保留全部插件实例，避免内存/性能开销。
-        /// 说明（T1 修复）：通过 LastSubscribedHandler 记录已订阅的 commandHandler 引用，
-        ///       对静态单例型插件不重复 += 回调，根治事件泄漏与重复触发。
+        /// 显示指定插件
         /// </summary>
         /// <param name="plugin_Id">插件ID</param>
         [Log(Level = LogLevel.Info, Message = "显示指定的插件")]
@@ -274,7 +267,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 为指定插件订阅回调（调用方需保证同一 commandHandler 引用只调用一次，见 ShowUserControl 中的引用比较）
+        /// 为指定插件订阅回调
         /// </summary>
         /// <param name="ctrlData">插件数据模型</param>
         private void SubscribeCallback(CtrlDataModel ctrlData)

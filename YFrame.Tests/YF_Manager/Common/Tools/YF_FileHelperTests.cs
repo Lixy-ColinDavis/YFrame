@@ -3,8 +3,7 @@ using YF_Manager;
 namespace YFrame.Tests.YF_Manager.Common.Tools
 {
     /// <summary>
-    /// YF_FileHelper 单元测试 — 非 AOP 方法（EnsureDirectory、EnsureDirectoryForFile、GetFileName 等）
-    /// 注意：AOP virtual 方法通过直接 new YF_FileHelper() 实例调用，绕过代理
+    /// YF_FileHelper 单元测试
     /// </summary>
     public class YF_FileHelperTests : IDisposable
     {

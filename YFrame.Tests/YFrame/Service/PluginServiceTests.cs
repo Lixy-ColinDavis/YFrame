@@ -4,7 +4,7 @@ using YF_Manager;
 namespace YFrame.Tests.YFrame.Service
 {
     /// <summary>
-    /// PluginService 单元测试 — 验证插件显示、命令转发、热键路由和脚本操作逻辑
+    /// PluginService 单元测试
     /// </summary>
     public class PluginServiceTests
     {

@@ -5,11 +5,7 @@ using YF_Manager;
 namespace YFrame
 {
     /// <summary>
-    /// 插件管理服务 — 从 MainWindowViewModel 中提取的插件调度逻辑
-    /// 职责：插件显示/切换、命令转发、脚本操作、热键路由
-    /// 通过 YF_Messenger 接收和发送跨组件消息
-    /// 
-    /// 可独立单元测试：Mock YF_Messenger 和 I_YF_Command，验证命令分发正确性
+    /// 插件管理服务
     /// </summary>
     public class PluginService
     {

@@ -9,7 +9,6 @@ namespace YFrame
 {
     /// <summary>
     /// 全局热键服务：封装 Win32 RegisterHotKey/UnregisterHotKey 及 WndProc 消息处理，
-    /// 通过事件通知订阅者热键被按下。降低 MainWindow 与 ViewModel 的耦合。
     /// </summary>
     public class HotkeyService
     {

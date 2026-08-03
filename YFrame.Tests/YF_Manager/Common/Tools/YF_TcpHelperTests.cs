@@ -3,8 +3,7 @@ using YF_Manager;
 namespace YFrame.Tests.YF_Manager.Common.Tools
 {
     /// <summary>
-    /// YF_TcpHelper 单元测试 — 网络信息获取
-    /// 注意：网络相关测试依赖实际网络环境，仅验证可调用不崩溃
+    /// YF_TcpHelper 单元测试
     /// </summary>
     public class YF_TcpHelperTests
     {

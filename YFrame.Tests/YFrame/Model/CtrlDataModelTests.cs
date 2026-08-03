@@ -4,7 +4,7 @@ using YF_Manager;
 namespace YFrame.Tests.YFrame.Model
 {
     /// <summary>
-    /// CtrlDataModel 单元测试 — 验证插件实例数据模型
+    /// CtrlDataModel 单元测试
     /// </summary>
     public class CtrlDataModelTests
     {

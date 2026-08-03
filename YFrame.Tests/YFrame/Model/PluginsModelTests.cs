@@ -4,7 +4,7 @@ using YFrame;
 namespace YFrame.Tests.YFrame.Model
 {
     /// <summary>
-    /// PluginsModel 单元测试 — 验证 INotifyPropertyChanged 和属性变更
+    /// PluginsModel 单元测试
     /// </summary>
     public class PluginsModelTests
     {

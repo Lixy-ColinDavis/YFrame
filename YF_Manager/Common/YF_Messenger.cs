@@ -2,9 +2,6 @@ namespace YF_Manager
 {
     /// <summary>
     /// 轻量级消息中介（Mediator 模式）
-    /// 实现组件间的松耦合通信：发送者和接收者通过消息类型关联，彼此不直接引用
-    /// 线程安全，基于 Castle.Core AOP 单例模式
-    /// 
     /// 使用示例：
     ///   // 订阅
     ///   YF_Messenger.Instance.Register<LogAppendMessage>(msg => Console.WriteLine(msg.Text));

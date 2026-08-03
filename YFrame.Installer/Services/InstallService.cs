@@ -5,10 +5,6 @@ using YFrame.Installer.Models;
 
 namespace YFrame.Installer.Services;
 
-/// <summary>
-/// 安装核心服务：负责文件复制、快捷方式创建、注册表卸载信息写入
-/// 仅安装框架本体，不安装插件和模型文件
-/// </summary>
 public class InstallService
 {
     /// <summary>

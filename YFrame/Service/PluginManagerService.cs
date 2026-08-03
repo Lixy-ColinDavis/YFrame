@@ -39,11 +39,11 @@ namespace YFrame.Service
 
         private class PluginItemResponse
         {
-            public string PluginId { get; set; } = "";
-            public string PluginName { get; set; } = "";
-            public string FolderName { get; set; } = "";
-            public long TotalSize { get; set; }
-            public int FileCount { get; set; }
+            public string PluginId { get; set; } = "";      // 插件ID
+            public string PluginName { get; set; } = "";    // 插件名称
+            public string FolderName { get; set; } = "";    // 路径名称
+            public long TotalSize { get; set; }             // 整体大小
+            public int FileCount { get; set; }              // 文件数量
         }
 
         #endregion

@@ -3,13 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace YF_Manager
 {
     /// <summary>
-    /// 全局 DI 容器持有者
-    /// 在应用启动时由 YFrame 项目构建并设置 Provider
-    /// 插件可通过 YF_Di.Get&lt;T&gt;() 解析服务
-    /// 
-    /// 设计原则：
-    ///   YF_Manager 的 AOP 服务（YF_Messenger、YF_FileHelper、YF_TcpHelper）
-    ///   同时提供静态 Instance 属性（向后兼容插件）和 DI 注册（供 YFrame 内部使用）
+    /// 全局 DI 容器
     /// </summary>
     public static class YF_Di
     {

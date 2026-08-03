@@ -110,7 +110,7 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// 截图OCR插件屏幕缩放比例（百分比，默认125，对应125% DPI 缩放，范围100-200）
+        /// 截图OCR插件屏幕缩放比例
         /// </summary>
         public static string ScreenScale
         {

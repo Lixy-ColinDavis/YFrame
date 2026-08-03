@@ -3,8 +3,7 @@ using YF_Manager;
 namespace YFrame.Tests.YF_Manager.Common.Tools
 {
     /// <summary>
-    /// YF_Manager_Log 单元测试 — 日志系统和文件轮转逻辑
-    /// 使用临时目录避免污染实际日志
+    /// YF_Manager_Log 单元测试
     /// </summary>
     public class YF_Manager_LogTests : IDisposable
     {

@@ -4,10 +4,6 @@ using System.Reflection;
 
 namespace YFrame.Installer.Services;
 
-/// <summary>
-/// 从嵌入资源中提取 payload.zip 到临时目录
-/// Debug 和 Release 均优先从 exe 内部嵌入资源解压
-/// </summary>
 public static class PayloadExtractor
 {
     private const string PayloadResourceName = "YFrame.Installer.Resources.payload.zip";

@@ -51,6 +51,7 @@ namespace YFrame.ViewModel
         #region 绑定属性 — 服务器连接状态
 
         private string _serverURL = "";
+
         /// <summary>服务器地址（用户输入）</summary>
         public string ServerURL
         {
@@ -59,6 +60,7 @@ namespace YFrame.ViewModel
         }
 
         private bool _isConnected;
+
         /// <summary>是否已连接到服务器</summary>
         public bool IsConnected
         {
@@ -70,6 +72,7 @@ namespace YFrame.ViewModel
         public bool CanConnect => !IsConnected;
 
         private string _statusText = "";
+
         /// <summary>连接状态文本</summary>
         public string StatusText
         {
@@ -78,6 +81,7 @@ namespace YFrame.ViewModel
         }
 
         private Brush _statusBrush = Brushes.Gray;
+
         /// <summary>连接状态指示灯颜色</summary>
         public Brush StatusBrush
         {
@@ -93,6 +97,7 @@ namespace YFrame.ViewModel
         public ObservableCollection<YF_Model.RemotePluginInfo> RemotePlugins { get; } = new();
 
         private string _pluginCountText = "";
+
         /// <summary>底部状态栏插件计数文本</summary>
         public string PluginCountText
         {
@@ -101,12 +106,14 @@ namespace YFrame.ViewModel
         }
 
         private string _downloadStatusText = "";
+
         /// <summary>底部状态栏下载状态文本</summary>
         public string DownloadStatusText
         {
             get => _downloadStatusText;
             set { _downloadStatusText = value; OnPropertyChanged(); }
         }
+
 
         /// <summary>空列表提示是否可见</summary>
         public bool IsEmpty => !IsConnected || RemotePlugins.Count == 0;

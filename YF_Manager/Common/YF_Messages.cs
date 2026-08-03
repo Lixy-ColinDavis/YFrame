@@ -1,13 +1,6 @@
 namespace YF_Manager
 {
     /// <summary>
-    /// 全局消息类型定义（Mediator 模式的消息载体）
-    /// 所有跨组件通信均通过这些 record 消息完成，组件之间不直接引用
-    /// 
-    /// 命名约定：{动作}{实体}Message，如 LogAppendMessage（追加日志消息）
-    /// </summary>
-
-    /// <summary>
     /// 追加日志消息 — 任意组件可发送此消息将文本显示到日志面板
     /// </summary>
     public record LogAppendMessage(string Text);
@@ -42,7 +35,7 @@ namespace YF_Manager
 
     /// <summary>
     /// 主题切换消息 — 用户切换主题时发送
-    /// ThemeName 为中文主题名（如"炭火暗夜"）
+    /// ThemeName 为中文主题名
     /// </summary>
     public record ThemeChangedMessage(string ThemeName, string ThemePath);
 

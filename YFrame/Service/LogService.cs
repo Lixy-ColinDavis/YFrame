@@ -5,11 +5,7 @@ using YF_Manager;
 namespace YFrame
 {
     /// <summary>
-    /// 日志面板服务 — 从 MainWindowViewModel 中提取的日志管理逻辑
-    /// 职责：管理日志缓冲区（500行上限）、追加日志、清除日志
-    /// 通过 YF_Messenger 接收日志消息，通过回调更新 UI 绑定属性
-    /// 
-    /// 可独立单元测试：Mock YF_Messenger，发送 LogAppendMessage 后验证缓冲区内容
+    /// 日志服务
     /// </summary>
     public class LogService
     {

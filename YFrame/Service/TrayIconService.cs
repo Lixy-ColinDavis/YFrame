@@ -8,13 +8,10 @@ using YF_Manager;
 namespace YFrame
 {
     /// <summary>
-    /// 系统托盘图标服务：封装 Shell_NotifyIcon 及 Win32 弹出菜单，
-    /// 通过事件通知订阅者托盘菜单操作。降低 MainWindow 与托盘逻辑的耦合。
+    /// 托盘服务
     /// </summary>
     public class TrayIconService
     {
-
-
         #region Win32 API
         [DllImport("shell32.dll")]
         private static extern bool Shell_NotifyIcon(uint dwMessage, ref NOTIFYICONDATA lpData);

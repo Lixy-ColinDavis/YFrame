@@ -3,7 +3,7 @@ using YF_Manager;
 namespace YFrame.Tests.YFrame.Service
 {
     /// <summary>
-    /// LogService 单元测试 — 验证日志缓冲区的追加、截断、清除和回调逻辑
+    /// LogService 单元测试
     /// </summary>
     public class LogServiceTests
     {
