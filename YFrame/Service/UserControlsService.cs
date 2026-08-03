@@ -43,7 +43,41 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例
+        /// 仅加载插件程序集并创建轻量 ViewModel 实例读取元数据（YF_ID / YF_Name），不创建 UserControl。
+        /// 用于启动扫描阶段：避免实例化 UserControl 从而触发插件完整初始化
+        /// （如 AI 助手加载 GGUF 模型、OCR 插件加载模型等），显著提升框架启动速度。
+        /// 前提约定：插件 ViewModel 构造函数轻量，重初始化均在 Init(true) 中延迟到显示阶段执行。
+        /// </summary>
+        /// <param name="assemblyPath">插件 DLL 完整路径</param>
+        /// <param name="_logger">日志记录器</param>
+        /// <param name="pluginName">插件名称（命名空间前缀）</param>
+        /// <param name="detail">读取到的 I_YF_Detail 接口（含 YF_ID / YF_Name），仅在返回 true 时有效</param>
+        /// <returns>元数据读取成功返回 true，否则返回 false</returns>
+        private static bool TryLoadPluginMetadata(string assemblyPath, YF_Manager_Log _logger, string pluginName, out I_YF_Detail? detail)
+        {
+            try
+            {
+                detail = null;
+                // 只加载程序集并创建 ViewModel，不创建 UserControl（创建 UserControl 会触发 Init(true) 完整初始化）
+                Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
+                if (viewModelType == null)
+                    return false;
+                // 创建轻量 ViewModel 实例读取元数据，读取后随即被丢弃（不持有引用，避免干扰插件自身单例）
+                var viewModel = Activator.CreateInstance(viewModelType);
+                detail = viewModel as I_YF_Detail;
+                return detail != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("TryLoadPluginMetadata", ex.Message);
+                detail = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 加载插件程序集并创建 MainControl / MainControlViewModel 实例（完整实例化，仅用于显示阶段）
         /// </summary>
         /// <param name="assemblyPath">插件 DLL 完整路径</param>
         /// <param name="pluginName">插件名称（命名空间前缀）</param>
@@ -147,7 +181,8 @@ namespace YFrame
                             continue;
                         _logger.DebugInfo($"读取到插件: {s}");
                         string assemblyPath = @$"{item}\{s}.dll";
-                        if (TryLoadPlugin(assemblyPath, _logger, s, out _, out var detail, out _))
+                        // 懒加载：扫描阶段仅读取元数据（ID/Name），不实例化 UserControl，避免触发插件完整初始化
+                        if (TryLoadPluginMetadata(assemblyPath, _logger, s, out var detail))
                         {
                             if (detail != null)
                             {
@@ -160,7 +195,7 @@ namespace YFrame
                         }
                         else
                         {
-                            _logger.ErrorInfo("LoadAndShowUserControl", s + " MainControl/MainControlViewModel 加载失败");
+                            _logger.ErrorInfo("LoadAndShowUserControl", s + " MainControlViewModel 加载失败");
                         }
 
                     }
