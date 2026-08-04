@@ -1,7 +1,7 @@
 # YFrame 项目介绍
 
 > **YFrame** — 基于 C# .NET 8.0 + WPF 的模块化桌面应用框架，采用抽屉式 IDE 风格外壳，通过反射动态加载插件，为各类开发者工具提供统一的运行平台。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/a7fe3ea5-5883-4906-a3ce-4bf435607487/image.png 'image.png')
+
 ---
 
 ## 目录
@@ -746,7 +746,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.2 YF_AIHelper — AI 助手
 
 **功能描述：** 基于 LLamaSharp 加载本地 GGUF 格式大语言模型，在本地完成推理，无需联网。支持 GPU 加速（CUDA 12）。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/20ccf599-2299-4df4-a429-36785db3d1a4/image.png 'image.png')
 
 **技术实现：**
 - 使用 `LLamaWeights.LoadFromFile()` 加载 GGUF 模型文件
@@ -762,7 +761,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.3 YF_Clicker — 鼠标连点器
 
 **功能描述：** 基于 WindowsInput 实现的鼠标自动连点工具。支持自定义点击间隔，通过后台线程连续点击，支持手动按钮控制和框架 Ctrl+Y 热键切换启停。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/ad77d098-1614-42ab-8318-3b474e4f17da/image.png 'image.png')
 
 **技术实现：**
 - `InputSimulator.Mouse.LeftButtonClick()` 模拟鼠标左键点击
@@ -782,7 +780,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.4 YF_HttpServer — HTTP 文件助手
 
 **功能描述：** 基于 `HttpListener` 实现的一键式 HTTP 文件服务器。自动获取本机 IP，提供目录浏览、文件下载、拖拽上传和剪贴板复制命令等功能。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/d8d749fd-a0a7-4474-9af0-61be8e7b2ede/image.png 'image.png')
 
 **技术实现：**
 - `HttpListener` 监听指定端口（默认 8000），在后台线程运行
@@ -797,7 +794,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.5 YF_KMScript — 脚本编辑器
 
 **功能描述：** 提供中文关键字 DSL 的键鼠自动化脚本编辑和解释执行环境。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/c1cfee4f-e5b6-4eb9-b3fa-84a26714eb92/image.png 'image.png')
 
 **DSL 语法规则：**
 
@@ -827,7 +823,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.6 YF_Penetration — NAT 内网穿透
 
 **功能描述：** 基于自研 NatTraversal 库实现的 NAT 内网穿透工具，通过中转服务器实现 P2P 联机。支持 Host（建主）和 Player（加入）两种角色模式。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/bbd8545d-62cd-4da8-8589-a29c24d7afa8/image.png 'image.png')
 
 **技术实现：**
 - `NatTunnelClient` 核心客户端类，管理连接生命周期
@@ -848,7 +843,7 @@ git push → GitCode Actions/Pipeline 自动触发
 **功能描述：** 全局热键唤起截图 → PaddleOCR 文字识别 → 百度翻译 API 英译中 → 翻译结果叠加显示。五步流水线在数秒内完成。
 
 **注意：** 热键 Ctrl+Y 现由框架 `HotkeyService` 统一管理，插件无需自行注册热键。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/e581be55-e346-4159-bc07-9a3aea52a541/image.png 'image.png')
+
 **完整工作流：**
 
 ```
@@ -893,7 +888,6 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.8 YF_Serialport — 串口通讯助手
 
 **功能描述：** 基于 `System.IO.Ports` 实现的串口调试助手。支持常用串口参数配置（端口/波特率/数据位/停止位/校验位/编码），文本/HEX 双模式收发，预设命令管理（增删+JSON 持久化）。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/ac419378-a744-4cf2-8298-0917da853de1/image.png 'image.png')
 
 **技术实现：**
 - `SerialPortService`（457行）封装 `System.IO.Ports.SerialPort`，管理串口打开/关闭/发送/接收，提供 5 个事件和 3 个公开属性
@@ -915,7 +909,8 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.9 YF_TcpHelper — TCP通讯助手
 
 **功能描述：** 基于 .NET 内置 `System.Net.Sockets` 实现的 TCP 通讯助手。支持 TCP 服务端（多客户端管理+广播发送）和客户端（连接+广播接收）两种模式，以及 UDP 广播自动发现功能。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/1e6301c3-30cb-4fcc-85cd-61ad3e98a220/image.png 'image.png')
+
+
 
 **广播自动发现流程：**
 
@@ -943,7 +938,7 @@ git push → GitCode Actions/Pipeline 自动触发
 ### 5.10 YF_PluginServer — 插件服务器
 
 **功能描述：** 基于 `HttpListener` 实现的插件 HTTP 分发服务。扫描本地 `plugins/` 目录，通过 HTTP API 对外提供插件列表和 ZIP 下载功能。配合框架内置的 `PluginManagerWindow` 实现插件的远程分发与自动安装。
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/7a3d49cd-7d16-47dd-96a7-b6e05b69dca7/image.png 'image.png')
+
 
 **HTTP API：**
 | 接口 | 方法 | 说明 |
@@ -1130,15 +1125,15 @@ logger.LogInfo("msg")
 
 
 ### *当前版本软件框架效果示例*
-
-
-
-
-
-
-
-
-
-
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/a7fe3ea5-5883-4906-a3ce-4bf435607487/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/7a3d49cd-7d16-47dd-96a7-b6e05b69dca7/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/1e6301c3-30cb-4fcc-85cd-61ad3e98a220/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/ac419378-a744-4cf2-8298-0917da853de1/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/e581be55-e346-4159-bc07-9a3aea52a541/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/bbd8545d-62cd-4da8-8589-a29c24d7afa8/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/c1cfee4f-e5b6-4eb9-b3fa-84a26714eb92/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/d8d749fd-a0a7-4474-9af0-61be8e7b2ede/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/ad77d098-1614-42ab-8318-3b474e4f17da/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/20ccf599-2299-4df4-a429-36785db3d1a4/image.png 'image.png')
 ![image.png](https://raw.gitcode.com/user-images/assets/7353928/c9e4c070-beb5-41e6-b34b-eb2a9bd1857e/image.png 'image.png')
 ![image.png](https://raw.gitcode.com/user-images/assets/7353928/f8b213c0-f0fe-4f16-a5f8-41763e2ae91e/image.png 'image.png')
