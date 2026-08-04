@@ -191,38 +191,15 @@ namespace YFrame
         {
             try
             {
-                if (CurrentPlugin == null || CurrentPlugin.CommandHandler == null)
+                if (CurrentPlugin?.CommandHandler == null)
                 {
                     _logger.LogInfo("热键 Ctrl+Y 触发，但没有激活的插件");
                     return;
                 }
 
-                // 查找当前插件的 ID
-                string pluginId = string.Empty;
-                foreach (var kvp in _userControlsService.DctControls)
-                {
-                    if (kvp.Value == CurrentPlugin)
-                    {
-                        pluginId = kvp.Key;
-                        break;
-                    }
-                }
-
-                _logger.CommandInfo($"热键 Ctrl+Y 触发，向插件 {pluginId} 发送命令");
-
-                // 根据插件ID路由到不同命令
-                switch (pluginId)
-                {
-                    case "YF_ScreenOCRTranslate":
-                        CurrentPlugin.CommandHandler.ExecuteCommand("CaptureScreen");
-                        break;
-                    case "YF_Clicker":
-                        CurrentPlugin.CommandHandler.ExecuteCommand("ToggleClick");
-                        break;
-                    default:
-                        CurrentPlugin.CommandHandler.ExecuteCommand("HotkeyTrigger");
-                        break;
-                }
+                // 统一向当前插件发送热键命令，由插件自行决定是否处理
+                CurrentPlugin.CommandHandler.ExecuteCommand("Hotkey");
+                _logger.CommandInfo("热键 Ctrl+Y 触发，已向当前插件发送 Hotkey 命令");
             }
             catch (Exception ex)
             {
@@ -235,9 +212,9 @@ namespace YFrame
         #region 脚本操作
 
         /// <summary>
-        /// 向当前插件发送脚本操作命令
+        /// 向当前插件发送脚本操作命令（New / Open / Save）
         /// </summary>
-        /// <param name="command">NewScript / OpenScript / SaveScript</param>
+        /// <param name="command">New / Open / Save</param>
         public void ExecuteScriptCommand(string command)
         {
             try
@@ -248,16 +225,8 @@ namespace YFrame
                     return;
                 }
 
-                // 命令映射：Mediator 消息 → 插件内部命令
-                var internalCommand = command switch
-                {
-                    "NewScript" => "NewScript",
-                    "OpenScript" => "OpenScript",
-                    "SaveScript" => "TriggerSave",
-                    _ => command
-                };
-
-                CurrentPlugin.CommandHandler.ExecuteCommand(internalCommand);
+                // 统一命令名直接转发，由插件自行决定是否处理
+                CurrentPlugin.CommandHandler.ExecuteCommand(command);
                 _logger.LogInfo($"脚本操作 '{command}' 已发送到插件");
             }
             catch (Exception ex)

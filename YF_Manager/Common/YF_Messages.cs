@@ -23,7 +23,7 @@ namespace YF_Manager
 
     /// <summary>
     /// 脚本命令消息 — 新建/打开/保存脚本操作
-    /// Command 取值: "NewScript", "OpenScript", "SaveScript"
+    /// Command 取值: "New", "Open", "Save"
     /// </summary>
     public record ScriptCommandMessage(string Command);
 

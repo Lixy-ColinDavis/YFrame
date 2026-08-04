@@ -94,7 +94,7 @@ namespace YFrame.Tests.YFrame.Service
                 _messenger.Send(new PluginShownMessage("YF_Clicker"));
                 _messenger.Send(new HotkeyTriggeredMessage());
 
-                Assert.Contains("ToggleClick", receivedCommands);
+                Assert.Contains("Hotkey", receivedCommands);
             });
         }
 
@@ -111,9 +111,9 @@ namespace YFrame.Tests.YFrame.Service
                 _ucService.DctControls["YF_Test"] = CreateCtrlDataModelWithUC("测试", mockCmd);
                 var service = CreateServiceWithGrid();
                 _messenger.Send(new PluginShownMessage("YF_Test"));
-                _messenger.Send(new ScriptCommandMessage("NewScript"));
+                _messenger.Send(new ScriptCommandMessage("New"));
 
-                Assert.Contains("NewScript", receivedCommands);
+                Assert.Contains("New", receivedCommands);
             });
         }
 
@@ -267,10 +267,10 @@ namespace YFrame.Tests.YFrame.Service
         }
 
         /// <summary>
-        /// ScreenOCRTranslate 插件激活时热键发送 CaptureScreen 命令
+        /// 热键按下时向当前插件发送统一 Hotkey 命令
         /// </summary>
         [Fact]
-        public void OnHotkeyPressed_SendsCaptureScreenToOCRPlugin()
+        public void OnHotkeyPressed_SendsHotkeyToCurrentPlugin()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -281,15 +281,15 @@ namespace YFrame.Tests.YFrame.Service
                 service.ShowPlugin("YF_ScreenOCRTranslate");
                 service.OnHotkeyPressed();
 
-                Assert.Contains("CaptureScreen", receivedCommands);
+                Assert.Contains("Hotkey", receivedCommands);
             });
         }
 
         /// <summary>
-        /// Clicker 插件激活时热键发送 ToggleClick 命令
+        /// 任意插件激活时热键都发送统一 Hotkey 命令，不区分插件
         /// </summary>
         [Fact]
-        public void OnHotkeyPressed_SendsToggleClickToClickerPlugin()
+        public void OnHotkeyPressed_DoesNotDistinguishPlugin()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -300,15 +300,15 @@ namespace YFrame.Tests.YFrame.Service
                 service.ShowPlugin("YF_Clicker");
                 service.OnHotkeyPressed();
 
-                Assert.Contains("ToggleClick", receivedCommands);
+                Assert.Contains("Hotkey", receivedCommands);
             });
         }
 
         /// <summary>
-        /// 其他未知插件激活时热键发送 HotkeyTrigger 命令
+        /// 未知插件激活时热键同样发送 Hotkey 命令
         /// </summary>
         [Fact]
-        public void OnHotkeyPressed_SendsHotkeyTriggerToOtherPlugins()
+        public void OnHotkeyPressed_SendsHotkeyToOtherPlugins()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -319,7 +319,7 @@ namespace YFrame.Tests.YFrame.Service
                 service.ShowPlugin("YF_OtherPlugin");
                 service.OnHotkeyPressed();
 
-                Assert.Contains("HotkeyTrigger", receivedCommands);
+                Assert.Contains("Hotkey", receivedCommands);
             });
         }
 
@@ -328,10 +328,10 @@ namespace YFrame.Tests.YFrame.Service
         #region ExecuteScriptCommand 测试
 
         /// <summary>
-        /// 将 NewScript 命令转发到插件
+        /// 将 New 命令转发到插件
         /// </summary>
         [Fact]
-        public void ExecuteScriptCommand_NewScript_ForwardsToPlugin()
+        public void ExecuteScriptCommand_New_ForwardsToPlugin()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -340,17 +340,17 @@ namespace YFrame.Tests.YFrame.Service
                 _ucService.DctControls["YF_KMScript"] = CreateCtrlDataModelWithUC("脚本", mockCmd);
                 var service = CreateServiceWithGrid();
                 service.ShowPlugin("YF_KMScript");
-                service.ExecuteScriptCommand("NewScript");
+                service.ExecuteScriptCommand("New");
 
-                Assert.Contains("NewScript", receivedCommands);
+                Assert.Contains("New", receivedCommands);
             });
         }
 
         /// <summary>
-        /// 将 OpenScript 命令转发到插件
+        /// 将 Open 命令转发到插件
         /// </summary>
         [Fact]
-        public void ExecuteScriptCommand_OpenScript_ForwardsToPlugin()
+        public void ExecuteScriptCommand_Open_ForwardsToPlugin()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -359,17 +359,17 @@ namespace YFrame.Tests.YFrame.Service
                 _ucService.DctControls["YF_KMScript"] = CreateCtrlDataModelWithUC("脚本", mockCmd);
                 var service = CreateServiceWithGrid();
                 service.ShowPlugin("YF_KMScript");
-                service.ExecuteScriptCommand("OpenScript");
+                service.ExecuteScriptCommand("Open");
 
-                Assert.Contains("OpenScript", receivedCommands);
+                Assert.Contains("Open", receivedCommands);
             });
         }
 
         /// <summary>
-        /// 将 SaveScript 命令转换为 TriggerSave 转发到插件
+        /// 将 Save 命令转发到插件，不做命令名转换
         /// </summary>
         [Fact]
-        public void ExecuteScriptCommand_SaveScript_MapsToTriggerSave()
+        public void ExecuteScriptCommand_Save_ForwardsToPlugin()
         {
             var mockCmd = CreateMockCommand(out var receivedCommands);
 
@@ -378,9 +378,9 @@ namespace YFrame.Tests.YFrame.Service
                 _ucService.DctControls["YF_KMScript"] = CreateCtrlDataModelWithUC("脚本", mockCmd);
                 var service = CreateServiceWithGrid();
                 service.ShowPlugin("YF_KMScript");
-                service.ExecuteScriptCommand("SaveScript");
+                service.ExecuteScriptCommand("Save");
 
-                Assert.Contains("TriggerSave", receivedCommands);
+                Assert.Contains("Save", receivedCommands);
             });
         }
 
@@ -392,7 +392,7 @@ namespace YFrame.Tests.YFrame.Service
         {
             var service = new PluginService(_logger, _messenger, _ucService);
 
-            var exception = Record.Exception(() => service.ExecuteScriptCommand("NewScript"));
+            var exception = Record.Exception(() => service.ExecuteScriptCommand("New"));
             Assert.Null(exception);
         }
 

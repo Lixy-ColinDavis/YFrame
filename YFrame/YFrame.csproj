@@ -17,9 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Common\Language\en-US.xaml~RF5ba906.TMP" />
-    <None Remove="ViewModel\MainWindowViewModel.cs~RF8950a6.TMP" />
-    <None Remove="Service\UserControlsService.cs~RFc195ad.TMP" />
     <None Remove="View\Logo.png" />
   </ItemGroup>
 
