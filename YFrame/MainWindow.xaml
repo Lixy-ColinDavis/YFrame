@@ -9,11 +9,59 @@
     <Window.Resources>
         <!-- Boolean 到 Visibility 的转换器 -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <!-- 标题栏右侧操作按钮样式（最小化/全屏/关闭） -->
+        <Style x:Key="TitleBarButton" TargetType="Button">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <!-- 鼠标悬停时高亮背景 -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#22FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- 日志面板输入框样式：内容从顶部开始显示（默认 TextBox 样式是垂直居中，不适合日志） -->
+        <Style x:Key="LogTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <!-- 日志内容垂直拉伸到顶部，随内容向下滚动 -->
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Padding="{TemplateBinding Padding}"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <DockPanel LastChildFill="True">
-        <!-- 菜单栏 -->
-        <Menu DockPanel.Dock="Top" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}" Height="34">
+        <!-- 标题栏：菜单栏 + 右侧操作按钮（最小化/全屏/关闭） -->
+        <Border DockPanel.Dock="Top" Height="34" Background="{DynamicResource MenuBarBrush}">
+            <DockPanel LastChildFill="True">
+                <!-- 菜单栏（靠左排列菜单项） -->
+                <Menu DockPanel.Dock="Left" Background="Transparent" Foreground="{DynamicResource TextBrush}">
             <!-- Logo -->
             <Image Source="Common/Images/Logo.png" Width="20" Height="20" Margin="3,0,5,0" VerticalAlignment="Center"/>
             <MenuItem Header="{DynamicResource key_File}" Background="{DynamicResource MenuBarBrush}" Foreground="{DynamicResource TextBrush}">
@@ -27,6 +75,9 @@
             <MenuItem Header="{DynamicResource key_View}" Foreground="{DynamicResource TextBrush}" >
                 <MenuItem Header="{DynamicResource key_Left sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleLeftToolWindowCommand}"/>
                 <MenuItem Header="{DynamicResource key_Right sidebar}" IsCheckable="True" IsChecked="True" Command="{Binding ToggleRightToolWindowCommand}"/>
+                <Separator/>
+                <MenuItem Header="{DynamicResource key_FullScreen}" Command="{Binding ToggleFullScreenCommand}"/>
+                <Separator/>
                 <MenuItem Header="{DynamicResource key_DarkGray theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/DarkGrayTheme.xaml"/>
                 <MenuItem Header="{DynamicResource key_CreamWhite theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/CreamWhiteTheme.xaml"/>
                 <MenuItem Header="{DynamicResource key_LightBlue theme}" Command="{Binding SetThemeCommand}" CommandParameter="Common/Themes/LightBlueTheme.xaml"/>
@@ -43,20 +94,40 @@
             <MenuItem Header="{DynamicResource key_Help}">
                 <MenuItem Header="{DynamicResource key_About}" Command="{Binding Btn_About_Command}"/>
             </MenuItem>
-            <MenuItem IsEnabled="False"/>
-            <!-- 右侧可拖拽区域 -->
-            <Border Name="Title_Border" DockPanel.Dock="Right" Background="{DynamicResource MenuBarBrush}" BorderBrush="{DynamicResource MenuBarBrush}"  Width="750" Margin="-20,-6,-20,-11">
+            </Menu>
+            <!-- 右侧操作按钮：最小化 / 全屏 / 关闭（固定在最右侧，全屏后仍保持右上角） -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Background="{DynamicResource MenuBarBrush}">
+                <!-- 最小化按钮 -->
+                <Button Style="{StaticResource TitleBarButton}" Content="─" FontSize="18"
+                        Command="{Binding Btn_Minimize_Command}" ToolTip="{DynamicResource key_Minimize}"/>
+                <!-- 全屏按钮：进入全屏显示 □，退出全屏显示 ❐，不使用文字 -->
+                <Button Style="{StaticResource TitleBarButton}" FontSize="18"
+                        Command="{Binding ToggleFullScreenCommand}" ToolTip="{DynamicResource key_FullScreenTooltip}">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="▢"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFullScreen}" Value="True">
+                                        <Setter Property="Text" Value="❐"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+                <!-- 关闭按钮 -->
+                <Button Style="{StaticResource TitleBarButton}" Content="✕" FontSize="18"
+                        Command="{Binding Btn_Exit_Command}" ToolTip="{DynamicResource key_Close}"/>
+            </StackPanel>
+            <!-- 标题栏拖拽区域（填充按钮左侧空白，点击任意空白处可拖拽移动窗口） -->
+            <Border Name="Title_Border" Background="{DynamicResource MenuBarBrush}">
                 <Border.InputBindings>
                     <MouseBinding MouseAction="LeftClick" Command="{Binding Title_Move_Command}" CommandParameter="{Binding ElementName=Title_Border}"/>
                 </Border.InputBindings>
-                
             </Border>
-            <MenuItem IsEnabled="False"/>
-            <MenuItem Name="Min" Header="─" Command="{Binding Btn_Minimize_Command}"/>
-            <MenuItem Name="Close" Header="✕" Command="{Binding Btn_Exit_Command}"/>
-
-
-        </Menu>
+            </DockPanel>
+        </Border>
 
         <!-- 状态栏 -->
         <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBg}" Height="28"
@@ -375,9 +446,9 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Grid.Style>
-                                    <TextBox TextWrapping="Wrap" AcceptsReturn="True"
+                                    <TextBox Style="{StaticResource LogTextBox}"
+                                             Text="{Binding LogText}"
                                              IsReadOnly="True" Focusable="False"
-                                             Text="{Binding LogText}" VerticalScrollBarVisibility="Auto"
                                              Background="Transparent" Foreground="{DynamicResource TextBrush}"
                                              BorderThickness="0"/>
                                     <Button Content="{DynamicResource key_ClearLog}" Command="{Binding ClearLogCommand}"

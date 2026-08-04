@@ -124,6 +124,20 @@ namespace YFrame
             }
         }
 
+        private bool _isFullScreen;  // 是否处于全屏状态
+        public bool IsFullScreen
+        {
+            get => _isFullScreen;
+            set
+            {
+                if (_isFullScreen != value)
+                {
+                    _isFullScreen = value;
+                    OnPropertyChanged(nameof(IsFullScreen));
+                }
+            }
+        }
+
         private bool _isHotkeyEnabled;  // 热键监控是否开启
         public bool IsHotkeyEnabled
         {
@@ -221,6 +235,7 @@ namespace YFrame
         public ICommand Btn_About_Command { get; set; } = null!;                 // 关于事件
         public ICommand PluginManagerCommand { get; set; } = null!;              // 插件管理器事件
         public ICommand ReloadPluginsCommand { get; set; } = null!;              // 重新加载所有插件事件
+        public ICommand ToggleFullScreenCommand { get; set; } = null!;           // 全屏切换事件
 
         #endregion
 
@@ -490,6 +505,9 @@ namespace YFrame
 
                 // ===== 重新加载所有插件 =====
                 ReloadPluginsCommand = new YF_RelayCommand(() => ReloadPlugins());
+
+                // ===== 全屏切换 =====
+                ToggleFullScreenCommand = new YF_RelayCommand(() => ToggleFullScreen());
             }
             catch (Exception ex)
             {
@@ -743,6 +761,27 @@ namespace YFrame
             catch (Exception ex)
             {
                 _logger.ErrorInfo("Show_Cpu_Memory", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 切换全屏显示：委托给主窗口的 Win32 全屏实现
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "切换全屏")]
+        public virtual void ToggleFullScreen()
+        {
+            try
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    mainWindow.ToggleFullScreen();
+                    IsFullScreen = !IsFullScreen;
+                    _logger.LogInfo(IsFullScreen ? "进入全屏模式" : "退出全屏模式");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("ToggleFullScreen", ex.Message);
             }
         }
 
