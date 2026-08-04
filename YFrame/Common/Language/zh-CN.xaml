@@ -58,6 +58,11 @@
     <sys:String x:Key="key_OpenLogFolder">打开日志</sys:String>
     <sys:String x:Key="key_HotkeyMonitor">热键监控</sys:String>
     <sys:String x:Key="key_HotkeyTooltip">切换热键监控 Ctrl+Y</sys:String>
+    <sys:String x:Key="key_FullScreen">全屏</sys:String>
+    <sys:String x:Key="key_ExitFullScreen">退出全屏</sys:String>
+    <sys:String x:Key="key_FullScreenTooltip">切换全屏显示（ESC 退出）</sys:String>
+    <sys:String x:Key="key_Minimize">最小化</sys:String>
+    <sys:String x:Key="key_Close">关闭</sys:String>
     <sys:String x:Key="key_ClearLog">清除日志</sys:String>
     <sys:String x:Key="key_AddParam">添加参数</sys:String>
     <sys:String x:Key="key_DeleteParam">删除参数</sys:String>

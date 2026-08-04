@@ -58,6 +58,11 @@
     <sys:String x:Key="key_OpenLogFolder">Open Log</sys:String>
     <sys:String x:Key="key_HotkeyMonitor">Hotkey</sys:String>
     <sys:String x:Key="key_HotkeyTooltip">Toggle hotkey monitor Ctrl+Y</sys:String>
+    <sys:String x:Key="key_FullScreen">Fullscreen</sys:String>
+    <sys:String x:Key="key_ExitFullScreen">Exit Fullscreen</sys:String>
+    <sys:String x:Key="key_FullScreenTooltip">Toggle fullscreen (ESC to exit)</sys:String>
+    <sys:String x:Key="key_Minimize">Minimize</sys:String>
+    <sys:String x:Key="key_Close">Close</sys:String>
     <sys:String x:Key="key_ClearLog">Clear Log</sys:String>
     <sys:String x:Key="key_AddParam">Add Param</sys:String>
     <sys:String x:Key="key_DeleteParam">Delete Param</sys:String>

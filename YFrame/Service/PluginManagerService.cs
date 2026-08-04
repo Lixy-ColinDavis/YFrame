@@ -11,15 +11,15 @@ using YF_Model = YFrame.Model;
 
 namespace YFrame.Service
 {
-    /// <summary>
-    /// 插件管理器服务，负责与插件服务器的 HTTP 通信和插件文件下载/安装
-    /// </summary>
+        /// <summary>
+        /// 插件管理器服务：与插件服务器 HTTP 通信、下载并安装插件
+        /// </summary>
     public class PluginManagerService
     {
         #region AOP 单例
 
         /// <summary>
-        /// 单例模式 + AOP 日志拦截代理
+        /// 单例 + AOP 日志拦截代理
         /// </summary>
         private static readonly Lazy<PluginManagerService> _instance = new Lazy<PluginManagerService>(
             () => new ProxyGenerator().CreateClassProxy<PluginManagerService>(new LogInterceptor())
@@ -86,7 +86,7 @@ namespace YFrame.Service
                 PropertyNameCaseInsensitive = true
             }) ?? throw new InvalidOperationException("服务端返回数据格式错误");
 
-            // 缓存基地址供下载使用
+            // 缓存基地址，供下载复用
             _lastBaseUrl = url;
 
             var result = new List<YF_Model.RemotePluginInfo>();
@@ -128,7 +128,7 @@ namespace YFrame.Service
             var tempZip = Path.Combine(Path.GetTempPath(), $"{folderName}_{Guid.NewGuid():N}.zip");
             var pluginDir = Path.Combine(_pluginsDir, folderName);
 
-            // 流式写入临时文件并报告进度
+            // 流式写入临时文件并报进度
             using (var fs = new FileStream(tempZip, FileMode.Create, FileAccess.Write, FileShare.None))
             using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
             {
@@ -156,8 +156,7 @@ namespace YFrame.Service
             YF_ZipHelper.Instance.ExtractToDirectory(tempZip, pluginDir);
 
             // 清理临时文件
-            try { File.Delete(tempZip); } catch { }
-        }
+            try { File.Delete(tempZip); } catch { }        }
 
         #endregion
 

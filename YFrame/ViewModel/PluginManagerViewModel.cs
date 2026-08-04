@@ -11,8 +11,8 @@ using YF_Model = YFrame.Model;
 namespace YFrame.ViewModel
 {
     /// <summary>
-    /// 插件管理器 ViewModel（AOP 代理模式），负责 UI 绑定状态管理和命令路由
-    /// 具体 HTTP 通信和下载逻辑委托给 PluginManagerService
+    /// 插件管理器 ViewModel（AOP 代理），负责 UI 状态和命令路由
+    /// HTTP 通信与下载逻辑委托给 PluginManagerService
     /// </summary>
     public class PluginManagerViewModel : INotifyPropertyChanged
     {
@@ -164,7 +164,6 @@ namespace YFrame.ViewModel
 
             // 持久化地址
             Config.PluginManagerServerURL = url;
-
             SetStatus(R("key_PluginManager_Connecting"), Brushes.DodgerBlue);
 
             try

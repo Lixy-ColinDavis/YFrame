@@ -43,13 +43,13 @@ namespace YFrame
         /// <param name="messenger">消息中介（DI 注入）</param>
         public LogService(YF_Manager_Log logger, YF_Messenger messenger)
         {
-            // 订阅 Mediator 消息：任意组件发送的日志追加请求
+            // 订阅日志追加请求
             messenger.Register<LogAppendMessage>(msg =>
             {
                 AppendLog(msg.Text);
             });
 
-            // 订阅 Mediator 消息：任意组件发送的日志清除请求
+            // 订阅日志清除请求
             messenger.Register<LogClearMessage>(_ =>
             {
                 ClearLog();
@@ -64,7 +64,7 @@ namespace YFrame
         #region 公开方法
 
         /// <summary>
-        /// 追加一条日志到缓冲区，超出上限时从头部裁剪
+        /// 追加一条日志，超出上限从头部裁剪
         /// </summary>
         /// <param name="msg">日志文本</param>
         public void AppendLog(string msg)
@@ -92,8 +92,7 @@ namespace YFrame
             }
 
           
-            // 避免跨线程直接更新控件导致 InvalidOperationException 甚至崩溃。
-            // 若当前无可用的 Dispatcher（如单元测试环境），则退化为同步直接调用，保证行为一致。
+            // 非 UI 线程时切到 Dispatcher 更新；无 Dispatcher（如单测）则直接调用
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher != null && !dispatcher.CheckAccess())
                 dispatcher.Invoke(() => OnLogTextChanged?.Invoke(currentText));

@@ -95,12 +95,12 @@ namespace YFrame
 
         #region 事件
         /// <summary>
-        /// 托盘左键单击或菜单"显示主窗口"被点击时触发
+        /// 托盘左键单击或菜单"显示主窗口"触发
         /// </summary>
         public event Action? OnShowWindow;
 
         /// <summary>
-        /// 托盘右键菜单"退出"被点击时触发
+        /// 托盘右键菜单"退出"触发
         /// </summary>
         public event Action? OnExitApplication;
         #endregion
@@ -134,7 +134,7 @@ namespace YFrame
             _hwndSource = HwndSource.FromHwnd(_windowHandle);
             _hwndSource?.AddHook(WndProc);
 
-            // 从 exe 提取应用程序图标
+            // 从 exe 提取图标
             _hTrayIcon = LoadIconFromExe();
             AddTrayIcon();
 
@@ -142,7 +142,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 标记进入退出流程（阻止后续关闭操作被拦截）
+        /// 标记进入退出流程（阻止关闭被拦截）
         /// </summary>
         public void MarkExiting()
         {

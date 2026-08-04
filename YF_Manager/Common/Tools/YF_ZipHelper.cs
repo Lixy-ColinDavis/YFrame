@@ -5,8 +5,8 @@ using System.IO.Compression;
 namespace YF_Manager
 {
     /// <summary>
-    /// ZIP 压缩 / 解压工具类（AOP 单例模式）
-    /// 供框架及所有插件统一调用，避免各模块重复实现压缩解压逻辑
+    /// ZIP 压缩 / 解压工具类（AOP 单例）
+    /// 供框架及插件统一调用，避免各模块重复实现
     /// </summary>
     public class YF_ZipHelper
     {
@@ -48,8 +48,7 @@ namespace YF_Manager
                     File.Delete(destinationZip);
 
                 // 确保目标目录存在
-                var destDir = Path.GetDirectoryName(destinationZip);
-                if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                var destDir = Path.GetDirectoryName(destinationZip);                if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
                     Directory.CreateDirectory(destDir);
 
                 ZipFile.CreateFromDirectory(sourceDir, destinationZip, CompressionLevel.Optimal, includeBaseDirectory);
@@ -83,8 +82,7 @@ namespace YF_Manager
                 if (!Directory.Exists(destinationDir))
                     Directory.CreateDirectory(destinationDir);
 
-                ZipFile.ExtractToDirectory(zipPath, destinationDir, overwriteFiles: true);
-                return true;
+                ZipFile.ExtractToDirectory(zipPath, destinationDir, overwriteFiles: true);                return true;
             }
             catch
             {
