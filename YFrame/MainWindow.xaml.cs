@@ -109,7 +109,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 预览按键事件：全屏状态下按 ESC 退出全屏
+        /// 预览按键：全屏下按 ESC 退出
         /// </summary>
         /// <param name="sender">事件发送者</param>
         /// <param name="e">按键事件参数</param>
@@ -124,8 +124,7 @@ namespace YFrame
 
         /// <summary>
         /// 切换全屏显示：进入/退出全屏
-        /// 由于窗口是无边框且 AllowsTransparency=True，
-        /// 使用 Win32 SetWindowPos 将窗口覆盖到当前监视器完整区域（含任务栏）实现真全屏
+        /// 无边框 + AllowsTransparency=True 时，用 Win32 SetWindowPos 覆盖到监视器完整区域实现真全屏
         /// </summary>
         public void ToggleFullScreen()
         {
@@ -133,7 +132,7 @@ namespace YFrame
 
             if (_isFullScreen)
             {
-                // 退出全屏：恢复进入全屏前保存的窗口物理像素矩形
+                // 退出全屏：恢复保存的窗口物理像素矩形
                 SetWindowPos(handle, IntPtr.Zero,
                     _restoreBounds.Left, _restoreBounds.Top,
                     _restoreBounds.Right - _restoreBounds.Left,
@@ -143,10 +142,10 @@ namespace YFrame
             }
             else
             {
-                // 进入全屏：先记录当前窗口的物理像素矩形（含位置和大小）
+                // 进入全屏：记录当前窗口物理像素矩形
                 GetWindowRect(handle, out _restoreBounds);
 
-                // 获取窗口所在监视器的完整区域
+                // 获取所在监视器的完整区域
                 var monitor = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
                 var mi = new MONITORINFO { cbSize = (uint)Marshal.SizeOf(typeof(MONITORINFO)) };
                 if (GetMonitorInfo(monitor, ref mi))

@@ -13,7 +13,7 @@ namespace YFrame.View
         public PluginManagerWindow()
         {
             InitializeComponent();
-            // 通过 Castle 动态代理创建 ViewModel，使 [Log] 特性的 virtual 方法被 AOP 拦截
+            // 用 Castle 动态代理创建 ViewModel，使 [Log] 的 virtual 方法被拦截
             DataContext = new ProxyGenerator().CreateClassProxy<PluginManagerViewModel>(new LogInterceptor());
         }
     }

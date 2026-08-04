@@ -55,12 +55,12 @@ namespace YFrame
             try
             {
                 detail = null;
-                // 只加载程序集并创建 ViewModel，不创建 UserControl（创建 UserControl 会触发 Init(true) 完整初始化）
+                // 只读元数据，不创建 UserControl（创建会触发完整初始化）
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
                 if (viewModelType == null)
                     return false;
-                // 创建轻量 ViewModel 实例读取元数据，读取后随即被丢弃（不持有引用，避免干扰插件自身单例）
+                // 轻量创建后随即丢弃，避免干扰插件自身单例
                 var viewModel = Activator.CreateInstance(viewModelType);
                 detail = viewModel as I_YF_Detail;
                 return detail != null;
@@ -88,8 +88,7 @@ namespace YFrame
             try
             {
                 userControl = null; detail = null; commandHandler = null;
-                // 框架定位为随主程序生命周期加载的桌面工具聚合，
-                // 有意不引入 AssemblyLoadContext 做隔离 / 热卸载 / 热更新
+                // 不引入 AssemblyLoadContext，插件随主程序生命周期加载
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
                 Type? viewModelType = assembly.GetType($"{pluginName}.MainControlViewModel");
@@ -102,11 +101,10 @@ namespace YFrame
                 userControl = uc as UserControl;
                 if (userControl != null)
                 {
-                    // 若插件构造函数未自行设置DataContext，则由框架设置
-                    // （如YF_AIHelper自行设置了代理单例，YF_KMScript则依赖框架设置）
+                    // 插件未自设 DataContext 时由框架设置
                     if (userControl.DataContext == null)
                         userControl.DataContext = viewModel;
-                    // 从DataContext提取接口引用，确保commandHandler与UI绑定的是同一实例
+                    // 从 DataContext 提取接口，保证与 UI 绑定同一实例
                     detail = userControl.DataContext as I_YF_Detail;
                     commandHandler = userControl.DataContext as I_YF_Command;
                 }
@@ -178,7 +176,7 @@ namespace YFrame
                             continue;
                         _logger.DebugInfo($"读取到插件: {s}");
                         string assemblyPath = @$"{item}\{s}.dll";
-                        // 懒加载：扫描阶段仅读取元数据（ID/Name），不实例化 UserControl，避免触发插件完整初始化
+                        // 懒加载：仅读元数据，不实例化控件
                         if (TryLoadPluginMetadata(assemblyPath, _logger, s, out var detail))
                         {
                             if (detail != null)
@@ -247,12 +245,12 @@ namespace YFrame
                         continue;
                     }
 
-                    // 仅暂存当前显示的实例（旧实例随本次赋值失去引用被回收，不长期持有）
+                    // 只存当前显示实例，切换即重建
                     ctrlData.userControl = userControl;
                     ctrlData.CommandHandler = commandHandler;
                     ctrlData.PluginId = detail.YF_ID;
 
-                    // 仅当该 commandHandler 引用尚未订阅过时才订阅，避免对静态单例插件重复 += 造成事件泄漏
+                    // 避免对静态单例插件重复订阅造成事件泄漏
                     if (commandHandler != null && !ReferenceEquals(ctrlData.LastSubscribedHandler, commandHandler))
                     {
                         SubscribeCallback(ctrlData);
@@ -295,12 +293,6 @@ namespace YFrame
         {
             // 处理插件回调
             _logger.DebugInfo($"插件 {pluginId} 回调: {e.Command} - {e.Data}");
-
-            // 在主线程中更新UI
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                // 更新UI或执行其他操作
-            });
         }
     }
 }

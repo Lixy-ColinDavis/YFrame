@@ -55,7 +55,7 @@ namespace YFrame
             YF_Manager_Main.logger.LogInfo("性能监视器初始化-开始");
             InitializeComponent();
 
-            // UI 线程：初始化图表（6个初始数据点，5秒采样间隔，共30秒窗口）
+            // UI 线程：初始化图表（6个初始点，5秒采样，30秒窗口）
             // 从主题资源获取图表颜色
             var chartLine1 = (SolidColorBrush)TryFindResource("ChartLine1") ?? new SolidColorBrush(Colors.Orange);
             var chartLine2 = (SolidColorBrush)TryFindResource("ChartLine2") ?? new SolidColorBrush(Colors.DodgerBlue);
@@ -99,7 +99,7 @@ namespace YFrame
             YFormatter = value => value.ToString("N0");
             DataContext = this;
 
-            // 后台线程：仅执行耗时的 WMI 和 PerformanceCounter 初始化
+            // 后台线程：执行耗时的 WMI 和 PerformanceCounter 初始化
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 InitializeCounters();
@@ -152,10 +152,10 @@ namespace YFrame
 
             try
             {
-                // 获取CPU使用率（取当前值）
+                // 取 CPU 使用率
                 float cpuUsage = cpuCounter.NextValue();
 
-                // 获取可用内存（MB）
+                // 取可用内存（MB）
                 float availableMemoryMB = ramCounter.NextValue();
 
                 float usedMemoryMB = totalMemoryMB - availableMemoryMB;
@@ -164,8 +164,8 @@ namespace YFrame
                 // 更新图表数据
                 UpdateChartData(cpuUsage, memoryUsagePercent);
 
-                // 更新标签（可选：显示最新数据）
-                OnPropertyChanged(nameof(Labels)); // 通知UI更新
+                // 通知 UI 更新标签
+                OnPropertyChanged(nameof(Labels));
 
                 MainWindowViewModel.dlg_Show_Cpu_Memory(cpuUsage.ToString("0.0"), $"{(usedMemoryMB / 1024).ToString("0.0")}/{(totalMemoryMB / 1024).ToString("0.0")}");
 
@@ -190,18 +190,18 @@ namespace YFrame
 
             try
             {
-                // 获取当前CPU和内存的数据序列
+                // 获取 CPU 和内存数据序列
                 var cpuSeries = SeriesCollection[0].Values as ChartValues<ObservableValue>;
                 var memorySeries = SeriesCollection[1].Values as ChartValues<ObservableValue>;
 
-                // 移除最旧的数据点（保持6个数据点）
+                // 移除最旧数据点（保持6个点）
                 if (cpuSeries.Count >= 6)
                 {
                     cpuSeries.RemoveAt(0);
                     memorySeries.RemoveAt(0);
                 }
 
-                // 添加新的数据点
+                // 添加新数据点
                 cpuSeries.Add(new ObservableValue(cpuUsage));
                 memorySeries.Add(new ObservableValue(memoryUsage));
             }

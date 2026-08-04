@@ -46,19 +46,19 @@ namespace YFrame
             _messenger = messenger;
             _userControlsService = userControlsService;
 
-            // 订阅 Mediator 消息：收到显示插件请求
+            // 订阅插件显示请求
             messenger.Register<PluginShownMessage>(msg =>
             {
                 ShowPluginInternal(msg.PluginId);
             });
 
-            // 订阅 Mediator 消息：收到热键触发
+            // 订阅热键触发
             messenger.Register<HotkeyTriggeredMessage>(_ =>
             {
                 OnHotkeyPressedInternal();
             });
 
-            // 订阅 Mediator 消息：收到脚本命令
+            // 订阅脚本命令
             messenger.Register<ScriptCommandMessage>(msg =>
             {
                 ExecuteScriptCommand(msg.Command);
@@ -84,7 +84,7 @@ namespace YFrame
         #region 插件显示
 
         /// <summary>
-        /// 卸载当前显示的插件（清空显示区域并重置当前插件引用）
+        /// 卸载当前显示的插件（清空显示区并重置引用）
         /// </summary>
         public void UnloadCurrentPlugin()
         {
@@ -105,7 +105,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 内部插件显示逻辑：从 UserControlsService 获取控件并添加到显示区
+        /// 内部插件显示逻辑：从 UserControlsService 获取控件并放入显示区
         /// </summary>
         private bool ShowPluginInternal(string pluginId)
         {
@@ -271,7 +271,7 @@ namespace YFrame
         #region 插件回调处理
 
         /// <summary>
-        /// 处理来自插件的回调事件，将信息发送到 Mediator 以便日志面板显示
+        /// 处理插件回调，转发到日志面板
         /// </summary>
         public void HandlePluginCallback(string pluginId, PluginEventArgs e)
         {

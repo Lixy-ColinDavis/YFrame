@@ -19,11 +19,11 @@ namespace YFrame
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
 
         /// <summary>
-        /// 应用启动入口：处理 --uninstall 命令或构建 DI 容器启动主窗口
+        /// 应用启动入口：处理 --uninstall 或构建 DI 容器启动主窗口
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
-            // 处理卸载命令：控制面板"程序和功能"中点击卸载时会传入 --uninstall 参数
+            // 控制面板卸载时传入 --uninstall 参数
             if (e.Args.Length > 0 && (e.Args.Contains("--uninstall") || e.Args.Contains("-uninstall")))
             {
                 HandleUninstall(e.Args);
@@ -31,7 +31,7 @@ namespace YFrame
                 return;
             }
 
-            // 调用父类（Application）的 OnStartup 方法, 确保 WPF 框架的标准行为得到执行
+            // 调用父类 OnStartup，确保 WPF 标准行为执行
             base.OnStartup(e);
 
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
@@ -42,7 +42,7 @@ namespace YFrame
             ConfigureServices(services);
             var provider = services.BuildServiceProvider();
 
-            // 设置全局 DI 持有者，供插件和底层库解析服务
+            // 设置全局 DI 持有者，供插件和底层库解析
             YF_Di.Provider = provider;
 
             // 从 DI 容器获取主窗口（ViewModel 通过属性注入已完成初始化）
@@ -169,7 +169,7 @@ namespace YFrame
                 if (oldDict != null)
                     Current.Resources.MergedDictionaries.Remove(oldDict);
 
-                // 添加新的语言资源
+                // 添加新语言资源
                 Current.Resources.MergedDictionaries.Add(dict);
             }
             catch (Exception ex)
@@ -187,8 +187,7 @@ namespace YFrame
             try
             {
                 // 移除旧的主题资源（仅匹配 /Themes/*Theme.xaml，避免误删 ControlStyles.xaml）
-                var merged = Application.Current.Resources.MergedDictionaries;
-                int oldIndex = -1;
+                var merged = Application.Current.Resources.MergedDictionaries;                int oldIndex = -1;
                 for (int i = 0; i < merged.Count; i++)
                 {
                     var src = merged[i].Source?.ToString();

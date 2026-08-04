@@ -8,7 +8,7 @@ using YF_Manager;
 namespace YFrame
 {
     /// <summary>
-    /// 全局热键服务：封装 Win32 RegisterHotKey/UnregisterHotKey 及 WndProc 消息处理，
+    /// 全局热键服务：封装 Win32 RegisterHotKey/UnregisterHotKey 及 WndProc 消息处理
     /// </summary>
     public class HotkeyService
     {

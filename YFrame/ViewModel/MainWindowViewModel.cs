@@ -267,8 +267,7 @@ namespace YFrame
 
         /// <summary>
         /// 设置依赖项（由 DI 容器创建 AOP 代理后调用）
-        /// 因为 Castle CreateClassProxy 需要无参构造函数，
-        /// 所以通过此方法进行属性注入
+        /// Castle CreateClassProxy 需要无参构造函数，故用此方法做属性注入
         /// </summary>
         public void InitializeDependencies(
             YF_Manager_Log logger,
@@ -309,8 +308,7 @@ namespace YFrame
             InitUI();
             InitCommond();
 
-            // 连接全局日志委托到 Mediator：任何通过 YF_Manager_Log.d_LogWrite 输出的日志
-            // 都将发送到 Mediator，由 LogService 统一处理
+            // 日志委托接入 Mediator，由 LogService 统一处理
             YF_Manager_Log.d_LogWrite = msg =>
             {
                 _messenger.Send(new LogAppendMessage(msg));
@@ -321,7 +319,7 @@ namespace YFrame
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // 通过 Mediator 发送热键消息，PluginService 订阅并处理
+                    // 热键消息经 Mediator 转发，PluginService 订阅处理
                     _messenger.Send(new HotkeyTriggeredMessage());
                 });
             };
@@ -351,7 +349,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 初始化 UI 元素（保留在此处，因为 XAML 绑定需要这些属性）
+        /// 初始化 UI 元素
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "初始化UI")]
         public virtual void InitUI()
@@ -386,7 +384,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 初始化命令绑定（每个命令委托给子服务或直接操作）
+        /// 初始化命令绑定
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "初始化命令绑定")]
         public virtual void InitCommond()
@@ -556,8 +554,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 委托给 PluginService 的热键路由（已废弃直接调用，改用 Mediator 消息）
-        /// 保留此方法以保持向后兼容
+        /// 委托给 PluginService 的热键路由（现走 Mediator，保留此方法兼容旧调用）
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "热键触发（兼容）")]
         public virtual void OnHotkeyPressed()
@@ -588,7 +585,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 清除日志（
+        /// 清除日志
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "清除日志")]
         public virtual void ClearLog()
@@ -619,13 +616,11 @@ namespace YFrame
                 // 卸载当前显示的插件 UI
                 _pluginService.UnloadCurrentPlugin();
 
-                // 清空插件列表（UI 自动刷新）
+                // 清空列表与字典
                 lsPlugins.Clear();
-
-                // 清空插件字典
                 _userControlsService.ClearAllControls();
 
-                // 重新扫描并加载所有插件
+                // 重新扫描加载
                 _userControlsService.LoadAndShowUserControl();
 
                 // 重新填充插件列表
@@ -641,7 +636,6 @@ namespace YFrame
 
                 // 重置选中项，避免指向已清除的旧对象
                 SelectedPlugin = null;
-
                 _logger.LogInfo($"插件重新加载完成，共 {lsPlugins.Count} 个插件");
                 _messenger.Send(new LogAppendMessage($"插件已重新加载，共 {lsPlugins.Count} 个"));
             }
@@ -765,7 +759,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 切换全屏显示：委托给主窗口的 Win32 全屏实现
+        /// 切换全屏显示：委托给主窗口的 Win32 实现
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "切换全屏")]
         public virtual void ToggleFullScreen()

@@ -54,7 +54,7 @@ namespace YF_Manager
 
         /// <summary>
         /// 加载配置文件，不存在则创建默认配置并写入文件
-        /// 注意：非virtual，不走AOP代理；初始化阶段不使用 YF_Manager_Main.logger 避免循环依赖
+        /// 注意：非virtual，不走AOP代理；初始化阶段不使用 logger 避免循环依赖
         /// </summary>
         private void LoadOrDefault()
         {
@@ -67,13 +67,13 @@ namespace YF_Manager
 
                 if (!File.Exists(_configFilePath))
                 {
-                    // 文件不存在：加载默认值并写入文件
+                    // 文件不存在：加载默认值并写入
                     LoadDefaults();
                     SaveToFileInternal();
                     return;
                 }
 
-                // 文件存在：从文件读取配置
+                // 文件存在：从文件读取
                 LoadFromFileInternal();
             }
             catch (Exception ex)
@@ -135,7 +135,7 @@ namespace YF_Manager
                     var key = trimmed.Substring(0, separatorIndex).Trim();
                     var value = trimmed.Substring(separatorIndex + 1).Trim();
 
-                    // 如果值用双引号包裹则去除引号
+                    // 去掉值外层双引号
                     if (value.Length >= 2 && value.StartsWith("\"") && value.EndsWith("\""))
                         value = value.Substring(1, value.Length - 2);
 
@@ -143,7 +143,7 @@ namespace YF_Manager
                         _configValues[key] = value;
                 }
 
-                // 确保所有默认键都存在（兼容旧配置文件缺少新配置项的场景）
+                // 补齐缺失的默认键（兼容旧配置缺少新配置项）
                 EnsureAllDefaultsExist();
             }
             catch (Exception ex)
@@ -155,15 +155,15 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// 确保所有默认配置键都存在于字典中（缺失则补默认值但不覆盖已有值）
+        /// 补齐缺失的默认配置键（不覆盖已有值）
         /// 注意：非virtual，不走AOP代理
         /// </summary>
         private void EnsureAllDefaultsExist()
         {
-            // 保存当前所有已读入的键
+            // 保存当前已读入的键
             var existingKeys = new HashSet<string>(_configValues.Keys, StringComparer.OrdinalIgnoreCase);
 
-            // 对缺失的键补充默认值（未直接创建临时字典，直接在原地判断后赋值）
+            // 缺失的键补默认值
             if (!existingKeys.Contains("Paddlepath"))
                 _configValues.TryAdd("Paddlepath", @"plugins\YF_ScreenOCRTranslate\inference");
             if (!existingKeys.Contains("LogPath"))
@@ -203,7 +203,7 @@ namespace YF_Manager
 
                 foreach (var kvp in _configValues)
                 {
-                    // 值中包含空格或特殊字符时用双引号包裹
+                    // 值含空格或特殊字符时用双引号包裹
                     var value = kvp.Value;
                     if (value.Contains(" ") || value.Contains("#") || value.Contains("="))
                         value = $"\"{value}\"";

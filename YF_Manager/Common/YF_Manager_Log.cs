@@ -18,7 +18,7 @@ namespace YF_Manager
 
         private static long maxFileSize = 1024 * 1024; // 1MB
 
-        // DI 注入的文件操作工具（可选，未注入时回退到静态 Instance）
+        // DI 注入的文件工具（未注入时回退到静态 Instance）
         private readonly YF_FileHelper? _fileHelper;
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace YF_Manager
         public YF_Manager_Log(string Name, string ID) : this(Name, ID, null) { }
 
         /// <summary>
-        /// 创建日志对象（支持 DI 注入文件操作工具）
+        /// 创建日志对象（支持 DI 注入文件工具）
         /// </summary>
         /// <param name="Name">日志名称（通常为组件名称）</param>
         /// <param name="ID">日志标识</param>
@@ -81,7 +81,7 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// log路径可用检查,自动创建
+        /// log路径可用检查，自动创建
         /// </summary>
         /// <param name="path">日志目录路径</param>
         /// <returns>完整的日志文件路径</returns>
@@ -90,7 +90,7 @@ namespace YF_Manager
             string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".htm";
             string fullPath = Path.Combine(path, fileName);
 
-            // 优先使用 DI 注入的实例，否则回退到静态实例（向后兼容）
+            // 优先用 DI 注入的实例，否则回退静态实例
             var fileHelper = _fileHelper ?? YF_FileHelper.Instance;
             fileHelper.EnsureDirectoryForFile(fullPath);
 
@@ -124,7 +124,7 @@ namespace YF_Manager
                     using var fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
                     using var sw = new StreamWriter(fs, Encoding.UTF8)
                     {
-                        AutoFlush = true // 自动刷新缓冲区‌
+                        AutoFlush = true // 自动刷新缓冲区
                     };
 
                     sw.WriteLine("<HR Size=1>");
