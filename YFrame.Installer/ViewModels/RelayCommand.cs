@@ -2,6 +2,7 @@ using System.Windows.Input;
 
 namespace YFrame.Installer.ViewModels;
 
+// 不复用YF_Manager，安装器只依赖于自身
 public class RelayCommand : ICommand
 {
     private readonly Action _execute;

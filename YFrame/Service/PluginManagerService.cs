@@ -11,9 +11,9 @@ using YF_Model = YFrame.Model;
 
 namespace YFrame.Service
 {
-        /// <summary>
-        /// 插件管理器服务：与插件服务器 HTTP 通信、下载并安装插件
-        /// </summary>
+    /// <summary>
+    /// 插件管理器服务：与插件服务器 HTTP 通信、下载并安装插件
+    /// </summary>
     public class PluginManagerService
     {
         #region AOP 单例
@@ -26,7 +26,7 @@ namespace YFrame.Service
         );
 
         public static PluginManagerService Instance => _instance.Value;
-
+        private static readonly YF_Manager_Log _logger = new YF_Manager_Log("插件管理器", "PluginManager");
         #endregion
 
         #region JSON 响应模型
@@ -156,7 +156,9 @@ namespace YFrame.Service
             YF_ZipHelper.Instance.ExtractToDirectory(tempZip, pluginDir);
 
             // 清理临时文件
-            try { File.Delete(tempZip); } catch { }        }
+            try { File.Delete(tempZip); } 
+            catch (Exception ex){ _logger.ErrorInfo("InstallPluginAsync", "清理临时文件失败" + ex.Message); }        
+        }
 
         #endregion
 

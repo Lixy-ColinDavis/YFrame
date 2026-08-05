@@ -489,11 +489,11 @@ namespace YFrame
 
                 // ===== 脚本操作（通过 Mediator → PluginService） =====
                 NewScriptCommand = new YF_RelayCommand(() =>
-                    _messenger.Send(new ScriptCommandMessage("NewScript")));
+                    _messenger.Send(new ScriptCommandMessage("New")));
                 OpenScriptCommand = new YF_RelayCommand(() =>
-                    _messenger.Send(new ScriptCommandMessage("OpenScript")));
+                    _messenger.Send(new ScriptCommandMessage("Open")));
                 SaveScriptCommand = new YF_RelayCommand(() =>
-                    _messenger.Send(new ScriptCommandMessage("SaveScript")));
+                    _messenger.Send(new ScriptCommandMessage("Save")));
 
                 // ===== 关于 =====
                 Btn_About_Command = new YF_RelayCommand(() => ShowAbout());
@@ -670,19 +670,19 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "新建脚本")]
         public virtual void ExecuteNewScript()
         {
-            _pluginService.ExecuteScriptCommand("NewScript");
+            _pluginService.ExecuteScriptCommand("New");
         }
 
         [Log(Level = LogLevel.Info, Message = "打开脚本")]
         public virtual void ExecuteOpenScript()
         {
-            _pluginService.ExecuteScriptCommand("OpenScript");
+            _pluginService.ExecuteScriptCommand("Open");
         }
 
         [Log(Level = LogLevel.Info, Message = "保存脚本")]
         public virtual void ExecuteSaveScript()
         {
-            _pluginService.ExecuteScriptCommand("SaveScript");
+            _pluginService.ExecuteScriptCommand("Save");
         }
 
         #endregion
