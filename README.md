@@ -6,7 +6,7 @@
 >
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
 >
-> **更新时间：** 2025-08-18  至 2026-07-30
+> **开发时间：** 2025-08-18  至 2026-07-30
 ---
 
 ## 目录
