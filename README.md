@@ -2,11 +2,9 @@
 
 > **YFrame** — 基于 C# .NET 8.0 + WPF 的模块化桌面应用框架，采用抽屉式 IDE 风格外壳，通过反射动态加载插件，为各类开发者工具提供统一的运行平台。
 
-> **项目状态：** 持续开发中
->
 > **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
 >
-> **更新时间：** 2025-08-18  至 2026-07-30
+> **开发时间：** 2025-08-18  至 2026-07-30
 ---
 
 ## 目录
