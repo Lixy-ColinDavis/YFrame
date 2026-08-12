@@ -49,12 +49,14 @@
                             Width="80" Height="32"
                             Grid.Column="3" Margin="0,0,8,0"/>
 
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.Column="4" MinWidth="120">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.Column="4" MinWidth="120" MaxWidth="280">
                         <Ellipse Width="10" Height="10"
                                  Fill="{Binding StatusBrush}"
                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding StatusText}" FontSize="13"
-                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding StatusText}" FontSize="13" MaxWidth="230"
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding StatusText}"/>
                     </StackPanel>
                 </Grid>
 
@@ -69,10 +71,12 @@
                 BorderThickness="0,1,0,0" Padding="12,6">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding PluginCountText}" FontSize="12"
-                           Foreground="{DynamicResource TextBrush}" Opacity="0.6"/>
+                           Foreground="{DynamicResource TextBrush}" Opacity="0.6" MaxWidth="220"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding PluginCountText}"/>
                 <Separator Width="1" Margin="12,0" Opacity="0.3"/>
                 <TextBlock Text="{Binding DownloadStatusText}" FontSize="12"
-                           Foreground="{DynamicResource TextBrush}" Opacity="0.6"/>
+                           Foreground="{DynamicResource TextBrush}" Opacity="0.6" MaxWidth="420"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding DownloadStatusText}"/>
             </StackPanel>
         </Border>
 

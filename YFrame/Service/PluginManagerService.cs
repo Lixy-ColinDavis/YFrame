@@ -173,11 +173,14 @@ namespace YFrame.Service
             if (string.IsNullOrEmpty(baseUrl))
                 return $"http://127.0.0.1:{port}";
 
-            var uri = new UriBuilder(baseUrl);
-            if (uri.Port == 80 && !baseUrl.Contains(':'))
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+                return baseUrl;
+
+            // 地址未显式指定端口时，补上配置的插件服务器端口
+            if (uri.IsDefaultPort)
             {
-                uri.Port = int.TryParse(port, out var p) ? p : 9000;
-                return uri.Uri.AbsoluteUri.TrimEnd('/');
+                var portNum = int.TryParse(port, out var p) ? p : 9000;
+                return $"{uri.Scheme}://{uri.Host}:{portNum}{uri.AbsolutePath}".TrimEnd('/');
             }
             return baseUrl;
         }

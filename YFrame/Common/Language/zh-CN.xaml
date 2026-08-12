@@ -81,6 +81,15 @@
     <!--点击器-->
     <sys:String x:Key="key_Clicker_Title">鼠标连点器</sys:String>
     <sys:String x:Key="key_Clicker_Interval">点击间隔：</sys:String>
+    <sys:String x:Key="key_Clicker_Mode">运行模式：</sys:String>
+    <sys:String x:Key="key_Clicker_Mode_Duration">时间长度</sys:String>
+    <sys:String x:Key="key_Clicker_Mode_Count">总次数</sys:String>
+    <sys:String x:Key="key_Clicker_Limit_Duration">运行时长：</sys:String>
+    <sys:String x:Key="key_Clicker_Limit_Count">点击次数：</sys:String>
+    <sys:String x:Key="key_Clicker_Unit_Second">秒</sys:String>
+    <sys:String x:Key="key_Clicker_Unit_Count">次</sys:String>
+    <sys:String x:Key="key_Clicker_Hint_Duration">范围：1~3600 秒</sys:String>
+    <sys:String x:Key="key_Clicker_Hint_Count">范围：10~10000 次</sys:String>
     <sys:String x:Key="key_Clicker_Start">开始点击</sys:String>
     <sys:String x:Key="key_Clicker_Stop">停止点击</sys:String>
     <sys:String x:Key="key_Clicker_HotkeyHint">框架热键：Ctrl+Y 切换连点器启停</sys:String>

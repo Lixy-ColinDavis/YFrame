@@ -81,6 +81,15 @@
     <!--点击器-->
     <sys:String x:Key="key_Clicker_Title">Mouse Clicker</sys:String>
     <sys:String x:Key="key_Clicker_Interval">Click Interval:</sys:String>
+    <sys:String x:Key="key_Clicker_Mode">Run Mode:</sys:String>
+    <sys:String x:Key="key_Clicker_Mode_Duration">Duration</sys:String>
+    <sys:String x:Key="key_Clicker_Mode_Count">Total Clicks</sys:String>
+    <sys:String x:Key="key_Clicker_Limit_Duration">Run Duration:</sys:String>
+    <sys:String x:Key="key_Clicker_Limit_Count">Click Count:</sys:String>
+    <sys:String x:Key="key_Clicker_Unit_Second">sec</sys:String>
+    <sys:String x:Key="key_Clicker_Unit_Count">clicks</sys:String>
+    <sys:String x:Key="key_Clicker_Hint_Duration">Range: 1~3600 sec</sys:String>
+    <sys:String x:Key="key_Clicker_Hint_Count">Range: 10~10000 clicks</sys:String>
     <sys:String x:Key="key_Clicker_Start">Start Click</sys:String>
     <sys:String x:Key="key_Clicker_Stop">Stop Click</sys:String>
     <sys:String x:Key="key_Clicker_HotkeyHint">Framework Hotkey: Ctrl+Y toggles clicker</sys:String>
