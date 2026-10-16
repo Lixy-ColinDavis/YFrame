@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-07-30 — 新增 YF_PluginServer（插件服务器）+ PluginManagerWindow（插件管理器窗口）+ PluginManagerService + 插件热重载
+> **最后更新：** 2026-10-16 — 新增 YF_Paint（截图标注）插件；托盘右键菜单新增"隐藏到托盘"选项；屏幕缩放设置移至框架工具栏（OCR 插件移除相关代码）
 
 ---
 
@@ -31,6 +31,7 @@ YFrame 是一个基于 **.NET 8.0 + WPF** 的**模块化插件桌面框架**，�
 | YF_Clicker | `YF_Clicker\` | 鼠标自动连点器 | WindowsInput |
 | YF_HttpServer | `YF_HttpServer\` | 一键 HTTP 文件服务器 | HttpListener（内置） |
 | YF_KMScript | `YF_KMScript\` | 中文 DSL 键鼠自动化脚本 | 无额外依赖 |
+| YF_Paint | `YF_Paint\` | 截图标注画板（框选截图 + 文字/画笔标注 + 钉图置顶） | 无额外依赖（GDI P/Invoke） |
 | YF_Penetration | `YF_Penetration\` | NAT 内网穿透（P2P 联机） | NatTraversal 自研库 |
 | YF_ScreenOCRTranslate | `YF_ScreenOCRTranslate\` | 截图 OCR + 翻译 | PaddleOCRSharp + 百度翻译 API |
 | YF_Serialport | `YF_Serialport\` | 串口调试助手（文本/HEX收发+预设命令） | System.IO.Ports 8.0.0 |
@@ -164,6 +165,7 @@ plugins/              所有插件项目
   ├── YF_Clicker.dll ──→ YF_Manager.dll + WindowsInput
   ├── YF_HttpServer.dll ──→ YF_Manager.dll
   ├── YF_KMScript.dll ──→ YF_Manager.dll
+  ├── YF_Paint.dll ──→ YF_Manager.dll
   ├── YF_Penetration.dll ──→ YF_Manager.dll + NatTraversal 自研库
   ├── YF_PluginServer.dll ──→ YF_Manager.dll
   ├── YF_ScreenOCRTranslate.dll ──→ YF_Manager.dll + PaddleOCRSharp
@@ -592,6 +594,17 @@ push/PR to main → 自动触发
 - **新增服务:** `ImageMatcher`（OpenCV 找图）、`LogEntry`（日志模型）、`RegionSelectionWindow`（截图选区）、`ScreenCapture`（截图工具）
 - **文件格式:** `.ys` 脚本文件
 - **内部 RelayCommand:** 自定义简单 RelayCommand，未使用框架的 `YF_RelayCommand`
+
+### YF_Paint（截图标注）
+- **ID:** YF_Paint，名称："截图标注"
+- **核心依赖:** 无额外 NuGet 包（截图 GDI BitBlt P/Invoke、合成 RenderTargetBitmap、编码/剪贴板均内置）
+- **功能:** 框架热键 Ctrl+Y → 全屏截图 → 覆盖层框选区域 → 标注画板（画笔/直线/矩形/椭圆/文字）→ 复制/保存/钉图
+- **文字交互:** 单击输入、回车提交后可拖动移动（钳制画布内）、双击就地修改；全部纳入撤销/重做栈
+- **钉图:** 标注结果变为无边框 Topmost 窗口，位置与原选区 1:1，支持拖动 / 滚轮缩放 / 右键菜单（复制/保存/取消置顶/关闭）
+- **架构:** MainControlViewModel（热键/流程）→ CaptureOverlayViewModel（选区）+ AnnotationViewModel（画板）+ ScreenCaptureService（截图/裁剪/合成）+ PaintSettingsService（配置持久化）
+- **坐标系统:** 窗口交互用 DIP，位图输出用物理像素，scale = PhysicalBounds/DipBounds（如 125% → 1.25）；多显示器取虚拟屏幕并集
+- **设置文件:** `Config\Paint\paint_settings.json`（颜色/粗细/字号/自动复制，范围钳制保护）
+- **已知注意:** 已有标注窗口打开时再次触发热键会激活原窗口（单例状态保护，避免多窗口互相干扰）
 
 ### YF_Penetration（NAT 内网穿透）
 - **ID:** YF_Penetration，名称："NAT 内网穿透"

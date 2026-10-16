@@ -212,6 +212,19 @@
                             BorderBrush="{DynamicResource BorderBrush}"
                             Cursor="Hand">
                     </Button>
+                    <!-- 屏幕缩放比例（全局设置：截图类插件用于 DPI 物理像素坐标换算） -->
+                    <TextBlock Text="{DynamicResource key_ScreenScaleLabel}" FontSize="12"
+                               Foreground="{DynamicResource TextBrush}"
+                               VerticalAlignment="Center" Margin="16,0,6,0"/>
+                    <ComboBox IsEditable="True"
+                              ItemsSource="{Binding ScreenScaleOptions}"
+                              Text="{Binding ScreenScaleText, UpdateSourceTrigger=LostFocus}"
+                              Width="72" Height="26" FontSize="12"
+                              VerticalAlignment="Center"
+                              ToolTip="{DynamicResource key_ScreenScaleTooltip}"/>
+                    <TextBlock Text="%" FontSize="12"
+                               Foreground="{DynamicResource TextBrush}"
+                               VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </StackPanel>
             </Border>
 

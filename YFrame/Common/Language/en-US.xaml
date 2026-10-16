@@ -58,6 +58,8 @@
     <sys:String x:Key="key_OpenLogFolder">Open Log</sys:String>
     <sys:String x:Key="key_HotkeyMonitor">Hotkey</sys:String>
     <sys:String x:Key="key_HotkeyTooltip">Toggle hotkey monitor Ctrl+Y</sys:String>
+    <sys:String x:Key="key_ScreenScaleLabel">Screen Scale</sys:String>
+    <sys:String x:Key="key_ScreenScaleTooltip">Screen scale percentage (100-200), used by screenshot plugins (OCR / Paint) for coordinate conversion</sys:String>
     <sys:String x:Key="key_FullScreen">Fullscreen</sys:String>
     <sys:String x:Key="key_ExitFullScreen">Exit Fullscreen</sys:String>
     <sys:String x:Key="key_FullScreenTooltip">Toggle fullscreen (ESC to exit)</sys:String>
@@ -174,9 +176,6 @@
     <sys:String x:Key="key_OCR_ReleaseHint">Release mouse to auto recognize and translate</sys:String>
     <sys:String x:Key="key_OCR_ESCCancel">Press ESC to cancel</sys:String>
     <sys:String x:Key="key_OCR_ShowTextHint">💡 Click anywhere or press ESC to close translation</sys:String>
-    <sys:String x:Key="key_OCR_ScaleLabel">Scale Settings</sys:String>
-    <sys:String x:Key="key_OCR_ScaleHint">Screen scale percentage (DPI, default 125, range 100-200):</sys:String>
-    <sys:String x:Key="key_OCR_ScaleUnit">%</sys:String>
 
     <!--菜单-->
     <sys:String x:Key="key_LoadPlugin">Reload Plugins</sys:String>

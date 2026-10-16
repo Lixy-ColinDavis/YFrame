@@ -1,5 +1,6 @@
 ﻿using LiveCharts.Defaults;
 using LiveCharts;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -87,6 +88,60 @@ namespace YFrame
 
         // 状态栏热键状态文本
         public string HotkeyStatusText => IsHotkeyEnabled ? "已开启" : "已关闭";
+
+        #region 屏幕缩放比例（全局设置，供截图类插件坐标换算）
+
+        /// <summary>
+        /// 缩放下拉框可选预设值（百分比）
+        /// </summary>
+        public List<int> ScreenScaleOptions { get; } = new() { 100, 125, 150, 175, 200 };
+
+        private string _screenScaleText = "125";
+
+        /// <summary>
+        /// 屏幕缩放百分比文本（全局设置，可编辑下拉框，取值 100-200）：
+        /// 保存到 Config.ScreenScale，截图类插件（OCR 翻译 / 截图标注等）
+        /// 统一读取 YF_Manager.Config.ScreenScaleFactor 进行坐标换算
+        /// </summary>
+        public string ScreenScaleText
+        {
+            get => _screenScaleText;
+            set
+            {
+                // 解析用户输入，校验范围 100-200，合法则保存到全局配置
+                if (int.TryParse(value, out int scale) && scale >= 100 && scale <= 200)
+                {
+                    if (_screenScaleText != scale.ToString())
+                    {
+                        _screenScaleText = scale.ToString();
+                        OnPropertyChanged();
+                        SaveScreenScale(scale);
+                    }
+                }
+                else
+                {
+                    // 非法输入：恢复显示为当前有效值（百分比）
+                    int current = 125;
+                    if (int.TryParse(YF_Manager.Config.ScreenScale, out int saved))
+                        current = Math.Clamp(saved, 100, 200);
+                    _screenScaleText = current.ToString();
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 保存屏幕缩放比例到全局配置文件（Config/config.conf 的 ScreenScale 键）
+        /// </summary>
+        /// <param name="scale">缩放百分比（100-200）</param>
+        private void SaveScreenScale(int scale)
+        {
+            YF_Manager.Config.ScreenScale = scale.ToString();
+            _logger.LogInfo($"屏幕缩放比例已设置为: {scale}%");
+            _messenger.Send(new LogAppendMessage($"屏幕缩放比例已设置为: {scale}%"));
+        }
+
+        #endregion
 
         /// <summary>
         /// 左侧面板激活页：0=插件列表, 1=工具箱
@@ -263,6 +318,14 @@ namespace YFrame
         {
             _logger.LogInfo("主框架初始化-开始");
 
+            // 读取全局屏幕缩放比例（默认 125），供工具栏下拉框展示与截图类插件共享
+            int screenScale = 125;
+            if (int.TryParse(YF_Manager.Config.ScreenScale, out int savedScreenScale))
+                screenScale = Math.Clamp(savedScreenScale, 100, 200);
+            _screenScaleText = screenScale.ToString();
+            // 通知 UI 刷新（DataContext 绑定的首次求值早于 Init，需手动补一次通知）
+            OnPropertyChanged(nameof(ScreenScaleText));
+
             _logService.OnLogTextChanged = text => LogText = text;
 
             InitUI();
@@ -296,6 +359,11 @@ namespace YFrame
                         mainWindow.Activate();
                     }
                 });
+            };
+            _trayIconService.OnHideWindow += () =>
+            {
+                // 托盘菜单"隐藏到托盘"：复用最小化到托盘逻辑（隐藏主窗口，保留托盘图标与热键）
+                MinimizeToTray();
             };
             _trayIconService.OnExitApplication += () =>
             {

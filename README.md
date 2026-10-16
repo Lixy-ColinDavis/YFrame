@@ -96,6 +96,7 @@ plugins/                       所有插件项目
   ├── YF_Clicker.dll ───────────→ YF_Manager.dll + WindowsInput
   ├── YF_HttpServer.dll ────────→ YF_Manager.dll
   ├── YF_KMScript.dll ──────────→ YF_Manager.dll
+  ├── YF_Paint.dll ─────────────→ YF_Manager.dll
   ├── YF_Penetration.dll ───────→ YF_Manager.dll + NatTraversal 自研库
   ├── YF_PluginServer.dll ──────→ YF_Manager.dll
   ├── YF_ScreenOCRTranslate.dll → YF_Manager.dll + PaddleOCRSharp
@@ -741,7 +742,7 @@ git push → GitCode Actions/Pipeline 自动触发
 
 ## 5. 插件生态
 
-当前已开发九款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透、串口通讯、TCP 通讯、插件分发等场景。
+当前已开发十款插件，覆盖 AI、网络、自动化、OCR 翻译、内网穿透、串口通讯、TCP 通讯、截图标注、插件分发等场景。
 
 ### 5.1 插件总览
 
@@ -751,6 +752,7 @@ git push → GitCode Actions/Pipeline 自动触发
 | **YF_Clicker** | `YF_Clicker` | 鼠标连点器 | WindowsInput | 可配置间隔的鼠标自动连点器 |
 | **YF_HttpServer** | `YF_HttpServer` | Http 文件助手 | `HttpListener`（框架内置）| 一键启动的轻量级 HTTP 文件服务器 |
 | **YF_KMScript** | `YF_KMScript` | 脚本编辑器 | OpenCvSharp4 | 中文 DSL 键鼠自动化脚本引擎 |
+| **YF_Paint** | `YF_Paint` | 截图标注 | 无额外依赖（GDI P/Invoke） | 屏幕截图标注画板（文字/画笔/直线标注 + 钉图置顶） |
 | **YF_Penetration** | `YF_Penetration` | NAT 内网穿透 | NatTraversal 自研库 | NAT 穿透 P2P 联机（房间制中继转发）|
 | **YF_ScreenOCRTranslate** | `YF_ScreenOCRTranslate` | OCR 实时翻译 | PaddleOCRSharp + 百度翻译 API | 截图 OCR 识别 + 英译中 |
 | **YF_Serialport** | `YF_Serialport` | 串口通讯助手 | System.IO.Ports 8.0.0 | 串口调试助手（文本/HEX收发+预设命令管理） |
@@ -977,6 +979,56 @@ git push → GitCode Actions/Pipeline 自动触发
 - `HttpListener` — .NET 内置，无需额外 NuGet 包
 - `Castle.Core` 5.2.1 — AOP 日志拦截
 
+### 5.11 YF_Paint — 截图标注
+
+**功能描述：** 屏幕截图标注画板。框架热键 Ctrl+Y 触发全屏截图 → 拖动框选区域 → 标注画板：写字、画直线、画笔涂鸦、矩形、椭圆（文字可拖动移动、双击修改），一键"钉图"把截图变成置顶窗口；支持复制到剪贴板、保存为图片、撤销重做。
+
+**工作流：**
+
+```
+Ctrl+Y（框架热键）→ ExecuteCommand("Hotkey")
+    │
+    ▼
+[1] 全屏截图（GDI BitBlt，覆盖层显示前完成，画面无遮挡）
+    │
+    ▼
+[2] 选区覆盖层（遮罩镂空 + 实时尺寸提示；右键 / ESC 取消）
+    │
+    ▼
+[3] 按选区裁剪（DIP → 物理像素换算，支持多显示器虚拟屏幕）
+    │
+    ▼
+[4] 标注画板（画笔/直线/矩形/椭圆/文字 + 颜色/粗细/字号 + 撤销重做）
+    │
+    ▼
+[5] 复制（Ctrl+C）/ 保存（Ctrl+S）/ 钉图（置顶窗口，可拖动 / 滚轮缩放 / 右键菜单）
+```
+
+**技术实现：**
+- `ScreenCaptureService`（Service 层）：GDI `BitBlt` P/Invoke 截取整个虚拟屏幕（零第三方依赖，参考框架 `ScreenCaptureHelper` 思路）；`CropByDipRegion()` 完成 DIP → 物理像素裁剪（含越界保护）
+- `AnnotationViewModel`（标注画板）：画笔 `Polyline` 采样、直线/矩形/椭圆拖拽预览、文字悬浮 `TextBox` 输入 + `TextBlock` 拖动移动 + 双击就地修改；所有操作纳入撤销/重做栈（成对 Undo/Redo 委托 + `CommandManager` 刷新按钮状态）
+- 合成输出：`DrawingVisual` + `VisualBrush` 捕获画布全部标注元素，`RenderTargetBitmap(物理像素, 96×DPI 缩放)` 渲染导出（1 DIP = scale 物理像素，像素级对齐）
+- 钉图 `PinnedWindow`：无边框 `Topmost` 窗口承载合成图，位置与选区 1:1 对应
+- 设置持久化：`Config\Paint\paint_settings.json`（默认颜色 / 粗细 / 字号 / 自动复制，范围钳制保护）
+
+**输出结构（View / ViewModel / Service 三层）：**
+
+| 文件 | 说明 |
+|------|------|
+| `View/MainControl.xaml` | 插件主面板（使用说明 + 开始截图按钮 + 默认设置） |
+| `View/CaptureOverlayWindow.xaml` | 全屏选区覆盖层（遮罩镂空 + 尺寸提示） |
+| `View/AnnotationWindow.xaml` | 标注画板窗口（图像区 + 工具条 + 位置校正） |
+| `View/PinnedWindow.xaml` | 钉图置顶窗口（拖动 / 滚轮缩放 / 右键菜单 / ESC） |
+| `ViewModel/MainControlViewModel.cs` | 插件入口 VM（I_YF_Detail + I_YF_Command + 热键响应 + 流程编排） |
+| `ViewModel/CaptureOverlayViewModel.cs` | 选区交互逻辑（框选 + 遮罩 + 结果输出） |
+| `ViewModel/AnnotationViewModel.cs` | 标注画板逻辑（工具 / 文字 / 撤销重做 / 导出 / 钉图） |
+| `Service/ScreenCaptureService.cs` | 截图 / 裁剪 / 合成 / 保存 / 剪贴板 |
+| `Service/PaintSettingsService.cs` | 设置 JSON 持久化 |
+
+**核心依赖：**
+- 无额外 NuGet 包（截图 GDI P/Invoke，编码/剪贴板均使用 .NET / WPF 内置能力）
+- `Castle.Core` 5.2.1 — AOP 日志拦截
+
 ---
 
 ## 6. 技术栈详情
@@ -1022,6 +1074,7 @@ git push → GitCode Actions/Pipeline 自动触发
 | `RegisterHotKey` | `user32.dll` | YFrame (HotkeyService) | 注册全局热键 Ctrl+Y |
 | `UnregisterHotKey` | `user32.dll` | YFrame (HotkeyService) | 注销全局热键 |
 | `SetWindowPos` | `user32.dll` | YF_ScreenOCRTranslate | 截图覆盖层置顶 |
+| `BitBlt` / `GetSystemMetrics` | `gdi32.dll` / `user32.dll` | YF_Paint | 全屏截图（虚拟屏幕物理像素，零第三方依赖） |
 | `PerformanceCounter` | `System.Diagnostics` | YFrame | CPU 和内存使用率采集 |
 | `ManagementObjectSearcher` | `System.Management` | YFrame | WMI 查询 `Win32_ComputerSystem` |
 | `HttpListener` | `System.Net` | YF_HttpServer | HTTP 服务器核心 |

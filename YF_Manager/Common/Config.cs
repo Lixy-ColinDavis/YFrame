@@ -110,12 +110,27 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// 截图OCR插件屏幕缩放比例
+        /// 全局屏幕缩放比例（百分比文本，100-200）
+        /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算
         /// </summary>
         public static string ScreenScale
         {
             get => Get("125");
             set => Set(value);
+        }
+
+        /// <summary>
+        /// 屏幕缩放因子（百分比/100，如 1.25），供截图类插件做 DIP 与物理像素坐标换算
+        /// </summary>
+        public static double ScreenScaleFactor
+        {
+            get
+            {
+                // 解析配置值并做范围钳制（100-200），非法时回退默认 1.25
+                if (int.TryParse(ScreenScale, out int scale))
+                    return Math.Clamp(scale, 100, 200) / 100.0;
+                return 1.25;
+            }
         }
 
         /// <summary>
