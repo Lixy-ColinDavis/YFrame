@@ -1010,6 +1010,7 @@ Ctrl+Y（框架热键）→ ExecuteCommand("Hotkey")
 - 合成输出：`DrawingVisual` + `VisualBrush` 捕获画布全部标注元素，`RenderTargetBitmap(物理像素, 96×DPI 缩放)` 渲染导出（1 DIP = scale 物理像素，像素级对齐）
 - 钉图 `PinnedWindow`：无边框 `Topmost` 窗口承载合成图，位置与选区 1:1 对应
 - 设置持久化：`Config\Paint\paint_settings.json`（默认颜色 / 粗细 / 字号 / 自动复制，范围钳制保护）
+- 界面双语：全部界面文案以 `key_Paint_*` 维护在框架语言文件（zh-CN / en-US）中，XAML 用 `{DynamicResource}`、代码用 `LanguageHelper` 读取
 
 **输出结构（View / ViewModel / Service 三层）：**
 
