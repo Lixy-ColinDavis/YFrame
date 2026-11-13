@@ -168,6 +168,7 @@
     <!--OCR实时翻译-->
     <sys:String x:Key="key_OCR_Title">OCR 实时翻译</sys:String>
     <sys:String x:Key="key_OCR_Subtitle">English → 中文</sys:String>
+    <sys:String x:Key="key_OCR_StartCapture">开始截图翻译</sys:String>
     <sys:String x:Key="key_OCR_Steps">📋 操作步骤</sys:String>
     <sys:String x:Key="key_OCR_Step1Title">在框架中开启热键并按下 Ctrl+Y</sys:String>
     <sys:String x:Key="key_OCR_Step1Desc">点击框架工具栏 '热键监控: 开'，然后按下 Ctrl + Y 启动截图翻译模式</sys:String>
@@ -311,6 +312,8 @@
     <sys:String x:Key="key_Paint_NotifyPinned">已钉图：标注图片已置顶显示</sys:String>
 
     <!--插件服务器-->
+    <sys:String x:Key="key_PluginServer_Title">插件服务器</sys:String>
+    <sys:String x:Key="key_PluginServer_Subtitle">通过 HTTP 向局域网分发本地插件</sys:String>
     <sys:String x:Key="key_PluginServer_ServerConfig">🌐 插件服务器</sys:String>
     <sys:String x:Key="key_PluginServer_LocalIP">本机 IP:</sys:String>
     <sys:String x:Key="key_PluginServer_Port">端口:</sys:String>

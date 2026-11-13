@@ -168,6 +168,7 @@
     <!--OCR实时翻译-->
     <sys:String x:Key="key_OCR_Title">OCR Live Translation</sys:String>
     <sys:String x:Key="key_OCR_Subtitle">English → Chinese</sys:String>
+    <sys:String x:Key="key_OCR_StartCapture">Start capture</sys:String>
     <sys:String x:Key="key_OCR_Steps">📋 Steps</sys:String>
     <sys:String x:Key="key_OCR_Step1Title">Enable hotkey in framework and press Ctrl+Y</sys:String>
     <sys:String x:Key="key_OCR_Step1Desc">Click 'Hotkey Monitor: On' in toolbar, then press Ctrl + Y to start screenshot translation</sys:String>
@@ -311,6 +312,8 @@
     <sys:String x:Key="key_Paint_NotifyPinned">Pinned: annotation image is now shown on top</sys:String>
 
     <!--Plugin Server-->
+    <sys:String x:Key="key_PluginServer_Title">Plugin Server</sys:String>
+    <sys:String x:Key="key_PluginServer_Subtitle">Share local plugins over HTTP</sys:String>
     <sys:String x:Key="key_PluginServer_ServerConfig">🌐 Plugin Server</sys:String>
     <sys:String x:Key="key_PluginServer_LocalIP">Local IP:</sys:String>
     <sys:String x:Key="key_PluginServer_Port">Port:</sys:String>
