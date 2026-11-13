@@ -37,6 +37,14 @@ namespace YFrame.ViewModel
             return string.Format(fmt, args);
         }
 
+        /// <summary>
+        /// 从当前主题资源取状态色，取不到时使用后备色
+        /// </summary>
+        /// <param name="key">主题资源键（如 SuccessBrush）</param>
+        /// <param name="fallback">资源缺失时的后备画刷</param>
+        private static Brush B(string key, Brush fallback)
+            => Application.Current?.TryFindResource(key) as Brush ?? fallback;
+
         #endregion
 
         #region 绑定属性 — 服务器连接状态
@@ -133,7 +141,8 @@ namespace YFrame.ViewModel
             var savedUrl = Config.PluginManagerServerURL;
             var savedPort = Config.PluginServerPort;
             ServerURL = _service.BuildFullUrl(savedUrl, savedPort);
-            StatusText = R("key_PluginManager_NotConnected");
+            SetStatus(R("key_PluginManager_NotConnected"), B("SubtleTextBrush", Brushes.Gray));
+            PluginCountText = R("key_PluginManager_NotConnected");
 
             ConnectCommand = new YF_RelayCommand<object>(_ => Connect(), _ => CanConnect);
             DisconnectCommand = new YF_RelayCommand<object>(_ => Disconnect(), _ => IsConnected);
@@ -155,14 +164,14 @@ namespace YFrame.ViewModel
             var url = _service.NormalizeUrl(ServerURL);
             if (string.IsNullOrEmpty(url))
             {
-                SetStatus(R("key_PluginManager_EnterAddress"), Brushes.Orange);
+                SetStatus(R("key_PluginManager_EnterAddress"), B("WarningBrush", Brushes.Orange));
                 return;
             }
             ServerURL = url;
 
             // 持久化地址
             Config.PluginManagerServerURL = url;
-            SetStatus(R("key_PluginManager_Connecting"), Brushes.DodgerBlue);
+            SetStatus(R("key_PluginManager_Connecting"), B("AccentBrush", Brushes.DodgerBlue));
 
             try
             {
@@ -173,20 +182,20 @@ namespace YFrame.ViewModel
                     RemotePlugins.Add(p);
 
                 IsConnected = true;
-                SetStatus(RF("key_PluginManager_Connected", RemotePlugins.Count), Brushes.Green);
+                SetStatus(RF("key_PluginManager_Connected", RemotePlugins.Count), B("SuccessBrush", Brushes.Green));
                 PluginCountText = RF("key_PluginManager_AvailablePlugins", RemotePlugins.Count);
             }
             catch (HttpRequestException ex)
             {
-                SetStatus(RF("key_PluginManager_ConnectFailed", ex.Message), Brushes.Red);
+                SetStatus(RF("key_PluginManager_ConnectFailed", ex.Message), B("DangerBrush", Brushes.Red));
             }
             catch (TaskCanceledException)
             {
-                SetStatus(R("key_PluginManager_Timeout"), Brushes.Red);
+                SetStatus(R("key_PluginManager_Timeout"), B("DangerBrush", Brushes.Red));
             }
             catch (Exception ex)
             {
-                SetStatus(RF("key_PluginManager_Error", ex.Message), Brushes.Red);
+                SetStatus(RF("key_PluginManager_Error", ex.Message), B("DangerBrush", Brushes.Red));
             }
         }
 
@@ -206,8 +215,8 @@ namespace YFrame.ViewModel
 
             RemotePlugins.Clear();
             IsConnected = false;
-            SetStatus(R("key_PluginManager_NotConnected"), Brushes.Gray);
-            PluginCountText = "";
+            SetStatus(R("key_PluginManager_NotConnected"), B("SubtleTextBrush", Brushes.Gray));
+            PluginCountText = R("key_PluginManager_NotConnected");
             DownloadStatusText = "";
         }
 

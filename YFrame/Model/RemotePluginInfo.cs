@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Windows.Media;
 using YF_Manager;
 
 namespace YFrame.Model
@@ -8,12 +9,46 @@ namespace YFrame.Model
     /// </summary>
     public class RemotePluginInfo : ViewModelBase
     {
+        /// <summary>缓存的图标背景画刷，避免每次绑定都重新创建</summary>
+        private Brush? _iconBrush;
+
+        /// <summary>图标缩写（与主窗口插件列表保持一致的生成规则）</summary>
+        public string IconText => PluginIconHelper.GetText(PluginId, PluginName);
+
+        /// <summary>图标渐变背景（按插件 ID 稳定取色）</summary>
+        public Brush IconBrush => _iconBrush ??= PluginIconHelper.GetBrush(PluginId, PluginName);
 
         private string _pluginId = "";
-        public string PluginId { get => _pluginId; set => SetProperty(ref _pluginId, value); }
+        public string PluginId
+        {
+            get => _pluginId;
+            set
+            {
+                if (_pluginId == value) return;
+
+                _pluginId = value;
+                // 先刷新图标，最后通知 PluginId，保持属性通知顺序稳定
+                _iconBrush = null;
+                OnPropertyChanged(nameof(IconText));
+                OnPropertyChanged(nameof(IconBrush));
+                OnPropertyChanged(nameof(PluginId));
+            }
+        }
 
         private string _pluginName = "";
-        public string PluginName { get => _pluginName; set => SetProperty(ref _pluginName, value); }
+        public string PluginName
+        {
+            get => _pluginName;
+            set
+            {
+                if (_pluginName == value) return;
+
+                _pluginName = value;
+                // ID 为空时图标缩写回退到名称，先刷新图标再通知名称
+                OnPropertyChanged(nameof(IconText));
+                OnPropertyChanged(nameof(PluginName));
+            }
+        }
 
         private string _folderName = "";
         public string FolderName { get => _folderName; set => SetProperty(ref _folderName, value); }

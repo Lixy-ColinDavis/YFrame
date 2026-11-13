@@ -1,12 +1,24 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Media;
 using YF_Manager;
 
 namespace YFrame
 {
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// 窗口圆角半径：与设计稿保持一致，全屏时改为 0
+        /// </summary>
+        private const double WindowCornerRadius = 14;
+
+        /// <summary>
+        /// 标题栏显示的版本号（取自程序集版本，避免写死）
+        /// </summary>
+        public string AppVersion { get; } =
+            "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "1.0");
         #region Win32 全屏相关 API 声明
 
         // Win32 矩形结构：表示屏幕/窗口的坐标范围
@@ -104,8 +116,39 @@ namespace YFrame
             DataContext = viewModel;
             viewModel.Init();
 
+            // 圆角窗口外壳需要按实际尺寸裁剪，否则标题栏/内容会溢出圆角
+            WindowFrame.SizeChanged += (_, _) => UpdateWindowClip();
+            UpdateWindowClip();
+
+            // 首次显示后按实际 DPI 重新居中（OnSourceInitialized 阶段 DPI 可能尚未就绪）
+            Loaded += (_, _) => CenterOnWorkArea();
+
             // 注册 ESC 键退出全屏
             PreviewKeyDown += MainWindow_PreviewKeyDown;
+        }
+
+        /// <summary>
+        /// 跨显示器移动导致 DPI 变化时，重新按新监视器工作区居中
+        /// </summary>
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+        {
+            base.OnDpiChanged(oldDpi, newDpi);
+            CenterOnWorkArea();
+        }
+
+        /// <summary>
+        /// 按窗口当前尺寸生成圆角裁剪区域；全屏时使用直角避免边缘留白
+        /// </summary>
+        private void UpdateWindowClip()
+        {
+            if (WindowFrame.ActualWidth <= 0 || WindowFrame.ActualHeight <= 0)
+                return;
+
+            double radius = _isFullScreen ? 0 : WindowCornerRadius;
+            WindowFrame.CornerRadius = new CornerRadius(radius);
+            WindowFrame.Clip = new RectangleGeometry(
+                new Rect(0, 0, WindowFrame.ActualWidth, WindowFrame.ActualHeight),
+                radius, radius);
         }
 
         /// <summary>
@@ -158,6 +201,9 @@ namespace YFrame
                 }
                 _isFullScreen = true;
             }
+
+            // 全屏/还原后重新计算圆角裁剪
+            UpdateWindowClip();
         }
 
         /// <summary>
@@ -178,7 +224,7 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 窗口消息源初始化完成后注册托盘图标和全局热键
+        /// 窗口消息源初始化完成后注册托盘图标、全局热键，并按监视器工作区居中
         /// </summary>
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -189,6 +235,36 @@ namespace YFrame
 
             // 初始化全局热键服务，传入主窗口以注册 WndProc 消息钩子
             _hotkeyService.Initialize(this);
+
+            // 高 DPI 下 WPF 的 CenterScreen 仍可能按物理工作区计算，这里按监视器工作区手动居中
+            CenterOnWorkArea();
+        }
+
+        /// <summary>
+        /// 按当前监视器的物理工作区计算 DIP 坐标并居中；工作区不足时收缩窗口高度
+        /// </summary>
+        private void CenterOnWorkArea()
+        {
+            var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            var monitor = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
+            var mi = new MONITORINFO { cbSize = (uint)Marshal.SizeOf(typeof(MONITORINFO)) };
+            if (!GetMonitorInfo(monitor, ref mi))
+                return;
+
+            // 物理像素 → DIP：WPF 的 Left/Top/Width/Height 使用 DIP
+            var dpi = VisualTreeHelper.GetDpi(this);
+            double workLeft = mi.rcWork.Left / dpi.DpiScaleX;
+            double workTop = mi.rcWork.Top / dpi.DpiScaleY;
+            double workWidth = (mi.rcWork.Right - mi.rcWork.Left) / dpi.DpiScaleX;
+            double workHeight = (mi.rcWork.Bottom - mi.rcWork.Top) / dpi.DpiScaleY;
+
+            // 预留少量边距，避免窗口紧贴任务栏/屏幕边缘
+            const double margin = 12;
+            if (Height > workHeight - margin * 2)
+                Height = Math.Max(480, workHeight - margin * 2);
+
+            Left = workLeft + Math.Max(0, (workWidth - Width) / 2);
+            Top = workTop + Math.Max(0, (workHeight - Height) / 2);
         }
     }
 }

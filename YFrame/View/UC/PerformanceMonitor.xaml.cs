@@ -1,4 +1,4 @@
-﻿using YF_Manager;
+using YF_Manager;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -118,6 +118,12 @@ namespace YFrame
             YFormatter = value => value.ToString("N0");
             DataContext = this;
 
+            // 主题切换后图表线条不会自动跟随 DynamicResource，这里监听主题消息手动换色
+            YF_Messenger.Instance.Register<ThemeChangedMessage>(_ =>
+            {
+                Dispatcher.Invoke(UpdateChartThemeColors);
+            });
+
             // 后台线程：执行耗时的 WMI 和 PerformanceCounter 初始化
             ThreadPool.QueueUserWorkItem(_ =>
             {
@@ -183,6 +189,14 @@ namespace YFrame
                 // 更新图表数据
                 UpdateChartData(cpuUsage, memoryUsagePercent);
 
+                // 更新卡片上的数值与进度条（内存百分比做范围钳制，避免异常值撑破进度条）
+                double usedGB = usedMemoryMB / 1024.0;
+                double totalGB = totalMemoryMB / 1024.0;
+                Txt_CpuValue.Text = cpuUsage.ToString("0.0");
+                Txt_MemUsed.Text = usedGB.ToString("0.0");
+                Txt_MemTotal.Text = $"/ {totalGB:0.0} GB";
+                Bar_Mem.Value = Math.Max(0, Math.Min(100, memoryUsagePercent));
+
                 // 通知 UI 更新标签
                 _notifier.Notify(nameof(Labels));
 
@@ -198,6 +212,33 @@ namespace YFrame
             {
                 // 由于 Windows 性能计数器损坏 => cmd lodctr / R
                 YF_Manager_Main.logger.ErrorInfo("UpdatePerformanceData", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 主题切换时更新图表线条与填充色，使图例颜色跟随当前主题
+        /// </summary>
+        private void UpdateChartThemeColors()
+        {
+            if (SeriesCollection == null || SeriesCollection.Count < 2)
+                return;
+
+            var line1 = TryFindResource("ChartLine1") as Brush ?? new SolidColorBrush(Colors.Orange);
+            var line2 = TryFindResource("ChartLine2") as Brush ?? new SolidColorBrush(Colors.DodgerBlue);
+            var fill1 = TryFindResource("ChartFill1") as Brush ?? new SolidColorBrush(Color.FromArgb(0x15, 0xFF, 0xA5, 0x00));
+            var fill2 = TryFindResource("ChartFill2") as Brush ?? new SolidColorBrush(Color.FromArgb(0x0F, 0x00, 0x90, 0xFF));
+
+            if (SeriesCollection[0] is LineSeries cpuSeries)
+            {
+                cpuSeries.Stroke = line1;
+                cpuSeries.Fill = fill1;
+                cpuSeries.PointForeground = line1;
+            }
+            if (SeriesCollection[1] is LineSeries memorySeries)
+            {
+                memorySeries.Stroke = line2;
+                memorySeries.Fill = fill2;
+                memorySeries.PointForeground = line2;
             }
         }
 

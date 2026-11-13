@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -12,6 +12,8 @@
     <Deterministic>false</Deterministic>
     <Copyright>Copyright © 2025 Colin Davis</Copyright>
     <ApplicationIcon>Common\Images\Logo.ico</ApplicationIcon>
+    <!-- 按监视器 DPI 感知清单：保证高 DPI 下窗口尺寸、位置与文字清晰度正确 -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <PackageIcon>Logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
