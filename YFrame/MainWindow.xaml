@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:YFrame"
+        xmlns:controls="clr-namespace:YFrame.Controls"
         Title="YF Tools" Height="800" Width="1240"
         Icon="Common/Images/Logo.png"
         Background="Transparent"
@@ -352,9 +353,11 @@
                                 <TextBlock Text="{DynamicResource key_ScreenScaleLabel}" FontSize="11.5"
                                            Foreground="{DynamicResource SubtleTextBrush}"
                                            VerticalAlignment="Center" Margin="18,0,8,0"/>
-                                <ComboBox IsEditable="True"
+                                <ComboBox IsEditable="False"
+                                          IsTextSearchEnabled="False"
+                                          PreviewMouseLeftButtonDown="ScreenScaleComboBox_PreviewMouseLeftButtonDown"
                                           ItemsSource="{Binding ScreenScaleOptions}"
-                                          Text="{Binding ScreenScaleText, UpdateSourceTrigger=LostFocus}"
+                                          SelectedItem="{Binding ScreenScaleText, Mode=TwoWay}"
                                           Width="76" Height="30" FontSize="12"
                                           VerticalAlignment="Center"
                                           ToolTip="{DynamicResource key_ScreenScaleTooltip}"/>
@@ -606,7 +609,7 @@
                         </ContentControl>
 
                         <!-- 空状态：未选择插件且未打开工具时显示，避免主工作区空白 -->
-                        <Grid IsHitTestVisible="False">
+                        <Grid x:Name="HomeOverviewRoot">
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -622,35 +625,174 @@
                                 </Style>
                             </Grid.Style>
 
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Border Width="64" Height="64" CornerRadius="18"
-                                        Background="{DynamicResource AccentGradientBrush}"
-                                        HorizontalAlignment="Center">
-                                    <TextBlock Text="YF" Foreground="White" FontSize="18"
-                                               FontWeight="Bold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="{DynamicResource key_WelcomeTitle}"
-                                           FontSize="20" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,18,0,0"/>
-                                <TextBlock Text="{DynamicResource key_WelcomeHint}"
-                                           FontSize="12"
-                                           Foreground="{DynamicResource SubtleTextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                <Border Style="{StaticResource BadgeBorder}"
-                                        HorizontalAlignment="Center" Margin="0,20,0,0"
-                                        Padding="12,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Ctrl+Y" FontFamily="{DynamicResource MonoFontFamily}"
-                                                   FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
-                                        <TextBlock Text="{DynamicResource key_HotkeyMonitor}"
-                                                   FontSize="11" Margin="8,0,0,0"
-                                                   Foreground="{DynamicResource SubtleTextBrush}"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
+                            <ScrollViewer x:Name="HomeOverviewScroll" VerticalScrollBarVisibility="Auto" Padding="24,18,24,18">
+                                <StackPanel>
+                                    <!-- 总览标题 -->
+                                    <Grid Margin="0,0,0,14">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource key_HomeOverviewTitle}"
+                                                       FontSize="18" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBlock Text="{DynamicResource key_HomeOverviewSubtitle}"
+                                                       FontSize="11.5" Margin="0,4,0,0"
+                                                       Foreground="{DynamicResource SubtleTextBrush}"/>
+                                        </StackPanel>
+
+                                        <Border Style="{StaticResource BadgeBorder}"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top">
+                                            <TextBlock x:Name="HomePageBadge" Text="01 / 04"
+                                                       Style="{StaticResource MonoText}" FontSize="10"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- 四卡手风琴：当前卡展开，其余收成竖卡 -->
+                                    <Grid MinHeight="520">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition x:Name="HomeCol0" Width="*"/>
+                                            <ColumnDefinition x:Name="HomeCol1" Width="64"/>
+                                            <ColumnDefinition x:Name="HomeCol2" Width="64"/>
+                                            <ColumnDefinition x:Name="HomeCol3" Width="64"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="HomeCard0" Grid.Column="0" Tag="0" Cursor="Hand" MouseLeftButtonUp="HomeCard_MouseLeftButtonUp">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
+                                                    <Setter Property="Margin" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid x:Name="HomeCard0Collapsed" Visibility="Collapsed">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Text="01" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" Foreground="{DynamicResource SubtleTextBrush}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="✦" FontSize="18" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                        <controls:VerticalText Text="{DynamicResource key_HomeCardWelcome}" FontSize="11.5" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Row="2" Width="20" Height="20" CornerRadius="99" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                                <ScrollViewer x:Name="HomeCard0Expanded" Visibility="Visible" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="26,24,26,24">
+                                                    <StackPanel>
+<TextBlock Text="{DynamicResource key_HomeEyebrow}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomeHeadline}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomeDesc}" FontSize="12.5" Foreground="{DynamicResource SubtleTextBrush}" TextWrapping="Wrap" LineHeight="21" MaxWidth="560" HorizontalAlignment="Left" Margin="0,12,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><!-- 特性标签 --><StackPanel Orientation="Horizontal" Margin="0,18,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><Border Style="{StaticResource BadgeBorder}" Margin="0,0,8,0"><TextBlock Text="{DynamicResource key_HomeTagLocal}" FontSize="10.5" Foreground="{DynamicResource AccentBrush}" /></Border><Border Style="{StaticResource BadgeBorder}" Margin="0,0,8,0"><TextBlock Text="{DynamicResource key_HomeTagTask}" FontSize="10.5" Foreground="{DynamicResource AccentBrush}" /></Border><Border Style="{StaticResource BadgeBorder}"><TextBlock Text="{DynamicResource key_HomeTagHotkey}" FontSize="10.5" Foreground="{DynamicResource AccentBrush}" /></Border></StackPanel><Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,22,0,16" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><!-- 运行事实 --><StackPanel Orientation="Horizontal" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><TextBlock FontFamily="{DynamicResource MonoFontFamily}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}"><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" /><Run Text="{DynamicResource key_HomeFactPluginsSuffix}" /></TextBlock><Border Width="1" Height="10" Margin="10,0" Background="{DynamicResource BorderBrush}" /><TextBlock Text="{DynamicResource key_HomeFactLocal}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /><Border Width="1" Height="10" Margin="10,0" Background="{DynamicResource BorderBrush}" /><TextBlock Text="{DynamicResource key_HotkeyStatusLabel}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /><TextBlock Text="{Binding HotkeyStatusText, Mode=OneWay}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /></StackPanel>
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                        <Border x:Name="HomeCard1" Grid.Column="1" Tag="1" Cursor="Hand" MouseLeftButtonUp="HomeCard_MouseLeftButtonUp">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
+                                                    <Setter Property="Margin" Value="10,0,0,0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid x:Name="HomeCard1Collapsed" Visibility="Visible">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Text="02" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" Foreground="{DynamicResource SubtleTextBrush}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="▦" FontSize="18" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                        <controls:VerticalText Text="{DynamicResource key_HomeCardPlugins}" FontSize="11.5" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Row="2" Width="20" Height="20" CornerRadius="99" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                                <ScrollViewer x:Name="HomeCard1Expanded" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="26,24,26,24">
+                                                    <StackPanel>
+<TextBlock Text="VERIFY. THEN LOAD." FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomePluginsHeadline}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomePluginsDesc}" FontSize="12.5" Foreground="{DynamicResource SubtleTextBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><ScrollViewer MaxHeight="300" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><ItemsControl ItemsSource="{Binding lsPlugins}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Border Width="26" Height="26" CornerRadius="7" Background="{Binding IconBrush}"><TextBlock Text="{Binding IconText}" Foreground="White" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" /><TextBlock Text="{Binding ID}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="9.5" Foreground="{DynamicResource SubtleTextBrush}" /></StackPanel><StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Ellipse Width="6" Height="6" Fill="{DynamicResource SuccessBrush}" Margin="0,0,5,0" /><TextBlock Text="{DynamicResource key_LoadedPlugins}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /></StackPanel></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                        <Border x:Name="HomeCard2" Grid.Column="2" Tag="2" Cursor="Hand" MouseLeftButtonUp="HomeCard_MouseLeftButtonUp">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
+                                                    <Setter Property="Margin" Value="10,0,0,0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid x:Name="HomeCard2Collapsed" Visibility="Visible">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Text="03" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" Foreground="{DynamicResource SubtleTextBrush}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="◐" FontSize="18" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                        <controls:VerticalText Text="{DynamicResource key_HomeCardPerf}" FontSize="11.5" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Row="2" Width="20" Height="20" CornerRadius="99" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                                <ScrollViewer x:Name="HomeCard2Expanded" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="26,24,26,24">
+                                                    <StackPanel>
+<TextBlock Text="BASELINE FIRST. WORK NEXT." FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomePerfHeadline}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomePerfDesc}" FontSize="12.5" Foreground="{DynamicResource SubtleTextBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><Grid Margin="0,22,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /><ColumnDefinition Width="10" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Grid.Column="0" Background="{DynamicResource PanelAltBrush}" CornerRadius="9" Padding="14"><StackPanel><TextBlock Text="CPU" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /><TextBlock Text="{Binding Txt_Cpu}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,4,0,0" /></StackPanel></Border><Border Grid.Column="2" Background="{DynamicResource PanelAltBrush}" CornerRadius="9" Padding="14"><StackPanel><TextBlock Text="{DynamicResource key_Memory}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /><TextBlock Text="{Binding Txt_Memory}" FontSize="16" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,4,0,0" /></StackPanel></Border><Border Grid.Column="4" Background="{DynamicResource PanelAltBrush}" CornerRadius="9" Padding="14"><StackPanel><TextBlock Text="{DynamicResource key_HotkeyMonitor}" FontSize="10.5" Foreground="{DynamicResource SubtleTextBrush}" /><TextBlock Text="{Binding HotkeyStatusText}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" Margin="0,4,0,0" /></StackPanel></Border></Grid>
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                        <Border x:Name="HomeCard3" Grid.Column="3" Tag="3" Cursor="Hand" MouseLeftButtonUp="HomeCard_MouseLeftButtonUp">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
+                                                    <Setter Property="Margin" Value="10,0,0,0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid x:Name="HomeCard3Collapsed" Visibility="Visible">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Text="04" FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" Foreground="{DynamicResource SubtleTextBrush}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="✓" FontSize="18" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                        <controls:VerticalText Text="{DynamicResource key_HomeCardReady}" FontSize="11.5" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Row="2" Width="20" Height="20" CornerRadius="99" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                                <ScrollViewer x:Name="HomeCard3Expanded" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="26,24,26,24">
+                                                    <StackPanel>
+<TextBlock Text="ALL SET. YOUR MOVE." FontFamily="{DynamicResource MonoFontFamily}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomeReadyHeadline}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><TextBlock Text="{DynamicResource key_HomeReadyDesc}" FontSize="12.5" Foreground="{DynamicResource SubtleTextBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,10,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" /><StackPanel Orientation="Horizontal" Margin="0,24,0,0" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><Border Style="{StaticResource BadgeBorder}" Margin="0,0,8,0"><TextBlock FontSize="11" Foreground="{DynamicResource TextBrush}"><Run Text="{Binding lsPlugins.Count, Mode=OneWay}" /><Run Text="{DynamicResource key_HomeFactPluginsSuffix}" /></TextBlock></Border><Border Style="{StaticResource BadgeBorder}" Margin="0,0,8,0"><TextBlock Text="{DynamicResource key_HomeFactLocal}" FontSize="11" Foreground="{DynamicResource TextBrush}" /></Border><Border Style="{StaticResource BadgeBorder}"><TextBlock Text="{DynamicResource key_HotkeyStatusLabel}" FontSize="11" Foreground="{DynamicResource TextBrush}" /></Border></StackPanel>
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Grid>
 

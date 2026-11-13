@@ -1,4 +1,4 @@
-<Window x:Class="YFrame.View.PluginManagerWindow"
+﻿<Window x:Class="YFrame.View.PluginManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
@@ -346,7 +346,7 @@
                                                             <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                     Background="{DynamicResource AccentSoftBrush}"
                                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                                    BorderThickness="1" CornerRadius="99"
+                                                                    BorderThickness="1" CornerRadius="6"
                                                                     Padding="10,3"
                                                                     Visibility="{Binding IsInstalled, Converter={StaticResource BoolToVisibilityConverter}}">
                                                                 <TextBlock Text="{DynamicResource key_PluginManager_Installed}"

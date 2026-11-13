@@ -90,14 +90,14 @@ namespace YFrame
         #region 屏幕缩放比例（全局设置，供截图类插件坐标换算）
 
         /// <summary>
-        /// 缩放下拉框可选预设值（百分比）
+        /// 缩放下拉框可选预设值（百分比，使用字符串以便只读下拉框直接绑定 SelectedItem）
         /// </summary>
-        public List<int> ScreenScaleOptions { get; } = new() { 100, 125, 150, 175, 200 };
+        public List<string> ScreenScaleOptions { get; } = new() { "100", "125", "150", "175", "200" };
 
         private string _screenScaleText = "125";
 
         /// <summary>
-        /// 屏幕缩放百分比文本（全局设置，可编辑下拉框，取值 100-200）：
+        /// 屏幕缩放百分比文本（全局设置，只读下拉框，取值 100-200）：
         /// 保存到 Config.ScreenScale，截图类插件（OCR 翻译 / 截图标注等）
         /// 统一读取 YF_Manager.Config.ScreenScaleFactor 进行坐标换算
         /// </summary>

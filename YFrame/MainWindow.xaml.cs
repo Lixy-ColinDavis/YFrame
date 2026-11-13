@@ -1,8 +1,13 @@
+﻿using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using YF_Manager;
 
 namespace YFrame
@@ -99,6 +104,12 @@ namespace YFrame
         private readonly MainWindowViewModel _viewModel;
         private readonly HotkeyService _hotkeyService;
         private readonly TrayIconService _trayIconService;
+
+        // 首页当前选中的分页（0=欢迎，1=插件加载，2=性能自检，3=启动就绪）
+        private int _homeSectionIndex;
+
+        // 首页入场动画是否已执行，避免重复触发
+        private bool _homeEntrancePlayed;
 
         /// <summary>
         /// 创建主窗口（DI 构造函数注入）
@@ -266,5 +277,157 @@ namespace YFrame
             Left = workLeft + Math.Max(0, (workWidth - Width) / 2);
             Top = workTop + Math.Max(0, (workHeight - Height) / 2);
         }
-    }
+        /// <summary>
+        /// 首页可见性变化：首次显示或从插件页返回时播放淡入/上浮动画
+        /// </summary>
+        /// <param name="sender">事件源</param>
+        /// <param name="e">可见性变化参数</param>
+        private void HomeOverviewRoot_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is true)
+            {
+                // 等布局完成后再播放，避免测量阶段动画被重置
+                Dispatcher.BeginInvoke(new Action(PlayHomeEntrance), DispatcherPriority.Loaded);
+            }
+            else
+            {
+                // 离开首页后允许下次返回时重新播放入场动画
+                _homeEntrancePlayed = false;
+            }
+        }
+
+        /// <summary>
+        /// 首页入场动画：整体淡入，四张卡片依次上浮出现
+        /// </summary>
+        private void PlayHomeEntrance()
+        {
+            if (_homeEntrancePlayed || HomeOverviewScroll == null)
+                return;
+
+            _homeEntrancePlayed = true;
+
+            // 整体内容淡入
+            HomeOverviewScroll.Opacity = 0;
+            HomeOverviewScroll.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+
+            // 四张卡片错峰进入，形成轻微层次感
+            var cards = new FrameworkElement[] { HomeCard0, HomeCard1, HomeCard2, HomeCard3 };
+            for (int i = 0; i < cards.Length; i++)
+            {
+                var card = cards[i];
+                if (card == null) continue;
+
+                card.Opacity = 0;
+                var translate = card.RenderTransform as TranslateTransform;
+                if (translate == null)
+                {
+                    translate = new TranslateTransform();
+                    card.RenderTransform = translate;
+                }
+                translate.Y = 12;
+
+                var delay = TimeSpan.FromMilliseconds(40 * i);
+                card.BeginAnimation(OpacityProperty,
+                    new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(240))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    });
+                translate.BeginAnimation(TranslateTransform.YProperty,
+                    new DoubleAnimation(12, 0, TimeSpan.FromMilliseconds(260))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    });
+            }
+        }
+
+        /// <summary>
+        /// 点击右侧折叠卡：切换到对应分页
+        /// </summary>
+        /// <param name="sender">被点击的卡片</param>
+        /// <param name="e">鼠标事件参数</param>
+        private void HomeCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element &&
+                int.TryParse(element.Tag?.ToString(), out int index))
+            {
+                SelectHomeSection(index);
+            }
+        }
+
+        /// <summary>
+        /// 屏幕缩放下拉框：点击任意位置直接展开/收起。
+        /// 模板中的 ToggleButton 在部分 DPI/窗口样式下收不到鼠标事件，这里统一兜底。
+        /// </summary>
+        /// <param name="sender">下拉框</param>
+        /// <param name="e">鼠标事件参数</param>
+        private void ScreenScaleComboBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ComboBox comboBox)
+            {
+                comboBox.IsDropDownOpen = !comboBox.IsDropDownOpen;
+                e.Handled = true;
+            }
+        }
+        /// <summary>
+        /// 切换首页手风琴：目标卡展开为宽卡，其余卡收起为 64px 竖卡
+        /// </summary>
+        /// <param name="index">分页索引：0=欢迎，1=插件加载，2=性能自检，3=启动就绪</param>
+        private void SelectHomeSection(int index)
+        {
+            if (index < 0 || index > 3 || index == _homeSectionIndex)
+                return;
+
+            _homeSectionIndex = index;
+
+            // 四张卡共用同一组列，只有当前卡占满剩余宽度
+            var columns = new ColumnDefinition[] { HomeCol0, HomeCol1, HomeCol2, HomeCol3 };
+            var cards = new Border[] { HomeCard0, HomeCard1, HomeCard2, HomeCard3 };
+            var collapsedViews = new Grid[] { HomeCard0Collapsed, HomeCard1Collapsed, HomeCard2Collapsed, HomeCard3Collapsed };
+            var expandedViews = new ScrollViewer[] { HomeCard0Expanded, HomeCard1Expanded, HomeCard2Expanded, HomeCard3Expanded };
+
+            for (int i = 0; i < columns.Length; i++)
+            {
+                columns[i].Width = i == index
+                    ? new GridLength(1, GridUnitType.Star)
+                    : new GridLength(64);
+
+                collapsedViews[i].Visibility = i == index ? Visibility.Collapsed : Visibility.Visible;
+                expandedViews[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
+
+                // 展开卡保持普通描边，收起卡恢复默认样式
+                cards[i].ClearValue(Border.BorderBrushProperty);
+                cards[i].ClearValue(Border.BackgroundProperty);
+            }
+
+            HomePageBadge.Text = $"0{index + 1} / 04";
+
+            // 新展开的内容从右侧滑入并淡入，复刻设计稿的 cardIn 动效
+            var content = expandedViews[index];
+            content.Opacity = 0;
+
+            var translate = content.RenderTransform as TranslateTransform;
+            if (translate == null)
+            {
+                translate = new TranslateTransform();
+                content.RenderTransform = translate;
+            }
+            translate.X = 14;
+
+            content.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+            translate.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(14, 0, TimeSpan.FromMilliseconds(320))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+        }    }
 }
