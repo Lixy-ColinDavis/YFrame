@@ -6,10 +6,6 @@
 
         <ResourceDictionary>
 
-            <!-- 菜单下拉阴影 -->
-            <DropShadowEffect x:Key="MenuShadow" BlurRadius="28" ShadowDepth="8"
-                              Opacity="0.4" Color="#FF000000"/>
-
             <!-- ============================================================ -->
             <!-- 菜单栏：34px 高，圆角悬停，下拉为卡片式浮层                    -->
             <!-- ============================================================ -->
@@ -54,13 +50,12 @@
                                            PopupAnimation="Fade"
                                            VerticalOffset="4">
                                         <Border x:Name="SubMenuBorder"
-                                                Background="{DynamicResource PanelBrush}"
+                                                Background="{DynamicResource MenuPanelBrush}"
                                                 BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="10"
                                                 Padding="5"
-                                                MinWidth="184"
-                                                Effect="{StaticResource MenuShadow}">
+                                                MinWidth="184">
                                             <ScrollViewer x:Name="SubMenuScrollViewer"
                                                           Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
                                                 <ItemsPresenter x:Name="ItemsPresenter"
@@ -283,7 +278,7 @@
 
             <!-- 工具提示：与卡片风格一致 -->
             <Style TargetType="{x:Type ToolTip}">
-                <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource MenuPanelBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>

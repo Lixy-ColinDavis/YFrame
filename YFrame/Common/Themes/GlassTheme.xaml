@@ -14,6 +14,10 @@
     <SolidColorBrush x:Key="BackgroundBrush" Color="#00000000"/>
     <SolidColorBrush x:Key="TitleBarBrush" Color="#14FFFFFF"/>
     <SolidColorBrush x:Key="MenuBarBrush" Color="#0DFFFFFF"/>
+    <!-- 顶部菜单栏专用底色：比侧边栏更不透明，保证文字可读 -->
+    <SolidColorBrush x:Key="TopBarBrush" Color="#E61A1033"/>
+    <!-- 菜单/下拉浮层专用底色 -->
+    <SolidColorBrush x:Key="MenuPanelBrush" Color="#F21E1638"/>
     <SolidColorBrush x:Key="ToolWindowBrush" Color="#12FFFFFF"/>
     <SolidColorBrush x:Key="WindowBorderBrush" Color="#33FFFFFF"/>
 

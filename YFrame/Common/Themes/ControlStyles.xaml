@@ -361,16 +361,12 @@
                                PopupAnimation="Fade"
                                VerticalOffset="4">
                             <Border x:Name="DropDownBorder"
-                                    Background="{DynamicResource PanelBrush}"
+                                    Background="{DynamicResource MenuPanelBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1" CornerRadius="10"
                                     Padding="4"
                                     MinWidth="{TemplateBinding ActualWidth}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="24" ShadowDepth="6"
-                                                      Opacity="0.35" Color="#FF000000"/>
-                                </Border.Effect>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                 </ScrollViewer>

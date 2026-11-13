@@ -198,7 +198,7 @@
 
                 <!-- ================= 菜单栏 ================= -->
                 <Border DockPanel.Dock="Top" Height="34"
-                        Background="{DynamicResource MenuBarBrush}"
+                        Background="{DynamicResource TopBarBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1">
                     <Menu DockPanel.Dock="Left" Background="Transparent"
@@ -208,7 +208,6 @@
                             <MenuItem Header="{DynamicResource key_New}" Command="{Binding NewScriptCommand}"/>
                             <MenuItem Header="{DynamicResource key_Open}" Command="{Binding OpenScriptCommand}"/>
                             <MenuItem Header="{DynamicResource key_Save}" Command="{Binding SaveScriptCommand}"/>
-                            <Separator/>
                             <MenuItem Header="{DynamicResource key_Exit}" Command="{Binding Btn_Exit_Command}"/>
                         </MenuItem>
                         <MenuItem Header="{DynamicResource key_Edit}"/>

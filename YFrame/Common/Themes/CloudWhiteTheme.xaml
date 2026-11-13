@@ -13,6 +13,10 @@
     <SolidColorBrush x:Key="BackgroundBrush" Color="#FFF7F9FD"/>
     <SolidColorBrush x:Key="TitleBarBrush" Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="MenuBarBrush" Color="#FFFFFFFF"/>
+    <!-- 顶部菜单栏专用底色：比侧边栏更不透明，保证文字可读 -->
+    <SolidColorBrush x:Key="TopBarBrush" Color="#FFFFFFFF"/>
+    <!-- 菜单/下拉浮层专用底色 -->
+    <SolidColorBrush x:Key="MenuPanelBrush" Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="ToolWindowBrush" Color="#FFF7F9FD"/>
     <!-- 窗口外框透明：浅色主题下避免关闭按钮悬停时出现白色描边，边缘由阴影区分 -->
     <SolidColorBrush x:Key="WindowBorderBrush" Color="#00000000"/>
