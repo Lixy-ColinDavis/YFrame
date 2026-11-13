@@ -305,8 +305,8 @@
             </Style>
 
             <ResourceDictionary.MergedDictionaries>
-                <!-- 默认加载深色主题 -->
-                <ResourceDictionary Source="Common/Themes/DarkGrayTheme.xaml"/>
+                <!-- 默认加载暗夜科技主题 -->
+                <ResourceDictionary Source="Common/Themes/NightTechTheme.xaml"/>
                 <ResourceDictionary Source="Common/Themes/ControlStyles.xaml"/>
                 <ResourceDictionary Source="Common/Language/zh-CN.xaml"/>
             </ResourceDictionary.MergedDictionaries>

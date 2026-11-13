@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace YF_Manager
@@ -131,6 +131,16 @@ namespace YF_Manager
                     return Math.Clamp(scale, 100, 200) / 100.0;
                 return 1.25;
             }
+        }
+
+        /// <summary>
+        /// 当前主题文件相对路径（下次启动时恢复）
+        /// 例如 Common/Themes/NightTechTheme.xaml
+        /// </summary>
+        public static string Theme
+        {
+            get => Get(@"Common/Themes/NightTechTheme.xaml");
+            set => Set(value);
         }
 
         /// <summary>

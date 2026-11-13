@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-10-30 — 新增 YF_Paint（截图标注）插件；托盘右键菜单新增"隐藏到托盘"选项；屏幕缩放设置移至框架工具栏（OCR 插件移除相关代码）；YF_Paint 插件中英双语文案（key_Paint_*）
+> **最后更新：** 2026-11-13 — 主窗口/插件管理器界面按设计稿重构；四套主题更名为暗夜科技、云白简约、复古终端、玻璃拟态，并统一图表/图标资源键
 
 ---
 
@@ -74,7 +74,7 @@ YFrame/
 │   ├── Common/
 │   │   ├── Images/Logo.png             # 应用 Logo
 │   │   ├── Images/Logo.ico             # 应用图标（.ico 格式）
-│   │   ├── Themes/                     # 四套主题 XAML（Dark/Cream/LightBlue/Green） + ControlStyles
+│   │   ├── Themes/                     # 四套主题 XAML（NightTech/CloudWhite/RetroTerminal/Glass） + ControlStyles
 │   │   ├── Tools/ScreenCaptureHelper.cs # 屏幕区域截图帮助类（P/Invoke BitBlt，供取色器框选截图）
 │   │   └── Language/                   # zh-CN.xaml + en-US.xaml
 │   └── Properties/                     # 标准 WPF 配置
@@ -516,10 +516,10 @@ push/PR to main → 自动触发
 ### 主题（4套）
 | 主题 | 文件 | 主色调 |
 |------|------|--------|
-| 炭火暗夜 | `DarkGrayTheme.xaml` | 背景 #1E1E1E，强调色 #0078D4 |
-| 素火明昼 | `CreamWhiteTheme.xaml` | 背景 #FFF5F5F8，强调色 #D94A1A |
-| 冰火深蓝 | `LightBlueTheme.xaml` | 背景 #0B1526，强调色 #00CCF0 |
-| 翠火青绿 | `GreenWhiteTheme.xaml` | 背景 #0A1410，强调色 #00E676 |
+| 暗夜科技 | `NightTechTheme.xaml` | 背景 #0D1220，强调色 #22D3EE（深蓝 + 青色霓虹） |
+| 云白简约 | `CloudWhiteTheme.xaml` | 背景 #FFFFFF / #F7F9FD，强调色 #4F46E5（浅色 + 靛蓝） |
+| 复古终端 | `RetroTerminalTheme.xaml` | 背景 #050B06，强调色 #39FF6A（CRT 绿磷屏） |
+| 玻璃拟态 | `GlassTheme.xaml` | 背景紫粉渐变 #2B1055 → #752D8F，强调色 #C084FC |
 
 全局控件样式：`ControlStyles.xaml`（Button/TextBox/CheckBox/ComboBox/Label）
 
@@ -528,6 +528,8 @@ push/PR to main → 自动触发
 - `en-US.xaml` English
 
 切换方式：`App.ChangeLanguage("zh"/"en")` 或 `App.ChangeTheme("path")`，通过 `MergedDictionaries` 替换实现。主题/语言切换会通过 `YF_Messenger` 发送 `ThemeChangedMessage` / `LanguageChangedMessage`。
+
+**主题持久化：** 菜单切换主题时写入 `Config/config.conf` 的 `Theme` 键（相对路径）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前恢复，配置缺失或主题名非法时回退到默认的暗夜科技主题。
 
 ---
 
@@ -551,6 +553,7 @@ push/PR to main → 自动触发
 | 插件管理器地址 | http://127.0.0.1 | Config.cs |
 | PaddleOCR 路径 | `plugins\YF_ScreenOCRTranslate\inference` | Config.cs |
 | 屏幕缩放 | 125（100-200，取色器/截图共用） | Config.cs |
+| 当前主题 | `Common/Themes/NightTechTheme.xaml` | Config.cs（`Theme` 键） |
 | 窗口尺寸 | 800 x 1200 | MainWindow.xaml |
 | 窗口标题 | "YF Tools" | MainWindow.xaml |
 | C# 可空 | enabled | .csproj |
@@ -721,7 +724,6 @@ push/PR to main → 自动触发
    - `.github/workflows/ci.yml` 和 `.gitlab-ci.yml` 二选一使用，gitcode.com 同时支持两种格式
    - WPF 项目需要 Windows Runner，gitcode.com 共享 runner 可能仅提供 Linux，需自行注册
  9. **已知问题：**
-    - `DarkGrayTheme.xaml` 缺少图表相关资源键（其他三个主题有）
     - 目录名 `Plugins` vs `plugins` 大小写不一致
     - YF_AIHelper: KeyDown 未绑定到 XAML（Enter/Ctrl+Enter 不生效）
     - YF_HttpServer: `_YF_FileHelper` 未初始化（OpenFolderCommand 空引用）

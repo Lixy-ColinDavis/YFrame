@@ -1,4 +1,4 @@
-﻿using LiveCharts.Defaults;
+using LiveCharts.Defaults;
 using LiveCharts;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -462,15 +462,21 @@ namespace YFrame
                 SetThemeCommand = new YF_RelayCommand<string>(themePath =>
                 {
                     var fileName = Path.GetFileNameWithoutExtension(themePath);
-                    var themeDisplayName = fileName switch
+                    // 主题显示名从当前语言字典读取，避免切换语言后日志仍显示中文
+                    string? themeKey = fileName switch
                     {
-                        "DarkGrayTheme" => "炭火暗夜",
-                        "CreamWhiteTheme" => "素火明昼",
-                        "LightBlueTheme" => "冰火深蓝",
-                        "GreenWhiteTheme" => "翠火青绿",
-                        _ => fileName
+                        "NightTechTheme" => "key_NightTech theme",
+                        "CloudWhiteTheme" => "key_CloudWhite theme",
+                        "RetroTerminalTheme" => "key_RetroTerminal theme",
+                        "GlassTheme" => "key_Glass theme",
+                        _ => null
                     };
+                    var themeDisplayName = themeKey != null
+                        ? Application.Current?.TryFindResource(themeKey) as string ?? fileName
+                        : fileName;
                     App.ChangeTheme(themePath);
+                    // 记录主题到本地配置，下次启动由 App.ApplySavedTheme() 恢复
+                    Config.Theme = themePath.Replace('\\', '/');
                     _logger.LogInfo("主题切换-" + themeDisplayName);
                     _messenger.Send(new ThemeChangedMessage(themeDisplayName, themePath));
                 });

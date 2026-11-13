@@ -245,7 +245,7 @@ I_YF_Detail                  I_YF_Command
 ```
 Application.Current.Resources.MergedDictionaries
 │
-├── DarkGrayTheme.xaml  ←── 替换 ──→ CreamWhiteTheme / LightBlueTheme / GreenWhiteTheme
+├── NightTechTheme.xaml  ←── 替换 ──→ CloudWhiteTheme / RetroTerminalTheme / GlassTheme
 ├── zh-CN.xaml          ←── 替换 ──→ en-US.xaml
 └── ControlStyles.xaml  (全局控件样式，不随主题切换)
 ```
@@ -264,7 +264,7 @@ YFrame/
 ├── README.md                           # 项目简要说明
 │
 ├── YFrame/                             # 主框架项目 (WPF Application)
-│   ├── App.xaml                        # 应用启动配置（默认暗色主题 + 中文）
+│   ├── App.xaml                        # 应用启动配置（默认暗夜科技主题 + 中文）
 │   ├── App.xaml.cs                     # 入口逻辑 + ChangeTheme() / ChangeLanguage()
 │   ├── MainWindow.xaml                 # 主窗口布局（三栏 DockPanel + Menu + StatusBar）
 │   ├── MainWindow.xaml.cs              # 主窗口代码后置（设置 DataContext）
@@ -294,10 +294,10 @@ YFrame/
 │   │   ├── Images/
 │   │   │   └── Logo.png               # 应用 Logo
 │   │   ├── Themes/
-│   │   │   ├── DarkGrayTheme.xaml      # 炭火暗夜（VS Code 暗色风，#1E1E1E）
-│   │   │   ├── CreamWhiteTheme.xaml    # 素火明昼（暖白柔和，#FFF5F5F8）
-│   │   │   ├── LightBlueTheme.xaml     # 冰火深蓝（深海蓝，#0B1526）
-│   │   │   ├── GreenWhiteTheme.xaml    # 翠火青绿（暗绿基色，#0A1410）
+│   │   │   ├── NightTechTheme.xaml      # 暗夜科技（深蓝 + 青色霓虹，#0D1220）
+│   │   │   ├── CloudWhiteTheme.xaml    # 云白简约（浅色 + 靛蓝，#FFFFFF / #F7F9FD）
+│   │   │   ├── GlassTheme.xaml     # 玻璃拟态（紫粉渐变 + 毛玻璃，#2B1055 → #752D8F）
+│   │   │   ├── RetroTerminalTheme.xaml    # 复古终端（CRT 绿磷屏，#050B06）
 │   │   │   └── ControlStyles.xaml      # 全局控件统一样式（Button / TextBox / CheckBox / ComboBox / Label）
 │   │   ├── Tools/ScreenCaptureHelper.cs # 屏幕区域截图帮助类（P/Invoke BitBlt，供取色器框选截图）
 │   │   └── Language/
@@ -560,22 +560,24 @@ App.ChangeTheme(themePath)
     └── 3. 加载新字典 → Application.Current.Resources.MergedDictionaries.Add(newTheme)
 ```
 
-框架提供四套主题，启动时默认加载 `DarkGrayTheme.xaml` + `ControlStyles.xaml`：
+框架提供四套主题，启动时默认加载 `NightTechTheme.xaml` + `ControlStyles.xaml`：
 
-| 主题 | 文件 | 中文名 | 主色调 |
+| 主题 | 文件 | 英文名 | 主色调 |
 |------|------|--------|--------|
-| 炭火暗夜 | `DarkGrayTheme.xaml` | Ember Night | 背景 `#1E1E1E`，强调色 `#0078D4`（VS Code 风格暗色） |
-| 素火明昼 | `CreamWhiteTheme.xaml` | Plain Fire | 背景 `#FFF5F5F8`，强调色 `#D94A1A`（暖橙红） |
-| 冰火深蓝 | `LightBlueTheme.xaml` | Ice Deep Blue | 背景 `#0B1526`，强调色 `#00CCF0`（冰蓝） |
-| 翠火青绿 | `GreenWhiteTheme.xaml` | Emerald Fire | 背景 `#0A1410`，强调色 `#00E676`（翠绿） |
+| 暗夜科技 | `NightTechTheme.xaml` | Night Tech | 背景 `#0D1220`，强调色 `#22D3EE`（深蓝 + 青色霓虹） |
+| 云白简约 | `CloudWhiteTheme.xaml` | Cloud White | 背景 `#FFFFFF` / `#F7F9FD`，强调色 `#4F46E5`（浅色 + 靛蓝） |
+| 复古终端 | `RetroTerminalTheme.xaml` | Retro Terminal | 背景 `#050B06`，强调色 `#39FF6A`（CRT 绿磷屏） |
+| 玻璃拟态 | `GlassTheme.xaml` | Glassmorphism | 背景紫粉渐变 `#2B1055 → #752D8F`，强调色 `#C084FC` |
 
 **全局控件统一样式（`ControlStyles.xaml`）：**
 - **Button** — 圆角边框 + 悬停透明度变化
 - **TextBox** — 聚焦时显示主题强调色边框
 - **Label** — 统一字体与颜色跟随主题
-- **ScrollBar** — 5px 极窄滚动条，透明轨道 + 强调色滑块 + 悬停动画
+- **ScrollBar** — 8px 极窄滚动条，透明轨道 + 强调色滑块 + 悬停动画
 
 XAML 中通过 `{DynamicResource key}` 引用资源，切换时所有绑定控件自动刷新。
+
+**主题持久化：** 菜单切换主题时会将相对路径写入 `Config/config.conf` 的 `Theme` 键（例如 `Common/Themes/GlassTheme.xaml`）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前读取并恢复，配置缺失或名称非法时回退到默认的暗夜科技主题。
 
 #### 4.4.2 多语言系统
 
@@ -1092,7 +1094,7 @@ Ctrl+Y（框架热键）→ ExecuteCommand("Hotkey")
 Application.Startup
     │
     ├── 1. App 构造函数
-    │      · 加载 DarkGrayTheme.xaml（默认暗色主题）+ ControlStyles.xaml（全局控件样式）
+    │      · 加载 NightTechTheme.xaml（默认暗夜科技主题）+ ControlStyles.xaml（全局控件样式）
     │      · 加载 zh-CN.xaml（默认中文）
     │
     ├── 2. MainWindow 构造函数

@@ -37,6 +37,9 @@ namespace YFrame
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
 
+            // 恢复上次选择的主题（在创建主窗口前应用，避免启动时闪回默认主题）
+            ApplySavedTheme();
+
             // 构建 DI 容器
             var services = new ServiceCollection();
             ConfigureServices(services);
@@ -48,6 +51,52 @@ namespace YFrame
             // 从 DI 容器获取主窗口（ViewModel 通过属性注入已完成初始化）
             var mainWindow = provider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+        }
+
+        /// <summary>
+        /// 支持的主题名（与 Common/Themes 下的资源文件名一致）
+        /// </summary>
+        private static readonly string[] SupportedThemes =
+        {
+            "NightTechTheme", "CloudWhiteTheme", "RetroTerminalTheme", "GlassTheme"
+        };
+
+        /// <summary>
+        /// 从本地配置读取上次选择的主题并应用；配置缺失或主题名非法时保持默认主题
+        /// </summary>
+        private static void ApplySavedTheme()
+        {
+            try
+            {
+                string saved = Config.Theme;
+                if (string.IsNullOrWhiteSpace(saved))
+                    return;
+
+                // 兼容旧版主题文件名，避免历史配置导致启动回退
+                string themeName = Path.GetFileNameWithoutExtension(saved.Trim());
+                themeName = themeName switch
+                {
+                    "DarkGrayTheme" => "NightTechTheme",
+                    "CreamWhiteTheme" => "CloudWhiteTheme",
+                    "LightBlueTheme" => "GlassTheme",
+                    "GreenWhiteTheme" => "RetroTerminalTheme",
+                    _ => themeName
+                };
+
+                if (Array.IndexOf(SupportedThemes, themeName) < 0)
+                {
+                    YF_Manager_Main.logger.LogInfo("启动恢复主题失败：未知主题 " + saved);
+                    return;
+                }
+
+                ChangeTheme($"Common/Themes/{themeName}.xaml");
+                YF_Manager_Main.logger.LogInfo("启动恢复主题：" + themeName);
+            }
+            catch (Exception ex)
+            {
+                // 主题恢复失败不应阻断启动，回退到 App.xaml 中的默认主题
+                YF_Manager_Main.logger.ErrorInfo("ApplySavedTheme", ex.Message);
+            }
         }
 
         /// <summary>
@@ -185,7 +234,7 @@ namespace YFrame
         /// <summary>
         /// 切换主题
         /// </summary>
-        /// <param name="themePath">主题文件相对路径，如 "Common/Themes/DarkGrayTheme.xaml"</param>
+        /// <param name="themePath">主题文件相对路径，如 "Common/Themes/NightTechTheme.xaml"</param>
         public static void ChangeTheme(string themePath)
         {
             try

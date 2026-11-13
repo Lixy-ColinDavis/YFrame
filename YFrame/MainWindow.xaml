@@ -217,14 +217,14 @@
                             <MenuItem Header="{DynamicResource key_Right sidebar}" IsCheckable="True" IsChecked="True"
                                       Command="{Binding ToggleRightToolWindowCommand}"/>
                             <MenuItem Header="{DynamicResource key_FullScreen}" Command="{Binding ToggleFullScreenCommand}"/>
-                            <MenuItem Header="{DynamicResource key_DarkGray theme}" Command="{Binding SetThemeCommand}"
-                                      CommandParameter="Common/Themes/DarkGrayTheme.xaml"/>
-                            <MenuItem Header="{DynamicResource key_CreamWhite theme}" Command="{Binding SetThemeCommand}"
-                                      CommandParameter="Common/Themes/CreamWhiteTheme.xaml"/>
-                            <MenuItem Header="{DynamicResource key_LightBlue theme}" Command="{Binding SetThemeCommand}"
-                                      CommandParameter="Common/Themes/LightBlueTheme.xaml"/>
-                            <MenuItem Header="{DynamicResource key_GreenWhite theme}" Command="{Binding SetThemeCommand}"
-                                      CommandParameter="Common/Themes/GreenWhiteTheme.xaml"/>
+                            <MenuItem Header="{DynamicResource key_NightTech theme}" Command="{Binding SetThemeCommand}"
+                                      CommandParameter="Common/Themes/NightTechTheme.xaml"/>
+                            <MenuItem Header="{DynamicResource key_CloudWhite theme}" Command="{Binding SetThemeCommand}"
+                                      CommandParameter="Common/Themes/CloudWhiteTheme.xaml"/>
+                            <MenuItem Header="{DynamicResource key_RetroTerminal theme}" Command="{Binding SetThemeCommand}"
+                                      CommandParameter="Common/Themes/RetroTerminalTheme.xaml"/>
+                            <MenuItem Header="{DynamicResource key_Glass theme}" Command="{Binding SetThemeCommand}"
+                                      CommandParameter="Common/Themes/GlassTheme.xaml"/>
                         </MenuItem>
                         <MenuItem Header="{DynamicResource key_Language}">
                             <MenuItem Header="中文" Command="{Binding ToggleChineseCommand}"/>

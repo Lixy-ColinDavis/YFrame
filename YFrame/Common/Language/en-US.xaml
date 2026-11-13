@@ -17,10 +17,10 @@
     <sys:String x:Key="key_Exit">Exit</sys:String>
     <sys:String x:Key="key_Left sidebar">Left Sidebar</sys:String>
     <sys:String x:Key="key_Right sidebar">Right Sidebar</sys:String>
-    <sys:String x:Key="key_DarkGray theme">Ember Night</sys:String>
-    <sys:String x:Key="key_CreamWhite theme">Plain Fire</sys:String>
-    <sys:String x:Key="key_LightBlue theme">Ice Deep Blue</sys:String>
-    <sys:String x:Key="key_GreenWhite theme">Emerald Fire</sys:String>
+    <sys:String x:Key="key_NightTech theme">Night Tech</sys:String>
+    <sys:String x:Key="key_CloudWhite theme">Cloud White</sys:String>
+    <sys:String x:Key="key_RetroTerminal theme">Retro Terminal</sys:String>
+    <sys:String x:Key="key_Glass theme">Glassmorphism</sys:String>
     <sys:String x:Key="key_About">About</sys:String>
 
     <!--抽屉-->
