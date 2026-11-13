@@ -69,8 +69,10 @@ YFrame/
 │   │   ├── RemotePluginInfo.cs         # 远程插件信息模型（插件管理器用，含下载状态）
 │   │   └── ToolItem.cs                 # 工具箱工具项模型（ID, Name, Description）
 │   ├── View/UC/
-│   │   ├── PerformanceMonitor.xaml/.cs # LiveCharts CPU/内存图表（5秒采样，30秒窗口）
+│   │   ├── PerformanceMonitor.xaml/.cs # CPU/内存卡片（自绘 Sparkline，1秒采样/60秒窗口）
 │   │   └── Toolbox/                    # 工具箱工具视图（取色器/正则测试/MD5校验 + 区域选框覆盖窗）
+│   ├── Controls/
+│   │   └── Sparkline.cs                # 自绘曲线控件（平滑曲线 + 渐变面积，无坐标轴）
 │   ├── Common/
 │   │   ├── Images/Logo.png             # 应用 Logo
 │   │   ├── Images/Logo.ico             # 应用图标（.ico 格式）
@@ -521,6 +523,8 @@ push/PR to main → 自动触发
 | 复古终端 | `RetroTerminalTheme.xaml` | 背景 #050B06，强调色 #39FF6A（CRT 绿磷屏） |
 | 玻璃拟态 | `GlassTheme.xaml` | 背景紫粉渐变 #2B1055 → #752D8F，强调色 #C084FC |
 
+**全局字体：** `DengXian`（等线）。四套主题的 `UiFontFamily` / `MonoFontFamily` 均为该字体；插件、安装器中的显式字体也已统一（Emoji 图标保留 Segoe UI Emoji 后备）。
+
 全局控件样式：`ControlStyles.xaml`（Button/TextBox/CheckBox/ComboBox/Label）
 
 ### 语言（2种）
@@ -544,8 +548,8 @@ push/PR to main → 自动触发
 | 日志文件上限 | 1MB（`1024 * 1024`） | YF_Manager_Log.cs |
 | 日志轮转上限 | 999 个文件 | YF_Manager_Log.cs |
 | UI 日志行数 | 500 行 | LogService.cs（原在 MainWindowViewModel.cs） |
-| 性能采样周期 | 5 秒 | PerformanceMonitor.cs |
-| 图表数据窗口 | 6 点（30 秒） | PerformanceMonitor.cs |
+| 性能采样周期 | 1 秒 | PerformanceMonitor.cs |
+| 图表数据窗口 | 60 点（60 秒） | PerformanceMonitor.cs |
 | 全局热键 | Ctrl+Y (MOD_CONTROL=0x0002, VK_Y=0x59) | HotkeyService.cs |
 | 热键 ID | 9001 | HotkeyService.cs |
 | TCP 端口 | 服务器 8021，客户端 8022 | Config.cs |

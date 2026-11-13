@@ -50,7 +50,7 @@
     <sys:String x:Key="key_Http_Port">端口:</sys:String>
     <sys:String x:Key="key_Http_OpenFolder">打开文件夹</sys:String>
     <sys:String x:Key="key_Http_DragHint">从资源管理器拖拽文件或目录到此处，将自动复制到文件路径目录</sys:String>
-    <sys:String x:Key="key_Http_DragPlaceholder">📥 拖拽文件到此处以上传</sys:String>
+    <sys:String x:Key="key_Http_DragPlaceholder">📥 将文件拖拽到此处上传</sys:String>
     <sys:String x:Key="key_Http_AdminHint">请在 PowerShell 管理员权限下执行</sys:String>
     <sys:String x:Key="key_Http_FirewallStep1">① 添加防火墙入站规则</sys:String>
     <sys:String x:Key="key_Http_Copy">📋 复制</sys:String>
@@ -131,6 +131,9 @@
     <!--性能监视器-->
     <sys:String x:Key="key_UsagePercent">使用率 (%)</sys:String>
     <sys:String x:Key="key_Time">时间</sys:String>
+    <sys:String x:Key="key_PerfMemory">内存</sys:String>
+    <sys:String x:Key="key_PerfUsedFormat">已用 {0} GB</sys:String>
+    <sys:String x:Key="key_PerfTotalFormat">总计 {0} GB</sys:String>
 
     <!--点击器-->
     <sys:String x:Key="key_Clicker_Title">鼠标连点器</sys:String>

@@ -1,4 +1,4 @@
-<UserControl x:Class="YFrame.Installer.Views.ProgressPage"
+﻿<UserControl x:Class="YFrame.Installer.Views.ProgressPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:YFrame.Installer.Controls"
@@ -45,7 +45,7 @@
                           VerticalScrollBarVisibility="Auto"
                           Margin="0,16,0,0" Visibility="Collapsed">
                 <TextBlock x:Name="LogText" FontSize="11"
-                           Foreground="#6E7681" FontFamily="Consolas"
+                           Foreground="#6E7681" FontFamily="DengXian"
                            TextWrapping="Wrap"/>
             </ScrollViewer>
         </StackPanel>

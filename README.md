@@ -2,7 +2,7 @@
 
 > **YFrame** — 基于 C# .NET 8.0 + WPF 的模块化桌面应用框架，采用抽屉式 IDE 风格外壳，通过反射动态加载插件，为各类开发者工具提供统一的运行平台。
 
-> **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · LiveCharts · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
+> **技术关键词：** .NET 8.0 · WPF · MVVM · AOP · Castle.Core · 插件化架构 · 反射 · 自绘 Sparkline · LLamaSharp · PaddleOCR · System.IO.Ports · System.Net.Sockets
 >
 > **开发时间：** 2025-08-18  至 2026-07-30
 ---
@@ -34,7 +34,7 @@
 │                      表示层 (Presentation)                      │
 │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
 │  │  MainWindow  │  │PerformanceMonitor│  │  插件 UserControl │  │
-│  │  (Shell 窗口)│  │  (LiveCharts 图表)│  │  (动态加载的 UI)  │  │
+│  │  (Shell 窗口)│  │  (Sparkline 曲线)│  │  (动态加载的 UI)  │  │
 │  └──────┬───────┘  └────────┬─────────┘  └────────┬─────────┘   │
 │         │                   │                     │             │
 ├─────────┼───────────────────┼─────────────────────┼─────────────┤
@@ -118,7 +118,7 @@ plugins/                       所有插件项目
 | **插件选中指示** | 选中插件以左侧强调色竖线指示（无背景高亮） |
 | **多标签侧面板切换** | 左侧面板（插件列表 / 工具箱）和右侧面板（日志 / 参数）支持标签页切换 |
 | **全局极窄滚动条** | 5px 宽滚动条，透明轨道 + 主题强调色滑块 + 悬停动画 |
-| **性能监视器边框** | LiveCharts 图表区域带边框视觉分隔 |
+| **性能监视器曲线** | 自绘 Sparkline 平滑曲线 + 渐变面积，无坐标轴/图例 |
 | **全局热键监控** | 框架统一管理 Ctrl+Y 热键，工具栏一键启停 + 状态栏状态显示 |
 | **日志面板管理** | 支持清除日志面板、一键打开日志文件夹 |
 | **工具箱（内置小工具）** | 左侧工具箱面板提供内置工具，点击后在主工作区叠加打开（不清空插件区）：屏幕取色器（框选截图 → 点击缩略图取色，屏幕缩放 100-200 可调）、正则表达式测试（选项 + 匹配结果，多行锚点自动适配换行）、MD5 文件校验（单文件哈希 / 双文件版本对比） |
@@ -288,8 +288,10 @@ YFrame/
 │   ├── View/
 │   │   ├── PluginManagerWindow.xaml/.cs  # 插件管理器窗口（连接服务器 + 下载/安装插件）
 │   │   └── UC/
-│   │       ├── PerformanceMonitor.xaml/.cs # CPU/内存实时监控图表（LiveCharts）
+│   │       ├── PerformanceMonitor.xaml/.cs # CPU/内存实时监控卡片（自绘 Sparkline）
 │   │       └── Toolbox/                  # 工具箱工具视图（取色器/正则测试/MD5校验 + 区域选框覆盖窗）
+│   ├── Controls/
+│   │   └── Sparkline.cs                # 自绘曲线控件（平滑曲线 + 渐变面积，无第三方图表库）
 │   ├── Common/
 │   │   ├── Images/
 │   │   │   └── Logo.png               # 应用 Logo
@@ -569,6 +571,8 @@ App.ChangeTheme(themePath)
 | 复古终端 | `RetroTerminalTheme.xaml` | Retro Terminal | 背景 `#050B06`，强调色 `#39FF6A`（CRT 绿磷屏） |
 | 玻璃拟态 | `GlassTheme.xaml` | Glassmorphism | 背景紫粉渐变 `#2B1055 → #752D8F`，强调色 `#C084FC` |
 
+**全局字体：** `DengXian`（等线）。四套主题的 `UiFontFamily` 与 `MonoFontFamily` 均指向该字体，主框架、插件管理器、安装器及各插件中显式声明的字体也已统一为 DengXian；Emoji 图标保留 Segoe UI Emoji 作为后备。
+
 **全局控件统一样式（`ControlStyles.xaml`）：**
 - **Button** — 圆角边框 + 悬停透明度变化
 - **TextBox** — 聚焦时显示主题强调色边框
@@ -602,9 +606,9 @@ XAML 中通过 `{DynamicResource key}` 引用资源，切换时所有绑定控�
 
 #### 4.5.2 渲染机制
 
-- **图表库：** LiveCharts.Wpf `CartesianChart`（折线图）
-- **采样周期：** 5 秒/次（`ThreadPool` 后台线程 + `Dispatcher.Invoke` 回到 UI 线程）
-- **数据窗口：** 滚动保留最近 30 秒（6 个数据点）
+- **图表控件：** 自绘 `Sparkline`（`Controls/Sparkline.cs`），Catmull-Rom 平滑曲线 + 渐变面积，无坐标轴/图例
+- **采样周期：** 1 秒/次（`DispatcherTimer`，UI 线程）
+- **数据窗口：** 滚动保留最近 60 个点（60 秒），CPU 数据先做指数平滑再绘制
 - **状态栏推送：** 通过静态委托 `dlg_Show_Cpu_Memory` 同步更新底部状态栏文字
 
 ### 4.6 命令与事件通信
@@ -1050,7 +1054,6 @@ Ctrl+Y（框架热键）→ ExecuteCommand("Hotkey")
 | 包名 | 版本 | 所属项目 | 用途 |
 |------|------|----------|------|
 | **Castle.Core** | 5.2.1 | YF_Manager | AOP 动态代理，实现 `LogInterceptor` |
-| **LiveCharts.Wpf** | 0.9.7 | YFrame | CPU/内存实时折线图 |
 | **System.Management** | 9.0.8 | YFrame | WMI 查询系统物理内存 |
 
 ### 6.3 插件 NuGet 依赖

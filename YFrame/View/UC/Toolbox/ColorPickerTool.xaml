@@ -1,4 +1,4 @@
-<UserControl x:Class="YFrame.View.UC.Toolbox.ColorPickerTool"
+﻿<UserControl x:Class="YFrame.View.UC.Toolbox.ColorPickerTool"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -120,7 +120,7 @@
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                     Background="{Binding Brush}"/>
                             <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Hex}" FontFamily="Consolas" FontSize="12"
+                                <TextBlock Text="{Binding Hex}" FontFamily="DengXian" FontSize="12"
                                            Foreground="{DynamicResource TextBrush}"/>
                                 <TextBlock Text="{Binding Position}" FontSize="10"
                                            Foreground="{DynamicResource TreeItemSecondaryText}"/>

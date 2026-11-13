@@ -1,5 +1,3 @@
-using LiveCharts.Defaults;
-using LiveCharts;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;

@@ -3,12 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+             xmlns:controls="clr-namespace:YFrame.Controls"
              mc:Ignorable="d"
-             d:DesignHeight="240" d:DesignWidth="280"
+             d:DesignHeight="260" d:DesignWidth="280"
              FontFamily="{DynamicResource UiFontFamily}">
-    <Grid Margin="12,8,12,10">
+    <Grid Margin="12,8,12,8">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -24,57 +25,63 @@
                         VerticalAlignment="Bottom">
                 <TextBlock x:Name="Txt_CpuValue" Text="--"
                            FontFamily="{DynamicResource MonoFontFamily}"
-                           FontSize="21" FontWeight="Bold"
+                           FontSize="24" FontWeight="Bold"
                            Foreground="{DynamicResource TextBrush}"/>
-                <TextBlock Text="%" FontSize="10.5" Margin="3,0,0,2"
+                <TextBlock Text="%" FontSize="10.5" Margin="4,0,0,3"
                            Foreground="{DynamicResource SubtleTextBrush}"
                            VerticalAlignment="Bottom"/>
             </StackPanel>
         </Grid>
 
-        <!-- CPU 曲线（无坐标轴标签，保持设计稿的 sparkline 观感） -->
-        <lvc:CartesianChart Grid.Row="1" Height="62" Margin="0,6,0,0"
-                            Series="{Binding SeriesCollection}"
-                            LegendLocation="None"
-                            Background="Transparent"
-                            Foreground="{DynamicResource SubtleTextBrush}"
-                            DisableAnimations="True">
-            <lvc:CartesianChart.AxisY>
-                <lvc:Axis MinValue="0" MaxValue="100"
-                          ShowLabels="False"
-                          FontSize="8"
-                          Foreground="{DynamicResource SubtleTextBrush}"/>
-            </lvc:CartesianChart.AxisY>
-            <lvc:CartesianChart.AxisX>
-                <lvc:Axis Labels="{Binding Labels}"
-                          ShowLabels="False"
-                          FontSize="8"
-                          Foreground="{DynamicResource SubtleTextBrush}"/>
-            </lvc:CartesianChart.AxisX>
-        </lvc:CartesianChart>
+        <!-- CPU 走势：自绘平滑曲线 + 渐变面积，无坐标轴 -->
+        <Border Grid.Row="1" Height="70" Margin="0,6,0,0"
+                Background="{DynamicResource PanelAltBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="1">
+            <controls:Sparkline x:Name="Spark_Cpu"
+                                Maximum="100"
+                                Stroke="{DynamicResource ChartLine1}"
+                                StrokeThickness="2"
+                                ShowGlow="True"
+                                ShowEndPoint="True"/>
+        </Border>
 
         <!-- 内存数值 -->
-        <Grid Grid.Row="2" Margin="0,6,0,0">
-            <TextBlock Text="内存" FontSize="10.5" FontWeight="Bold"
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <TextBlock Text="{DynamicResource key_PerfMemory}" FontSize="10.5" FontWeight="Bold"
                        Foreground="{DynamicResource SubtleTextBrush}"
                        VerticalAlignment="Bottom"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Bottom">
                 <TextBlock x:Name="Txt_MemUsed" Text="--"
                            FontFamily="{DynamicResource MonoFontFamily}"
-                           FontSize="17" FontWeight="Bold"
+                           FontSize="18" FontWeight="Bold"
                            Foreground="{DynamicResource TextBrush}"/>
-                <TextBlock x:Name="Txt_MemTotal" Text=""
+                <TextBlock x:Name="Txt_MemTotal" Text="/ -- GB"
                            FontFamily="{DynamicResource MonoFontFamily}"
-                           FontSize="10" Margin="4,0,0,2"
+                           FontSize="10" Margin="4,0,0,3"
                            Foreground="{DynamicResource SubtleTextBrush}"
                            VerticalAlignment="Bottom"/>
             </StackPanel>
         </Grid>
 
         <!-- 内存占用条 -->
-        <ProgressBar Grid.Row="3" Height="6" Margin="0,7,0,0"
-                     Minimum="0" Maximum="100"
-                     x:Name="Bar_Mem" Value="0"/>
+        <ProgressBar x:Name="Bar_Mem" Grid.Row="3" Height="6" Margin="0,6,0,0"
+                     Minimum="0" Maximum="100" Value="0"/>
+
+        <!-- 已用 / 总计 -->
+        <Grid Grid.Row="4" Margin="0,5,0,0">
+            <TextBlock x:Name="Txt_MemUsedSummary" Text=""
+                       FontFamily="{DynamicResource MonoFontFamily}"
+                       FontSize="10"
+                       Foreground="{DynamicResource SubtleTextBrush}"/>
+            <TextBlock x:Name="Txt_MemTotalSummary" Text=""
+                       FontFamily="{DynamicResource MonoFontFamily}"
+                       FontSize="10"
+                       Foreground="{DynamicResource SubtleTextBrush}"
+                       HorizontalAlignment="Right"/>
+        </Grid>
     </Grid>
 </UserControl>

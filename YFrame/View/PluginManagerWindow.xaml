@@ -137,11 +137,14 @@
                                        ToolTip="{Binding StatusText}"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                    ToolTipService.IsEnabled="False">
                             <Button Style="{StaticResource TitleBarButton}" Content="─"
-                                    Click="Minimize_Click" ToolTip="{DynamicResource key_Minimize}"/>
+                                    Click="Minimize_Click"
+                                    AutomationProperties.Name="{DynamicResource key_Minimize}"/>
                             <Button Style="{StaticResource TitleBarCloseButton}" Content="✕"
-                                    Click="Close_Click" ToolTip="{DynamicResource key_Close}"/>
+                                    Click="Close_Click"
+                                    AutomationProperties.Name="{DynamicResource key_Close}"/>
                         </StackPanel>
                     </Grid>
                 </Border>

@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- ============================================================
          风格三：复古终端（CRT 绿磷屏 + 扫描线）
@@ -60,8 +60,8 @@
     <SolidColorBrush x:Key="LogSourceBrush" Color="#FF39FF6A"/>
 
     <!-- 字体与阴影 -->
-    <FontFamily x:Key="UiFontFamily">Consolas</FontFamily>
-    <FontFamily x:Key="MonoFontFamily">Consolas</FontFamily>
+    <FontFamily x:Key="UiFontFamily">DengXian</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">DengXian</FontFamily>
     <DropShadowEffect x:Key="WindowShadow" BlurRadius="60" ShadowDepth="10"
                       Opacity="0.85" Color="#FF000000" Direction="270"/>
 

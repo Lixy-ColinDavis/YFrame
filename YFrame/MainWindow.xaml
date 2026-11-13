@@ -167,14 +167,15 @@
                             </Border.InputBindings>
                         </Border>
 
-                        <!-- 窗口控制按钮 -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <!-- 窗口控制按钮：禁用悬停提示，避免浮层遮住按钮边缘 -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                    ToolTipService.IsEnabled="False">
                             <Button Style="{StaticResource TitleBarButton}" Content="─"
                                     Command="{Binding Btn_Minimize_Command}"
-                                    ToolTip="{DynamicResource key_Minimize}"/>
+                                    AutomationProperties.Name="{DynamicResource key_Minimize}"/>
                             <Button Style="{StaticResource TitleBarButton}"
                                     Command="{Binding ToggleFullScreenCommand}"
-                                    ToolTip="{DynamicResource key_FullScreenTooltip}">
+                                    AutomationProperties.Name="{DynamicResource key_FullScreenTooltip}">
                                 <TextBlock FontSize="14">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -190,7 +191,7 @@
                             </Button>
                             <Button Style="{StaticResource TitleBarCloseButton}" Content="✕"
                                     Command="{Binding Btn_Exit_Command}"
-                                    ToolTip="{DynamicResource key_Close}"/>
+                                    AutomationProperties.Name="{DynamicResource key_Close}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -661,7 +662,7 @@
                             Visibility="{Binding RightVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="1.6*"/>
+                                <RowDefinition Height="1.45*"/>
                                 <RowDefinition Height="10"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>

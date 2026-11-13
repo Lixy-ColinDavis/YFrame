@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- ============================================================
          风格二：云白简约（浅色 + 靛蓝）
@@ -14,7 +14,8 @@
     <SolidColorBrush x:Key="TitleBarBrush" Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="MenuBarBrush" Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="ToolWindowBrush" Color="#FFF7F9FD"/>
-    <SolidColorBrush x:Key="WindowBorderBrush" Color="#FFE6E9F2"/>
+    <!-- 窗口外框透明：浅色主题下避免关闭按钮悬停时出现白色描边，边缘由阴影区分 -->
+    <SolidColorBrush x:Key="WindowBorderBrush" Color="#00000000"/>
 
     <!-- 卡片 / 面板层级 -->
     <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF"/>
@@ -60,8 +61,8 @@
     <SolidColorBrush x:Key="LogSourceBrush" Color="#FF4F46E5"/>
 
     <!-- 字体与阴影 -->
-    <FontFamily x:Key="UiFontFamily">Segoe UI</FontFamily>
-    <FontFamily x:Key="MonoFontFamily">Consolas</FontFamily>
+    <FontFamily x:Key="UiFontFamily">DengXian</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">DengXian</FontFamily>
     <DropShadowEffect x:Key="WindowShadow" BlurRadius="42" ShadowDepth="10"
                       Opacity="0.22" Color="#FF192350" Direction="270"/>
 
