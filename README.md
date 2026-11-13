@@ -264,7 +264,7 @@ YFrame/
 ├── README.md                           # 项目简要说明
 │
 ├── YFrame/                             # 主框架项目 (WPF Application)
-│   ├── App.xaml                        # 应用启动配置（默认暗夜科技主题 + 中文）
+│   ├── App.xaml                        # 应用启动配置（默认云白简约主题 + 中文）
 │   ├── App.xaml.cs                     # 入口逻辑 + ChangeTheme() / ChangeLanguage()
 │   ├── MainWindow.xaml                 # 主窗口布局（三栏 DockPanel + Menu + StatusBar）
 │   ├── MainWindow.xaml.cs              # 主窗口代码后置（设置 DataContext）
@@ -562,7 +562,7 @@ App.ChangeTheme(themePath)
     └── 3. 加载新字典 → Application.Current.Resources.MergedDictionaries.Add(newTheme)
 ```
 
-框架提供四套主题，启动时默认加载 `NightTechTheme.xaml` + `ControlStyles.xaml`：
+框架提供四套主题，启动时默认加载 `CloudWhiteTheme.xaml` + `ControlStyles.xaml`：
 
 | 主题 | 文件 | 英文名 | 主色调 |
 |------|------|--------|--------|
@@ -581,7 +581,7 @@ App.ChangeTheme(themePath)
 
 XAML 中通过 `{DynamicResource key}` 引用资源，切换时所有绑定控件自动刷新。
 
-**主题持久化：** 菜单切换主题时会将相对路径写入 `Config/config.conf` 的 `Theme` 键（例如 `Common/Themes/GlassTheme.xaml`）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前读取并恢复，配置缺失或名称非法时回退到默认的暗夜科技主题。
+**主题持久化：** 菜单切换主题时会将相对路径写入 `Config/config.conf` 的 `Theme` 键（例如 `Common/Themes/GlassTheme.xaml`）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前读取并恢复，配置缺失或名称非法时回退到默认的云白简约主题。
 
 #### 4.4.2 多语言系统
 
@@ -1097,7 +1097,7 @@ Ctrl+Y（框架热键）→ ExecuteCommand("Hotkey")
 Application.Startup
     │
     ├── 1. App 构造函数
-    │      · 加载 NightTechTheme.xaml（默认暗夜科技主题）+ ControlStyles.xaml（全局控件样式）
+    │      · 加载 CloudWhiteTheme.xaml（默认云白简约主题）+ ControlStyles.xaml（全局控件样式）
     │      · 加载 zh-CN.xaml（默认中文）
     │
     ├── 2. MainWindow 构造函数

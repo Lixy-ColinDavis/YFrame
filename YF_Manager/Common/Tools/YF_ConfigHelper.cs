@@ -109,7 +109,7 @@ namespace YF_Manager
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
-            _configValues["Theme"] = @"Common/Themes/NightTechTheme.xaml";
+            _configValues["Theme"] = @"Common/Themes/CloudWhiteTheme.xaml";
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace YF_Manager
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))
-                _configValues.TryAdd("Theme", @"Common/Themes/NightTechTheme.xaml");
+                _configValues.TryAdd("Theme", @"Common/Themes/CloudWhiteTheme.xaml");
         }
 
         /// <summary>

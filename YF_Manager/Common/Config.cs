@@ -135,11 +135,11 @@ namespace YF_Manager
 
         /// <summary>
         /// 当前主题文件相对路径（下次启动时恢复）
-        /// 例如 Common/Themes/NightTechTheme.xaml
+        /// 例如 Common/Themes/CloudWhiteTheme.xaml
         /// </summary>
         public static string Theme
         {
-            get => Get(@"Common/Themes/NightTechTheme.xaml");
+            get => Get(@"Common/Themes/CloudWhiteTheme.xaml");
             set => Set(value);
         }
 

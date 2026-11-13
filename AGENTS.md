@@ -2,7 +2,7 @@
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
-> **最后更新：** 2026-11-13 — 主窗口/插件管理器界面按设计稿重构；四套主题更名为暗夜科技、云白简约、复古终端、玻璃拟态，并统一图表/图标资源键
+> **最后更新：** 2026-11-13 — 默认主题改为云白简约；主窗口/插件管理器界面按设计稿重构；四套主题更名为暗夜科技、云白简约、复古终端、玻璃拟态，并统一图表/图标资源键
 
 ---
 
@@ -533,7 +533,7 @@ push/PR to main → 自动触发
 
 切换方式：`App.ChangeLanguage("zh"/"en")` 或 `App.ChangeTheme("path")`，通过 `MergedDictionaries` 替换实现。主题/语言切换会通过 `YF_Messenger` 发送 `ThemeChangedMessage` / `LanguageChangedMessage`。
 
-**主题持久化：** 菜单切换主题时写入 `Config/config.conf` 的 `Theme` 键（相对路径）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前恢复，配置缺失或主题名非法时回退到默认的暗夜科技主题。
+**主题持久化：** 菜单切换主题时写入 `Config/config.conf` 的 `Theme` 键（相对路径）；下次启动由 `App.ApplySavedTheme()` 在创建主窗口前恢复，配置缺失或主题名非法时回退到默认的云白简约主题。
 
 ---
 
@@ -557,7 +557,7 @@ push/PR to main → 自动触发
 | 插件管理器地址 | http://127.0.0.1 | Config.cs |
 | PaddleOCR 路径 | `plugins\YF_ScreenOCRTranslate\inference` | Config.cs |
 | 屏幕缩放 | 125（100-200，取色器/截图共用） | Config.cs |
-| 当前主题 | `Common/Themes/NightTechTheme.xaml` | Config.cs（`Theme` 键） |
+| 当前主题 | `Common/Themes/CloudWhiteTheme.xaml` | Config.cs（`Theme` 键） |
 | 窗口尺寸 | 800 x 1200 | MainWindow.xaml |
 | 窗口标题 | "YF Tools" | MainWindow.xaml |
 | C# 可空 | enabled | .csproj |
