@@ -38,7 +38,7 @@ namespace YFrame.Service
             snapshot.Bios = QueryBios();
             snapshot.Os = QueryOs();
             snapshot.Audio = QueryAudio();
-            snapshot.Monitor = QueryMonitor();
+            snapshot.Monitors = QueryMonitors();
 
             // 内存总容量优先使用内存条容量之和；若 WMI 未返回内存条，再用整机总内存兜底
             if (snapshot.Memory.TotalBytes == 0)
@@ -115,20 +115,130 @@ namespace YFrame.Service
             };
         }
 
-        /// <summary>查询物理磁盘列表</summary>
+        /// <summary>查询物理磁盘列表，并补充接口类型、介质、固件与健康状态</summary>
         private static List<DiskSnapshot> QueryDisks()
         {
-            return Query(
-                "SELECT Model, Size, InterfaceType, MediaType FROM Win32_DiskDrive",
+            var disks = Query(
+                "SELECT * FROM Win32_DiskDrive",
                 obj => new DiskSnapshot
                 {
+                    Index = Int(obj, "Index"),
                     Model = Text(obj, "Model"),
                     SizeBytes = UInt64(obj, "Size"),
                     InterfaceType = Text(obj, "InterfaceType"),
-                    MediaType = Text(obj, "MediaType")
+                    MediaType = Text(obj, "MediaType"),
+                    FirmwareRevision = Text(obj, "FirmwareRevision"),
+                    SerialNumber = Text(obj, "SerialNumber"),
+                    TransferRate = (uint)Math.Max(0, Int(obj, "TransferRate")),
+                    PnpDeviceId = Text(obj, "PNPDeviceID")
                 });
+
+            // MSFT_PhysicalDisk 提供 BusType/MediaType/HealthStatus，比 Win32_DiskDrive 的 InterfaceType 更准确
+            var storage = QueryStorage(
+                "SELECT DeviceId, MediaType, BusType, HealthStatus FROM MSFT_PhysicalDisk",
+                obj => new
+                {
+                    DeviceId = Text(obj, "DeviceId"),
+                    MediaType = Int(obj, "MediaType"),
+                    BusType = Int(obj, "BusType"),
+                    HealthStatus = Int(obj, "HealthStatus")
+                });
+
+            foreach (var disk in disks)
+            {
+                var detail = storage.FirstOrDefault(s => s.DeviceId == disk.Index.ToString());
+                if (detail != null)
+                {
+                    disk.BusTypeText = BusTypeName(detail.BusType);
+                    disk.MediaTypeText = StorageMediaTypeName(detail.MediaType);
+                    disk.HealthStatus = HealthStatusName(detail.HealthStatus);
+                }
+                else
+                {
+                    disk.BusTypeText = InferBusType(disk.PnpDeviceId, disk.InterfaceType);
+                    disk.MediaTypeText = disk.MediaType.Contains("SSD", StringComparison.OrdinalIgnoreCase) ? "SSD" : string.Empty;
+                }
+
+                // NVMe 通过父 PCIe 设备读取当前链路速率/宽度
+                if (string.Equals(disk.BusTypeText, "NVMe", StringComparison.OrdinalIgnoreCase)
+                    || disk.PnpDeviceId.Contains("NVME", StringComparison.OrdinalIgnoreCase))
+                {
+                    disk.PcieLinkText = QueryPcieLink(disk.PnpDeviceId);
+                }
+            }
+
+            return disks;
         }
 
+        /// <summary>
+        /// 从 root\Microsoft\Windows\Storage 命名空间查询存储设备。
+        /// </summary>
+        private static List<T> QueryStorage<T>(string wql, Func<ManagementObject, T> map)
+        {
+            var result = new List<T>();
+            try
+            {
+                var scope = new ManagementScope(@"\\.\root\Microsoft\Windows\Storage");
+                using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(wql));
+                searcher.Options.Timeout = QueryTimeout;
+                using var collection = searcher.Get();
+                foreach (ManagementObject obj in collection)
+                {
+                    using (obj)
+                    {
+                        result.Add(map(obj));
+                    }
+                }
+            }
+            catch
+            {
+                // 存储命名空间不可用时退回 Win32_DiskDrive 的接口字段
+            }
+            return result;
+        }
+
+        /// <summary>将 STORAGE_BUS_TYPE 数值转换为可读名称</summary>
+        private static string BusTypeName(int busType) => busType switch
+        {
+            1 => "SCSI",
+            3 => "ATA",
+            7 => "USB",
+            8 => "RAID",
+            10 => "SAS",
+            11 => "SATA",
+            14 => "Virtual",
+            16 => "Spaces",
+            17 => "NVMe",
+            18 => "SCM",
+            19 => "UFS",
+            _ => "Unknown"
+        };
+
+        /// <summary>将 MSFT_PhysicalDisk.MediaType 数值转换为 SSD/HDD</summary>
+        private static string StorageMediaTypeName(int mediaType) => mediaType switch
+        {
+            3 => "HDD",
+            4 => "SSD",
+            5 => "SCM",
+            _ => string.Empty
+        };
+
+        /// <summary>将 MSFT_PhysicalDisk.HealthStatus 数值转换为可读状态</summary>
+        private static string HealthStatusName(int health) => health switch
+        {
+            0 => "正常",
+            1 => "警告",
+            2 => "异常",
+            _ => string.Empty
+        };
+
+        /// <summary>无法读取 MSFT_PhysicalDisk 时，从 PNP 设备 ID 推断接口类型</summary>
+        private static string InferBusType(string pnpDeviceId, string interfaceType)
+        {
+            if (pnpDeviceId.Contains("NVME", StringComparison.OrdinalIgnoreCase)) return "NVMe";
+            if (pnpDeviceId.Contains("USB", StringComparison.OrdinalIgnoreCase)) return "USB";
+            return string.IsNullOrWhiteSpace(interfaceType) ? string.Empty : interfaceType;
+        }
         /// <summary>查询主板信息</summary>
         private static BoardSnapshot QueryBoard()
         {
@@ -221,25 +331,17 @@ namespace YFrame.Service
         }
 
         /// <summary>
-        /// 查询显示器信息：型号、厂商、序列号、尺寸、主屏分辨率与刷新率。
+        /// 查询全部显示器：型号、厂商、序列号、尺寸，以及每台显示器的当前分辨率与刷新率。
         /// </summary>
-        private static MonitorSnapshot QueryMonitor()
+        private static List<MonitorSnapshot> QueryMonitors()
         {
-            var monitor = new MonitorSnapshot
-            {
-                Width = GetSystemMetrics(0) > 0 ? GetSystemMetrics(0) : (int)System.Windows.SystemParameters.PrimaryScreenWidth,
-                Height = GetSystemMetrics(1) > 0 ? GetSystemMetrics(1) : (int)System.Windows.SystemParameters.PrimaryScreenHeight
-            };
-
-            var refresh = Query("SELECT CurrentRefreshRate FROM Win32_VideoController", obj => Int(obj, "CurrentRefreshRate"));
-            monitor.RefreshRate = refresh.Where(r => r > 0).DefaultIfEmpty(0).Max();
+            var modes = GetDisplayModes();
+            var names = new List<(string Name, string Manufacturer, string Serial)>();
+            var sizes = new List<double>();
 
             try
             {
                 var scope = new ManagementScope(@"\\.\root\wmi");
-                scope.Connect();
-
-                var names = new List<string>();
                 using (var searcher = new ManagementObjectSearcher(scope,
                            new ObjectQuery("SELECT ManufacturerName, UserFriendlyName, SerialNumberID FROM WmiMonitorID")))
                 {
@@ -252,22 +354,10 @@ namespace YFrame.Service
                             string friendly = DecodeWmiString(obj["UserFriendlyName"]);
                             string manufacturer = DecodeWmiString(obj["ManufacturerName"]);
                             string serial = DecodeWmiString(obj["SerialNumberID"]);
-
-                            if (string.IsNullOrWhiteSpace(friendly))
-                                friendly = JoinNonEmpty(manufacturer, "Monitor");
-                            names.Add(friendly);
-
-                            if (string.IsNullOrWhiteSpace(monitor.Name))
-                            {
-                                monitor.Name = friendly;
-                                monitor.Manufacturer = manufacturer;
-                                monitor.SerialNumber = serial;
-                            }
+                            names.Add((string.IsNullOrWhiteSpace(friendly) ? "显示器" : friendly, manufacturer, serial));
                         }
                     }
                 }
-
-                monitor.AdditionalCount = Math.Max(0, names.Count - 1);
 
                 using (var searcher = new ManagementObjectSearcher(scope,
                            new ObjectQuery("SELECT MaxHorizontalImageSize, MaxVerticalImageSize FROM WmiMonitorBasicDisplayParams")))
@@ -280,29 +370,188 @@ namespace YFrame.Service
                         {
                             int widthCm = Int(obj, "MaxHorizontalImageSize");
                             int heightCm = Int(obj, "MaxVerticalImageSize");
-                            if (widthCm > 0 && heightCm > 0)
-                            {
-                                double diagonalCm = Math.Sqrt(widthCm * widthCm + heightCm * heightCm);
-                                monitor.SizeInch = Math.Round(diagonalCm / 2.54, 1);
-                                break;
-                            }
+                            sizes.Add(widthCm > 0 && heightCm > 0
+                                ? Math.Round(Math.Sqrt(widthCm * widthCm + heightCm * heightCm) / 2.54, 1)
+                                : 0);
                         }
                     }
                 }
             }
             catch
             {
-                // 显示器 WMI 在部分显卡/远程桌面下不可用，保留分辨率和刷新率
+                // 显示器 WMI 在部分显卡/远程桌面下不可用，仍用 EnumDisplayMonitors 的分辨率
             }
 
-            if (string.IsNullOrWhiteSpace(monitor.Name))
-                monitor.Name = "主显示器";
-            return monitor;
+            int count = Math.Max(modes.Count, names.Count);
+            if (count == 0)
+                count = 1;
+
+            var result = new List<MonitorSnapshot>();
+            for (int i = 0; i < count; i++)
+            {
+                var mode = i < modes.Count ? modes[i] : null;
+                var info = i < names.Count ? names[i] : (Name: $"显示器 {i + 1}", Manufacturer: string.Empty, Serial: string.Empty);
+
+                result.Add(new MonitorSnapshot
+                {
+                    Name = info.Name,
+                    Manufacturer = info.Manufacturer,
+                    SerialNumber = info.Serial,
+                    SizeInch = i < sizes.Count ? sizes[i] : 0,
+                    Width = mode?.Width ?? 0,
+                    Height = mode?.Height ?? 0,
+                    RefreshRate = mode?.RefreshRate ?? 0
+                });
+            }
+
+            return result;
         }
 
         /// <summary>
-        /// WmiMonitorID 的字符串字段是 ushort 数组，逐字符转换到 0 结束。
+        /// 通过 EnumDisplayMonitors 枚举当前所有显示器，并读取各自的当前分辨率与刷新率。
         /// </summary>
+        private static List<DisplayMode> GetDisplayModes()
+        {
+            var result = new List<DisplayMode>();
+            try
+            {
+                EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdc, ref NativeRect rect, IntPtr data) =>
+                {
+                    var info = new MonitorInfoEx { cbSize = Marshal.SizeOf<MonitorInfoEx>() };
+                    if (!GetMonitorInfo(hMonitor, ref info)) return true;
+
+                    var mode = new DevMode { dmSize = (short)Marshal.SizeOf<DevMode>() };
+                    bool hasMode = EnumDisplaySettings(info.szDevice, -1, ref mode);
+                    result.Add(new DisplayMode
+                    {
+                        Width = hasMode ? mode.dmPelsWidth : rect.Right - rect.Left,
+                        Height = hasMode ? mode.dmPelsHeight : rect.Bottom - rect.Top,
+                        RefreshRate = hasMode ? mode.dmDisplayFrequency : 0,
+                        IsPrimary = (info.dwFlags & 1) != 0,
+                        Left = rect.Left
+                    });
+                    return true;
+                }, IntPtr.Zero);
+
+                // 主屏优先，其余按水平位置排列，便于和 WMI 显示器顺序大致对应
+                result.Sort((a, b) =>
+                {
+                    if (a.IsPrimary != b.IsPrimary) return a.IsPrimary ? -1 : 1;
+                    return a.Left.CompareTo(b.Left);
+                });
+            }
+            catch
+            {
+                // 枚举失败时返回空列表，由 WMI 信息兜底
+            }
+            return result;
+        }
+
+        /// <summary>EnumDisplayMonitors 所需的矩形结构</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeRect
+        {
+            public int Left, Top, Right, Bottom;
+        }
+
+        /// <summary>显示器信息结构</summary>
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MonitorInfoEx
+        {
+            public int cbSize;
+            public NativeRect rcMonitor;
+            public NativeRect rcWork;
+            public uint dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string szDevice;
+        }
+
+        /// <summary>显示模式结构（仅使用分辨率与刷新率字段）</summary>
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct DevMode
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string dmDeviceName;
+            public short dmSpecVersion;
+            public short dmDriverVersion;
+            public short dmSize;
+            public short dmDriverExtra;
+            public int dmFields;
+            public int dmPositionX;
+            public int dmPositionY;
+            public int dmDisplayOrientation;
+            public int dmDisplayFixedOutput;
+            public short dmColor;
+            public short dmDuplex;
+            public short dmYResolution;
+            public short dmTTOption;
+            public short dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string dmFormName;
+            public short dmLogPixels;
+            public int dmBitsPerPel;
+            public int dmPelsWidth;
+            public int dmPelsHeight;
+            public int dmDisplayFlags;
+            public int dmDisplayFrequency;
+            public int dmICMMethod;
+            public int dmICMIntent;
+            public int dmMediaType;
+            public int dmDitherType;
+            public int dmReserved1;
+            public int dmReserved2;
+            public int dmPanningWidth;
+            public int dmPanningHeight;
+        }
+
+        /// <summary>内部显示模式数据</summary>
+        private sealed class DisplayMode
+        {
+            public int Width { get; set; }
+            public int Height { get; set; }
+            public int RefreshRate { get; set; }
+            public bool IsPrimary { get; set; }
+            public int Left { get; set; }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx info);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
+
+        private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, ref NativeRect rect, IntPtr data);
+        /// <summary>
+        /// 执行 WMI 查询并将结果映射为强类型对象。
+        /// 单次查询独立释放 ManagementObject，防止 WMI 句柄累积。
+        /// </summary>
+        private static List<T> Query<T>(string wql, Func<ManagementObject, T> map)
+        {
+            var result = new List<T>();
+            try
+            {
+                using var searcher = new ManagementObjectSearcher(wql);
+                searcher.Options.Timeout = QueryTimeout;
+                using var collection = searcher.Get();
+                foreach (ManagementObject obj in collection)
+                {
+                    using (obj)
+                    {
+                        result.Add(map(obj));
+                    }
+                }
+            }
+            catch
+            {
+                // 单类查询失败时保持空列表，不影响其他硬件卡片
+            }
+            return result;
+        }
+
+        /// <summary>将 WmiMonitorID 的 ushort 数组字段解码为字符串</summary>
         private static string DecodeWmiString(object? value)
         {
             if (value is not ushort[] chars) return string.Empty;
@@ -315,48 +564,9 @@ namespace YFrame.Service
             }
             return builder.ToString().Trim();
         }
-
-        /// <summary>将非空字符串用斜杠连接</summary>
-        private static string JoinNonEmpty(params string[] values)
-            => string.Join(" / ", values.Where(v => !string.IsNullOrWhiteSpace(v)));
-        /// <summary>
-        /// 执行 WMI 查询并将结果映射为强类型对象。
-        /// 单次查询独立释放 ManagementObject，防止 WMI 句柄累积。
-        /// </summary>
-        /// <typeparam name="T">结果类型</typeparam>
-        /// <param name="wql">WQL 查询语句</param>
-        /// <param name="map">单条结果的映射函数</param>
-        /// <returns>查询结果列表；查询失败时返回空列表</returns>
-        private static List<T> Query<T>(string wql, Func<ManagementObject, T> map)
-        {
-            var result = new List<T>();
-            try
-            {
-                using var searcher = new ManagementObjectSearcher(wql);
-                searcher.Options.Timeout = QueryTimeout;
-
-                using var collection = searcher.Get();
-                foreach (ManagementObject obj in collection)
-                {
-                    using (obj)
-                    {
-                        result.Add(map(obj));
-                    }
-                }
-            }
-            catch
-            {
-                // 硬件信息属于辅助展示，单类查询失败时保持空卡片，不影响其他类别
-            }
-            return result;
-        }
-
         /// <summary>
         /// 从显卡驱动注册表读取 64 位显存大小，修正 WMI AdapterRAM 的 32 位溢出。
         /// </summary>
-        /// <param name="gpuName">显卡名称（用于匹配 DriverDesc）</param>
-        /// <param name="bytes">输出显存字节数</param>
-        /// <returns>是否读取成功</returns>
         private static bool TryGetRegistryVram(string gpuName, out ulong bytes)
         {
             bytes = 0;
@@ -388,6 +598,84 @@ namespace YFrame.Service
             }
             return false;
         }
+        /// <summary>
+        /// 读取 NVMe 设备父 PCIe 设备的当前链路速率与宽度，输出如 “PCIe 4.0 x4”。
+        /// </summary>
+        private static string QueryPcieLink(string pnpDeviceId)
+        {
+            try
+            {
+                if (CM_Locate_DevNodeW(out uint diskNode, pnpDeviceId, 0) != 0)
+                    return "PCIe";
+
+                if (CM_Get_Parent(out uint parentNode, diskNode, 0) != 0)
+                    return "PCIe";
+
+                uint speed = GetPciProperty(parentNode, 9);   // DEVPKEY_PciDevice_CurrentLinkSpeed
+                uint width = GetPciProperty(parentNode, 10);  // DEVPKEY_PciDevice_CurrentLinkWidth
+
+                string generation = speed switch
+                {
+                    1 => "1.0",
+                    2 => "2.0",
+                    3 => "3.0",
+                    4 => "4.0",
+                    5 => "5.0",
+                    _ => string.Empty
+                };
+
+                if (string.IsNullOrEmpty(generation)) return "PCIe";
+                return width > 0 ? $"PCIe {generation} x{width}" : $"PCIe {generation}";
+            }
+            catch
+            {
+                return "PCIe";
+            }
+        }
+
+        /// <summary>读取指定 PCI 设备属性的 UInt32 值</summary>
+        private static uint GetPciProperty(uint devNode, uint propertyId)
+        {
+            var key = new DevPropKey
+            {
+                fmtid = Guid.Parse("3ab22e31-8264-4b4e-9af5-a8d2d8e33e62"),
+                pid = propertyId
+            };
+
+            uint size = 0;
+            CM_Get_DevNode_PropertyW(devNode, ref key, out _, IntPtr.Zero, ref size, 0);
+            if (size < sizeof(uint)) return 0;
+
+            IntPtr buffer = Marshal.AllocHGlobal((int)size);
+            try
+            {
+                int rc = CM_Get_DevNode_PropertyW(devNode, ref key, out uint type, buffer, ref size, 0);
+                if (rc != 0 || type != 7) return 0; // DEVPROP_TYPE_UINT32
+                return (uint)Marshal.ReadInt32(buffer);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        /// <summary>设备属性键</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DevPropKey
+        {
+            public Guid fmtid;
+            public uint pid;
+        }
+
+        [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+        private static extern int CM_Locate_DevNodeW(out uint pdnDevInst, string pDeviceID, uint ulFlags);
+
+        [DllImport("cfgmgr32.dll")]
+        private static extern int CM_Get_Parent(out uint pdnDevInst, uint dnDevInst, uint ulFlags);
+
+        [DllImport("cfgmgr32.dll")]
+        private static extern int CM_Get_DevNode_PropertyW(uint dnDevInst, ref DevPropKey propertyKey,
+            out uint propertyType, IntPtr propertyBuffer, ref uint propertyBufferSize, uint ulFlags);
         /// <summary>读取字符串属性并去除首尾空白</summary>
         private static string Text(ManagementObject obj, string property)
             => obj[property]?.ToString()?.Trim() ?? string.Empty;

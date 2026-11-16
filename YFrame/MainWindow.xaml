@@ -593,7 +593,7 @@
                                 </Style>
                             </ContentControl.Style>
                         </ContentControl>
-                        <ContentControl Content="{Binding ActiveToolView}" Margin="14,4,14,14">
+                        <ContentControl Content="{Binding ActiveToolView}" Margin="14,4,14,4">
                             <ContentControl.Style>
                                 <Style TargetType="ContentControl">
                                     <Style.Triggers>

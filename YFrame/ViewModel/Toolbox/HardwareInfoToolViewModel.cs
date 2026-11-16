@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using YF_Manager;
 using YFrame.Model;
 using YFrame.Service;
@@ -163,6 +164,45 @@ namespace YFrame.ViewModel.Toolbox
             set => SetProperty(ref _isTestingAudio, value);
         }
 
+        private double _audioInputLevel;
+        /// <summary>音频输入实时电平（0~1），用于标题右侧进度条</summary>
+        public double AudioInputLevel
+        {
+            get => _audioInputLevel;
+            set => SetProperty(ref _audioInputLevel, value);
+        }
+
+        private string _audioCountdownText = string.Empty;
+        /// <summary>输入测试倒计时文本（3.0s ~ 0.1s）</summary>
+        public string AudioCountdownText
+        {
+            get => _audioCountdownText;
+            set => SetProperty(ref _audioCountdownText, value);
+        }
+
+        private bool _showAudioCountdown;
+        /// <summary>是否显示输入测试倒计时</summary>
+        public bool ShowAudioCountdown
+        {
+            get => _showAudioCountdown;
+            set => SetProperty(ref _showAudioCountdown, value);
+        }
+        private bool _isTestingDisk;
+        /// <summary>是否正在执行磁盘测速</summary>
+        public bool IsTestingDisk
+        {
+            get => _isTestingDisk;
+            set => SetProperty(ref _isTestingDisk, value);
+        }
+
+        private string _diskSpeedText = string.Empty;
+        /// <summary>磁盘顺序读写测速结果</summary>
+        public string DiskSpeedText
+        {
+            get => _diskSpeedText;
+            set => SetProperty(ref _diskSpeedText, value);
+        }
+
         private string _monitorName = "—";
         /// <summary>显示器名称</summary>
         public string MonitorName
@@ -192,6 +232,9 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>物理磁盘描述列表（最多展示 4 块）</summary>
         public ObservableCollection<string> Disks { get; } = new();
 
+        /// <summary>显示器列表（多屏时逐台展示）</summary>
+        public ObservableCollection<MonitorDisplayItem> Monitors { get; } = new();
+
         /// <summary>刷新命令</summary>
         public YF_RelayCommand RefreshCommand { get; }
 
@@ -204,6 +247,9 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>测试默认输入设备命令</summary>
         public YF_RelayCommand TestInputCommand { get; }
 
+        /// <summary>磁盘顺序读写测速命令</summary>
+        public YF_RelayCommand TestDiskSpeedCommand { get; }
+
         /// <summary>
         /// 构造时立即异步读取一次硬件信息
         /// </summary>
@@ -213,6 +259,7 @@ namespace YFrame.ViewModel.Toolbox
             CopyCommand = new YF_RelayCommand(CopySummary);
             TestOutputCommand = new YF_RelayCommand(() => _ = TestOutputAsync());
             TestInputCommand = new YF_RelayCommand(() => _ = TestInputAsync());
+            TestDiskSpeedCommand = new YF_RelayCommand(() => _ = TestDiskSpeedAsync());
             _ = LoadAsync();
         }
 
@@ -297,7 +344,23 @@ namespace YFrame.ViewModel.Toolbox
             {
                 string text = Fallback(disk.Model);
                 if (disk.SizeBytes > 0) text += $" · {FormatBytes(disk.SizeBytes)}";
-                if (!string.IsNullOrWhiteSpace(disk.InterfaceType)) text += $" · {disk.InterfaceType}";
+
+                // 优先显示 MSFT_PhysicalDisk 的 BusType（NVMe/SATA/USB），比 Win32_DiskDrive.InterfaceType 准确
+                string busType = !string.IsNullOrWhiteSpace(disk.BusTypeText)
+                    ? disk.BusTypeText
+                    : disk.InterfaceType;
+                if (!string.IsNullOrWhiteSpace(busType)) text += $" · {busType}";
+
+                if (!string.IsNullOrWhiteSpace(disk.PcieLinkText))
+                    text += $" · {disk.PcieLinkText}";
+
+                if (!string.IsNullOrWhiteSpace(disk.FirmwareRevision))
+                    text += $" · FW {disk.FirmwareRevision}";
+
+                // WMI 的 TransferRate 单位为 KB/s，部分 NVMe 驱动不提供该字段
+                if (disk.TransferRate > 0)
+                    text += $" · {disk.TransferRate / 1024.0:F0} MB/s";
+
                 Disks.Add(text);
             }
             if (snapshot.Disks.Count > 4)
@@ -319,21 +382,29 @@ namespace YFrame.ViewModel.Toolbox
             AudioOutputText = FormatAudioList(snapshot.Audio.Outputs);
             AudioInputText = FormatAudioList(snapshot.Audio.Inputs);
 
-            MonitorName = Fallback(snapshot.Monitor.Name);
-            MonitorDetail = string.Join(" · ", new[]
+            Monitors.Clear();
+            foreach (var monitor in snapshot.Monitors)
             {
-                snapshot.Monitor.SizeInch > 0 ? $"{snapshot.Monitor.SizeInch:F1} 英寸" : string.Empty,
-                snapshot.Monitor.Width > 0 && snapshot.Monitor.Height > 0
-                    ? $"{snapshot.Monitor.Width} × {snapshot.Monitor.Height}"
-                    : string.Empty,
-                snapshot.Monitor.RefreshRate > 0 ? $"{snapshot.Monitor.RefreshRate} Hz" : string.Empty
-            }.Where(s => !string.IsNullOrEmpty(s)));
-            MonitorMeta = string.Join(" · ", new[]
-            {
-                snapshot.Monitor.Manufacturer,
-                string.IsNullOrWhiteSpace(snapshot.Monitor.SerialNumber) ? string.Empty : snapshot.Monitor.SerialNumber,
-                snapshot.Monitor.AdditionalCount > 0 ? $"+{snapshot.Monitor.AdditionalCount}" : string.Empty
-            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                string detail = string.Join(" · ", new[]
+                {
+                    monitor.SizeInch > 0 ? $"{monitor.SizeInch:F1} 英寸" : string.Empty,
+                    monitor.Width > 0 && monitor.Height > 0 ? $"{monitor.Width} × {monitor.Height}" : string.Empty,
+                    monitor.RefreshRate > 0 ? $"{monitor.RefreshRate} Hz" : string.Empty
+                }.Where(s => !string.IsNullOrEmpty(s)));
+
+                string meta = string.Join(" · ", new[]
+                {
+                    monitor.Manufacturer,
+                    monitor.SerialNumber
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                Monitors.Add(new MonitorDisplayItem
+                {
+                    Name = Fallback(monitor.Name),
+                    Detail = detail,
+                    Meta = meta
+                });
+            }
 
             // 音频测试结果只在重新测试时更新，刷新硬件信息时保留最近一次结果
         }
@@ -373,36 +444,110 @@ namespace YFrame.ViewModel.Toolbox
             }
             finally
             {
+                StopAudioCountdown();
                 IsTestingAudio = false;
             }
         }
 
+        /// <summary>输入测试倒计时计时器</summary>
+        private DispatcherTimer? _audioCountdownTimer;
+
+        /// <summary>倒计时剩余秒数</summary>
+        private double _audioCountdownRemaining;
+
         /// <summary>
-        /// 测试默认输入设备：录音 1.5 秒并显示峰值电平。
+        /// 启动输入测试倒计时：从 3.0s 每 100ms 递减到 0.1s，结束后隐藏。
+        /// </summary>
+        private void StartAudioCountdown()
+        {
+            _audioCountdownRemaining = 3.0;
+            AudioCountdownText = "3.0s";
+            ShowAudioCountdown = true;
+
+            _audioCountdownTimer?.Stop();
+            _audioCountdownTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _audioCountdownTimer.Tick += (_, _) =>
+            {
+                _audioCountdownRemaining = Math.Max(0, _audioCountdownRemaining - 0.1);
+                if (_audioCountdownRemaining <= 0.0001)
+                {
+                    _audioCountdownTimer.Stop();
+                    ShowAudioCountdown = false;
+                    return;
+                }
+
+                AudioCountdownText = $"{_audioCountdownRemaining:0.0}s";
+            };
+            _audioCountdownTimer.Start();
+        }
+
+        /// <summary>停止倒计时并隐藏文本</summary>
+        private void StopAudioCountdown()
+        {
+            _audioCountdownTimer?.Stop();
+            ShowAudioCountdown = false;
+        }
+        /// <summary>
+        /// 测试默认输入设备：录音 3 秒并实时显示电平与倒计时。
         /// </summary>
         private async Task TestInputAsync()
         {
             if (IsTestingAudio) return;
             IsTestingAudio = true;
             AudioTestText = R("key_Hardware_TestingInput");
+            AudioInputLevel = 0;
+            StartAudioCountdown();
+            var progress = new Progress<double>(value => AudioInputLevel = value);
 
             try
             {
                 var result = await Task.Run(() =>
                 {
-                    bool ok = AudioTestService.RecordPeak(out double peak, out string error);
+                    bool ok = AudioTestService.RecordPeak(3.0, value => ((IProgress<double>)progress).Report(value),
+                        out double peak, out string error);
                     return (ok, peak, error);
                 });
+                AudioInputLevel = result.ok ? result.peak : 0;
                 AudioTestText = result.ok
                     ? RF("key_Hardware_InputLevel", result.peak * 100)
                     : RF("key_Hardware_AudioFailed", result.error);
             }
             finally
             {
+                StopAudioCountdown();
                 IsTestingAudio = false;
             }
         }
 
+        /// <summary>
+        /// 测试磁盘顺序读写速度；测速期间按钮点击会被忽略。
+        /// </summary>
+        private async Task TestDiskSpeedAsync()
+        {
+            if (IsTestingDisk) return;
+            IsTestingDisk = true;
+            DiskSpeedText = R("key_Hardware_TestingDisk");
+
+            try
+            {
+                var result = await Task.Run(() =>
+                {
+                    bool ok = DiskSpeedTestService.Run(out double read, out double write, out string error);
+                    return (ok, read, write, error);
+                });
+
+                DiskSpeedText = result.ok
+                    ? RF("key_Hardware_DiskSpeedFormat", result.read, result.write)
+                    : RF("key_Hardware_AudioFailed", result.error);
+            }
+            finally
+            {
+                IsTestingDisk = false;
+            }
+        }
         /// <summary>
         /// 复制当前硬件摘要到剪贴板
         /// </summary>
@@ -422,7 +567,9 @@ namespace YFrame.ViewModel.Toolbox
                 sb.AppendLine($"{R("key_Hardware_System")}: {SystemText} / {ComputerName}");
                 sb.AppendLine($"BIOS: {BiosText}");
                 sb.AppendLine($"{R("key_Hardware_Os")}: {OsText}");
-                sb.AppendLine($"{R("key_Hardware_Display")}: {MonitorName} ({MonitorDetail})");
+                sb.AppendLine($"{R("key_Hardware_Display")}:");
+                foreach (var monitor in Monitors)
+                    sb.AppendLine($"  - {monitor.Name} ({monitor.Detail}) {monitor.Meta}");
                 sb.AppendLine($"{R("key_Hardware_Audio")}:");
                 sb.AppendLine($"  {R("key_Hardware_Output")}: {AudioOutputText}");
                 sb.AppendLine($"  {R("key_Hardware_Input")}: {AudioInputText}");
@@ -457,5 +604,21 @@ namespace YFrame.ViewModel.Toolbox
                 return $"{bytes / 1024.0:F1} KB";
             return $"{bytes} B";
         }
+    }
+}
+
+namespace YFrame.ViewModel.Toolbox
+{
+    /// <summary>显示器列表展示项</summary>
+    public sealed class MonitorDisplayItem
+    {
+        /// <summary>显示器名称</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>尺寸、分辨率、刷新率</summary>
+        public string Detail { get; set; } = string.Empty;
+
+        /// <summary>厂商与序列号</summary>
+        public string Meta { get; set; } = string.Empty;
     }
 }

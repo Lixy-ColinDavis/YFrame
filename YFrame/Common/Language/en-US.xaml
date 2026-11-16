@@ -139,7 +139,10 @@
     <sys:String x:Key="key_Hardware_InputLevel">Input peak {0:F0}%</sys:String>
     <sys:String x:Key="key_Hardware_AudioFailed">Audio test failed: {0}</sys:String>
     <sys:String x:Key="key_Hardware_NoAudio">No audio device detected</sys:String>
-    <sys:String x:Key="key_Hardware_Display">Display</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
+    <sys:String x:Key="key_Hardware_Display">Display</sys:String>
+    <sys:String x:Key="key_Hardware_TestSpeed">Speed test</sys:String>
+    <sys:String x:Key="key_Hardware_TestingDisk">Testing...</sys:String>
+    <sys:String x:Key="key_Hardware_DiskSpeedFormat">Read {0:F0} MB/s · Write {1:F0} MB/s</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorRgb">RGB:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorPos">Pos:</sys:String>
     <sys:String x:Key="key_Toolbox_ScaleLabel">Screen Scale:</sys:String>

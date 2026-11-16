@@ -11,6 +11,31 @@
         <!-- 布尔到可见性：用于读取中的遮罩层 -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
+        <!-- 测试按钮：固定外观，无鼠标悬浮动态效果 -->
+        <Style x:Key="AudioTestButton" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinWidth" Value="48"/>
+            <Setter Property="Padding" Value="8,1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- 硬件卡片：沿用主框架 CardBorder，仅缩小内边距 -->
         <Style x:Key="HwCard" TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
             <Setter Property="Padding" Value="16"/>
@@ -98,13 +123,13 @@
         <!-- 两列三行信息卡，保证主要信息在一屏内 -->
         <Grid Grid.Row="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1.05*"/>
                 <RowDefinition Height="12"/>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="0.8*"/>
                 <RowDefinition Height="12"/>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1.1*"/>
                 <RowDefinition Height="12"/>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1.05*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -217,18 +242,27 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Orientation="Horizontal">
-                        <Border Style="{StaticResource HwIcon}">
-                            <TextBlock Text="D" FontSize="11" FontWeight="Bold"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <TextBlock Text="{DynamicResource key_Hardware_Disk}" Style="{StaticResource HwTitle}"/>
-                    </StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource HwIcon}">
+                                <TextBlock Text="D" FontSize="11" FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{DynamicResource key_Hardware_Disk}" Style="{StaticResource HwTitle}"/>
+                        </StackPanel>
 
-                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Disks}" Margin="0,9,0,0">
+                        <Button Content="{DynamicResource key_Hardware_TestSpeed}"
+                                Style="{StaticResource AudioTestButton}"
+                                Command="{Binding TestDiskSpeedCommand}"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Height="22" MinWidth="44"/>
+                    </Grid>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Disks}" Margin="0,7,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
@@ -240,6 +274,11 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <TextBlock Grid.Row="2" Text="{Binding DiskSpeedText}"
+                               FontSize="10.5" Margin="0,4,0,0"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextTrimming="CharacterEllipsis"/>
                 </Grid>
             </Border>
 
@@ -261,11 +300,18 @@
                             <TextBlock Text="{DynamicResource key_Hardware_Audio}" Style="{StaticResource HwTitle}"/>
                         </StackPanel>
 
-                        <TextBlock Text="{Binding AudioTestText}"
-                                   HorizontalAlignment="Right" VerticalAlignment="Center"
-                                   FontSize="10.5" MaxWidth="220"
-                                   Foreground="{DynamicResource SubtleTextBrush}"
-                                   TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <ProgressBar Width="72" Height="6" Minimum="0" Maximum="1"
+                                         Value="{Binding AudioInputLevel}"
+                                         Background="{DynamicResource PanelAltBrush}"
+                                         Foreground="{DynamicResource AccentBrush}"
+                                         BorderThickness="0"/>
+                            <TextBlock Text="{Binding AudioCountdownText}"
+                                       Visibility="{Binding ShowAudioCountdown, Converter={StaticResource BoolToVisibility}}"
+                                       FontSize="10" MinWidth="28" Margin="7,0,0,0"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="0,4,0,0">
@@ -285,16 +331,16 @@
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AudioOutputText}"
                                    Style="{StaticResource HwValue}" Margin="4,0,8,0"/>
                         <Button Grid.Row="0" Grid.Column="2" Content="{DynamicResource key_Hardware_Test}"
-                                Command="{Binding TestOutputCommand}"
-                                Height="24" MinWidth="48" Padding="8,1" FontSize="10"/>
+                                Style="{StaticResource AudioTestButton}"
+                                Command="{Binding TestOutputCommand}"/>
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource key_Hardware_Input}"
                                    Style="{StaticResource HwLabel}"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AudioInputText}"
                                    Style="{StaticResource HwValue}" Margin="4,0,8,0"/>
                         <Button Grid.Row="2" Grid.Column="2" Content="{DynamicResource key_Hardware_Test}"
-                                Command="{Binding TestInputCommand}"
-                                Height="24" MinWidth="48" Padding="8,1" FontSize="10"/>
+                                Style="{StaticResource AudioTestButton}"
+                                Command="{Binding TestInputCommand}"/>
                     </Grid>
                 </Grid>
             </Border>
@@ -304,7 +350,6 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Orientation="Horizontal">
@@ -316,20 +361,30 @@
                         <TextBlock Text="{DynamicResource key_Hardware_Display}" Style="{StaticResource HwTitle}"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="{Binding MonitorName}"
-                               FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextBrush}"
-                               TextWrapping="Wrap" Margin="0,10,0,0"/>
-
-                    <StackPanel Grid.Row="2" Margin="0,6,0,0">
-                        <TextBlock Text="{Binding MonitorDetail}" FontSize="11.5"
-                                   Foreground="{DynamicResource SubtleTextBrush}"
-                                   TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding MonitorMeta}" FontSize="10.5"
-                                   FontFamily="{DynamicResource MonoFontFamily}"
-                                   Foreground="{DynamicResource SubtleTextBrush}"
-                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
-                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" Margin="0,6,0,0" MaxHeight="112"
+                                  VerticalAlignment="Center"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Monitors}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,7">
+                                        <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Meta}" FontSize="9.5"
+                                                   FontFamily="{DynamicResource MonoFontFamily}"
+                                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </Border>
             <!-- 主板 / 系统 -->

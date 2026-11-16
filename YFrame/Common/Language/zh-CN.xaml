@@ -139,7 +139,10 @@
     <sys:String x:Key="key_Hardware_InputLevel">输入峰值 {0:F0}%</sys:String>
     <sys:String x:Key="key_Hardware_AudioFailed">音频测试失败：{0}</sys:String>
     <sys:String x:Key="key_Hardware_NoAudio">未检测到音频设备</sys:String>
-    <sys:String x:Key="key_Hardware_Display">显示器</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
+    <sys:String x:Key="key_Hardware_Display">显示器</sys:String>
+    <sys:String x:Key="key_Hardware_TestSpeed">测速</sys:String>
+    <sys:String x:Key="key_Hardware_TestingDisk">测速中...</sys:String>
+    <sys:String x:Key="key_Hardware_DiskSpeedFormat">读 {0:F0} MB/s · 写 {1:F0} MB/s</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorRgb">RGB:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorPos">坐标:</sys:String>
     <sys:String x:Key="key_Toolbox_ScaleLabel">屏幕缩放:</sys:String>

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace YFrame.Model
 {
@@ -34,8 +34,8 @@ namespace YFrame.Model
         /// <summary>音频输入/输出设备</summary>
         public AudioSnapshot Audio { get; set; } = new();
 
-        /// <summary>显示器信息</summary>
-        public MonitorSnapshot Monitor { get; set; } = new();
+        /// <summary>显示器列表（多屏时逐台展示）</summary>
+        public List<MonitorSnapshot> Monitors { get; set; } = new();
     }
 
     /// <summary>处理器静态信息</summary>
@@ -110,6 +110,33 @@ namespace YFrame.Model
 
         /// <summary>介质类型</summary>
         public string MediaType { get; set; } = string.Empty;
+
+        /// <summary>固件版本</summary>
+        public string FirmwareRevision { get; set; } = string.Empty;
+
+        /// <summary>序列号</summary>
+        public string SerialNumber { get; set; } = string.Empty;
+
+        /// <summary>接口类型（NVMe/SATA/USB 等，来自 MSFT_PhysicalDisk）</summary>
+        public string BusTypeText { get; set; } = string.Empty;
+
+        /// <summary>介质类型（SSD/HDD）</summary>
+        public string MediaTypeText { get; set; } = string.Empty;
+
+        /// <summary>健康状态</summary>
+        public string HealthStatus { get; set; } = string.Empty;
+
+        /// <summary>WMI 报告的传输速率（KB/s，可能为空）</summary>
+        public uint TransferRate { get; set; }
+
+        /// <summary>磁盘索引（用于匹配 MSFT_PhysicalDisk.DeviceId）</summary>
+        public int Index { get; set; }
+
+        /// <summary>PNP 设备 ID（用于推断 NVMe/USB 接口）</summary>
+        public string PnpDeviceId { get; set; } = string.Empty;
+
+        /// <summary>PCIe 链路信息（如 PCIe 4.0 x4）</summary>
+        public string PcieLinkText { get; set; } = string.Empty;
     }
 
     /// <summary>主板静态信息</summary>

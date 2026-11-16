@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using System.Threading;
 
 namespace YFrame.Service
@@ -154,12 +155,14 @@ namespace YFrame.Service
         }
 
         /// <summary>
-        /// 通过默认输入设备录音 1.5 秒并计算峰值电平（0~1）。
+        /// 通过默认输入设备录音指定时长，并在录音过程中实时回调峰值电平。
         /// </summary>
-        /// <param name="peak">峰值电平，0 表示无声或失败</param>
+        /// <param name="seconds">录音时长（秒）</param>
+        /// <param name="levelCallback">实时电平回调（0~1），用于界面进度条</param>
+        /// <param name="peak">整段录音的峰值电平（0~1）</param>
         /// <param name="error">失败时的错误说明</param>
         /// <returns>是否录音成功</returns>
-        public static bool RecordPeak(out double peak, out string error)
+        public static bool RecordPeak(double seconds, Action<double>? levelCallback, out double peak, out string error)
         {
             peak = 0;
             error = string.Empty;
@@ -170,7 +173,8 @@ namespace YFrame.Service
 
             try
             {
-                int sampleCount = (int)(SAMPLE_RATE * 1.5);
+                double duration = Math.Max(0.5, seconds);
+                int sampleCount = (int)(SAMPLE_RATE * duration);
                 int bytes = sampleCount * sizeof(short);
                 data = Marshal.AllocHGlobal(bytes);
                 // 显式清零，未录满时剩余部分不会被误判为信号
@@ -210,26 +214,33 @@ namespace YFrame.Service
                     return false;
                 }
 
-                Thread.Sleep(1600);
+                // 录音期间每 50ms 读取一次已写入的字节数，计算新增片段的峰值并回调
+                var stopwatch = Stopwatch.StartNew();
+                int lastSampleIndex = 0;
+                while (stopwatch.Elapsed.TotalSeconds < duration)
+                {
+                    Thread.Sleep(50);
+                    int recordedBytes = GetRecordedBytes(header, bytes);
+                    if (recordedBytes > lastSampleIndex * sizeof(short))
+                    {
+                        double chunkPeak = CalculatePeak(data, lastSampleIndex, recordedBytes / sizeof(short));
+                        levelCallback?.Invoke(chunkPeak);
+                        lastSampleIndex = recordedBytes / sizeof(short);
+                    }
+                }
+
                 waveInStop(device);
                 waveInReset(device);
 
-                var recorded = Marshal.PtrToStructure<WAVEHDR>(header);
-                int recordedBytes = (int)Math.Min(recorded.dwBytesRecorded, (uint)bytes);
-                if (recordedBytes <= 0)
+                int finalBytes = GetRecordedBytes(header, bytes);
+                if (finalBytes <= 0)
                 {
                     error = "未采集到输入数据";
                     return false;
                 }
 
-                short[] samples = new short[recordedBytes / sizeof(short)];
-                Marshal.Copy(data, samples, 0, samples.Length);
-
-                int max = 0;
-                foreach (short sample in samples)
-                    max = Math.Max(max, Math.Abs((int)sample));
-
-                peak = max / (double)short.MaxValue;
+                peak = CalculatePeak(data, 0, finalBytes / sizeof(short));
+                levelCallback?.Invoke(peak);
                 return true;
             }
             catch (Exception ex)
@@ -252,6 +263,24 @@ namespace YFrame.Service
             }
         }
 
+        /// <summary>读取当前录音缓冲区已写入的字节数</summary>
+        private static int GetRecordedBytes(IntPtr header, int bufferBytes)
+        {
+            var recorded = Marshal.PtrToStructure<WAVEHDR>(header);
+            return (int)Math.Min(recorded.dwBytesRecorded, (uint)bufferBytes);
+        }
+
+        /// <summary>计算指定采样区间的峰值电平（0~1）</summary>
+        private static double CalculatePeak(IntPtr data, int startSample, int endSample)
+        {
+            int max = 0;
+            for (int i = startSample; i < endSample; i++)
+            {
+                short sample = Marshal.ReadInt16(data, i * sizeof(short));
+                max = Math.Max(max, Math.Abs((int)sample));
+            }
+            return max / (double)short.MaxValue;
+        }
         /// <summary>创建 44.1kHz / 16bit / 单声道 PCM 格式</summary>
         private static WAVEFORMATEX CreateFormat() => new()
         {
