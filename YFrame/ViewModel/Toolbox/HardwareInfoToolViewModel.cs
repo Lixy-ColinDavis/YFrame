@@ -1,10 +1,10 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using YF_Manager;
 using YF_Manager;
 using YFrame.Model;
 using YFrame.Service;
@@ -131,6 +131,61 @@ namespace YFrame.ViewModel.Toolbox
             set => SetProperty(ref _osText, value);
         }
 
+        private string _audioOutputText = "—";
+        /// <summary>输出设备（默认扬声器）显示文本</summary>
+        public string AudioOutputText
+        {
+            get => _audioOutputText;
+            set => SetProperty(ref _audioOutputText, value);
+        }
+
+        private string _audioInputText = "—";
+        /// <summary>输入设备（默认麦克风）显示文本</summary>
+        public string AudioInputText
+        {
+            get => _audioInputText;
+            set => SetProperty(ref _audioInputText, value);
+        }
+
+        private string _audioTestText = string.Empty;
+        /// <summary>音频测试状态文本</summary>
+        public string AudioTestText
+        {
+            get => _audioTestText;
+            set => SetProperty(ref _audioTestText, value);
+        }
+
+        private bool _isTestingAudio;
+        /// <summary>是否正在执行音频测试</summary>
+        public bool IsTestingAudio
+        {
+            get => _isTestingAudio;
+            set => SetProperty(ref _isTestingAudio, value);
+        }
+
+        private string _monitorName = "—";
+        /// <summary>显示器名称</summary>
+        public string MonitorName
+        {
+            get => _monitorName;
+            set => SetProperty(ref _monitorName, value);
+        }
+
+        private string _monitorDetail = string.Empty;
+        /// <summary>显示器尺寸、分辨率与刷新率</summary>
+        public string MonitorDetail
+        {
+            get => _monitorDetail;
+            set => SetProperty(ref _monitorDetail, value);
+        }
+
+        private string _monitorMeta = string.Empty;
+        /// <summary>显示器厂商、序列号与多屏数量</summary>
+        public string MonitorMeta
+        {
+            get => _monitorMeta;
+            set => SetProperty(ref _monitorMeta, value);
+        }
         /// <summary>内存条描述列表（最多展示 4 条）</summary>
         public ObservableCollection<string> MemoryModules { get; } = new();
 
@@ -143,6 +198,12 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>复制硬件摘要命令</summary>
         public YF_RelayCommand CopyCommand { get; }
 
+        /// <summary>测试默认输出设备命令</summary>
+        public YF_RelayCommand TestOutputCommand { get; }
+
+        /// <summary>测试默认输入设备命令</summary>
+        public YF_RelayCommand TestInputCommand { get; }
+
         /// <summary>
         /// 构造时立即异步读取一次硬件信息
         /// </summary>
@@ -150,6 +211,8 @@ namespace YFrame.ViewModel.Toolbox
         {
             RefreshCommand = new YF_RelayCommand(() => _ = LoadAsync());
             CopyCommand = new YF_RelayCommand(CopySummary);
+            TestOutputCommand = new YF_RelayCommand(() => _ = TestOutputAsync());
+            TestInputCommand = new YF_RelayCommand(() => _ = TestInputAsync());
             _ = LoadAsync();
         }
 
@@ -252,6 +315,92 @@ namespace YFrame.ViewModel.Toolbox
                 snapshot.Os.Version,
                 snapshot.Os.Architecture
             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            AudioOutputText = FormatAudioList(snapshot.Audio.Outputs);
+            AudioInputText = FormatAudioList(snapshot.Audio.Inputs);
+
+            MonitorName = Fallback(snapshot.Monitor.Name);
+            MonitorDetail = string.Join(" · ", new[]
+            {
+                snapshot.Monitor.SizeInch > 0 ? $"{snapshot.Monitor.SizeInch:F1} 英寸" : string.Empty,
+                snapshot.Monitor.Width > 0 && snapshot.Monitor.Height > 0
+                    ? $"{snapshot.Monitor.Width} × {snapshot.Monitor.Height}"
+                    : string.Empty,
+                snapshot.Monitor.RefreshRate > 0 ? $"{snapshot.Monitor.RefreshRate} Hz" : string.Empty
+            }.Where(s => !string.IsNullOrEmpty(s)));
+            MonitorMeta = string.Join(" · ", new[]
+            {
+                snapshot.Monitor.Manufacturer,
+                string.IsNullOrWhiteSpace(snapshot.Monitor.SerialNumber) ? string.Empty : snapshot.Monitor.SerialNumber,
+                snapshot.Monitor.AdditionalCount > 0 ? $"+{snapshot.Monitor.AdditionalCount}" : string.Empty
+            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            // 音频测试结果只在重新测试时更新，刷新硬件信息时保留最近一次结果
+        }
+
+        /// <summary>
+        /// 格式化音频设备列表：最多显示两个名称，其余用 +N 提示。
+        /// </summary>
+        /// <param name="devices">设备名称列表</param>
+        /// <returns>界面显示文本</returns>
+        private static string FormatAudioList(IReadOnlyList<string> devices)
+        {
+            if (devices.Count == 0) return R("key_Hardware_NoAudio");
+            string text = string.Join(" / ", devices.Take(2));
+            if (devices.Count > 2) text += $" +{devices.Count - 2}";
+            return text;
+        }
+
+        /// <summary>
+        /// 测试默认输出设备：播放 1 秒 440Hz 测试音。
+        /// </summary>
+        private async Task TestOutputAsync()
+        {
+            if (IsTestingAudio) return;
+            IsTestingAudio = true;
+            AudioTestText = R("key_Hardware_TestingOutput");
+
+            try
+            {
+                var result = await Task.Run(() =>
+                {
+                    bool ok = AudioTestService.PlayTestTone(out string error);
+                    return (ok, error);
+                });
+                AudioTestText = result.ok
+                    ? R("key_Hardware_OutputOk")
+                    : RF("key_Hardware_AudioFailed", result.error);
+            }
+            finally
+            {
+                IsTestingAudio = false;
+            }
+        }
+
+        /// <summary>
+        /// 测试默认输入设备：录音 1.5 秒并显示峰值电平。
+        /// </summary>
+        private async Task TestInputAsync()
+        {
+            if (IsTestingAudio) return;
+            IsTestingAudio = true;
+            AudioTestText = R("key_Hardware_TestingInput");
+
+            try
+            {
+                var result = await Task.Run(() =>
+                {
+                    bool ok = AudioTestService.RecordPeak(out double peak, out string error);
+                    return (ok, peak, error);
+                });
+                AudioTestText = result.ok
+                    ? RF("key_Hardware_InputLevel", result.peak * 100)
+                    : RF("key_Hardware_AudioFailed", result.error);
+            }
+            finally
+            {
+                IsTestingAudio = false;
+            }
         }
 
         /// <summary>
@@ -273,6 +422,10 @@ namespace YFrame.ViewModel.Toolbox
                 sb.AppendLine($"{R("key_Hardware_System")}: {SystemText} / {ComputerName}");
                 sb.AppendLine($"BIOS: {BiosText}");
                 sb.AppendLine($"{R("key_Hardware_Os")}: {OsText}");
+                sb.AppendLine($"{R("key_Hardware_Display")}: {MonitorName} ({MonitorDetail})");
+                sb.AppendLine($"{R("key_Hardware_Audio")}:");
+                sb.AppendLine($"  {R("key_Hardware_Output")}: {AudioOutputText}");
+                sb.AppendLine($"  {R("key_Hardware_Input")}: {AudioInputText}");
 
                 Clipboard.SetText(sb.ToString());
                 StatusText = R("key_Hardware_Copied");

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using YFrame.Model;
 
@@ -15,6 +16,9 @@ namespace YFrame.Service
     {
         /// <summary>单条 WMI 查询超时时间，避免个别设备驱动导致界面长时间等待</summary>
         private static readonly TimeSpan QueryTimeout = TimeSpan.FromSeconds(8);
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
 
         /// <summary>
         /// 读取当前计算机的硬件静态信息。
@@ -33,6 +37,8 @@ namespace YFrame.Service
             snapshot.System = QuerySystem();
             snapshot.Bios = QueryBios();
             snapshot.Os = QueryOs();
+            snapshot.Audio = QueryAudio();
+            snapshot.Monitor = QueryMonitor();
 
             // 内存总容量优先使用内存条容量之和；若 WMI 未返回内存条，再用整机总内存兜底
             if (snapshot.Memory.TotalBytes == 0)
@@ -176,6 +182,143 @@ namespace YFrame.Service
                 }).FirstOrDefault() ?? new OsSnapshot();
         }
 
+        /// <summary>
+        /// 查询音频端点设备，按名称粗略区分输入与输出。
+        /// 测试功能统一使用 Windows 默认播放/录音设备。
+        /// </summary>
+        private static AudioSnapshot QueryAudio()
+        {
+            var audio = new AudioSnapshot();
+            var endpoints = Query(
+                "SELECT Name FROM Win32_PnPEntity WHERE PNPClass = 'AudioEndpoint'",
+                obj => Text(obj, "Name"))
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (string name in endpoints)
+            {
+                bool isInput = name.Contains("麦克风", StringComparison.OrdinalIgnoreCase)
+                               || name.Contains("Microphone", StringComparison.OrdinalIgnoreCase)
+                               || name.Contains("Input", StringComparison.OrdinalIgnoreCase)
+                               || name.Contains("Capture", StringComparison.OrdinalIgnoreCase);
+                if (isInput) audio.Inputs.Add(name);
+                else audio.Outputs.Add(name);
+            }
+
+            // 部分系统没有 AudioEndpoint 类，回退到声卡名称，至少能展示设备
+            if (endpoints.Count == 0)
+            {
+                foreach (string name in Query("SELECT Name FROM Win32_SoundDevice", obj => Text(obj, "Name"))
+                             .Where(n => !string.IsNullOrWhiteSpace(n))
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    audio.Outputs.Add(name);
+                }
+            }
+
+            return audio;
+        }
+
+        /// <summary>
+        /// 查询显示器信息：型号、厂商、序列号、尺寸、主屏分辨率与刷新率。
+        /// </summary>
+        private static MonitorSnapshot QueryMonitor()
+        {
+            var monitor = new MonitorSnapshot
+            {
+                Width = GetSystemMetrics(0) > 0 ? GetSystemMetrics(0) : (int)System.Windows.SystemParameters.PrimaryScreenWidth,
+                Height = GetSystemMetrics(1) > 0 ? GetSystemMetrics(1) : (int)System.Windows.SystemParameters.PrimaryScreenHeight
+            };
+
+            var refresh = Query("SELECT CurrentRefreshRate FROM Win32_VideoController", obj => Int(obj, "CurrentRefreshRate"));
+            monitor.RefreshRate = refresh.Where(r => r > 0).DefaultIfEmpty(0).Max();
+
+            try
+            {
+                var scope = new ManagementScope(@"\\.\root\wmi");
+                scope.Connect();
+
+                var names = new List<string>();
+                using (var searcher = new ManagementObjectSearcher(scope,
+                           new ObjectQuery("SELECT ManufacturerName, UserFriendlyName, SerialNumberID FROM WmiMonitorID")))
+                {
+                    searcher.Options.Timeout = QueryTimeout;
+                    using var collection = searcher.Get();
+                    foreach (ManagementObject obj in collection)
+                    {
+                        using (obj)
+                        {
+                            string friendly = DecodeWmiString(obj["UserFriendlyName"]);
+                            string manufacturer = DecodeWmiString(obj["ManufacturerName"]);
+                            string serial = DecodeWmiString(obj["SerialNumberID"]);
+
+                            if (string.IsNullOrWhiteSpace(friendly))
+                                friendly = JoinNonEmpty(manufacturer, "Monitor");
+                            names.Add(friendly);
+
+                            if (string.IsNullOrWhiteSpace(monitor.Name))
+                            {
+                                monitor.Name = friendly;
+                                monitor.Manufacturer = manufacturer;
+                                monitor.SerialNumber = serial;
+                            }
+                        }
+                    }
+                }
+
+                monitor.AdditionalCount = Math.Max(0, names.Count - 1);
+
+                using (var searcher = new ManagementObjectSearcher(scope,
+                           new ObjectQuery("SELECT MaxHorizontalImageSize, MaxVerticalImageSize FROM WmiMonitorBasicDisplayParams")))
+                {
+                    searcher.Options.Timeout = QueryTimeout;
+                    using var collection = searcher.Get();
+                    foreach (ManagementObject obj in collection)
+                    {
+                        using (obj)
+                        {
+                            int widthCm = Int(obj, "MaxHorizontalImageSize");
+                            int heightCm = Int(obj, "MaxVerticalImageSize");
+                            if (widthCm > 0 && heightCm > 0)
+                            {
+                                double diagonalCm = Math.Sqrt(widthCm * widthCm + heightCm * heightCm);
+                                monitor.SizeInch = Math.Round(diagonalCm / 2.54, 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 显示器 WMI 在部分显卡/远程桌面下不可用，保留分辨率和刷新率
+            }
+
+            if (string.IsNullOrWhiteSpace(monitor.Name))
+                monitor.Name = "主显示器";
+            return monitor;
+        }
+
+        /// <summary>
+        /// WmiMonitorID 的字符串字段是 ushort 数组，逐字符转换到 0 结束。
+        /// </summary>
+        private static string DecodeWmiString(object? value)
+        {
+            if (value is not ushort[] chars) return string.Empty;
+
+            var builder = new System.Text.StringBuilder(chars.Length);
+            foreach (ushort code in chars)
+            {
+                if (code == 0) break;
+                builder.Append((char)code);
+            }
+            return builder.ToString().Trim();
+        }
+
+        /// <summary>将非空字符串用斜杠连接</summary>
+        private static string JoinNonEmpty(params string[] values)
+            => string.Join(" / ", values.Where(v => !string.IsNullOrWhiteSpace(v)));
         /// <summary>
         /// 执行 WMI 查询并将结果映射为强类型对象。
         /// 单次查询独立释放 ManagementObject，防止 WMI 句柄累积。

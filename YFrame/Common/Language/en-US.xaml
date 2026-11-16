@@ -106,7 +106,7 @@
     <sys:String x:Key="key_Toolbox_Md5Compare">MD5 File Check</sys:String>
     <sys:String x:Key="key_Toolbox_Md5CompareDesc">Compute MD5 and compare two files</sys:String>
     <sys:String x:Key="key_Toolbox_Hardware">Hardware Check</sys:String>
-    <sys:String x:Key="key_Toolbox_HardwareDesc">View static CPU, GPU, memory, disk and motherboard info</sys:String>
+    <sys:String x:Key="key_Toolbox_HardwareDesc">View static CPU, GPU, memory, disk, motherboard, audio and display info</sys:String>
     <sys:String x:Key="key_Hardware_Title">Hardware Check</sys:String>
     <sys:String x:Key="key_Hardware_Subtitle">Static hardware info · no live usage sampling</sys:String>
     <sys:String x:Key="key_Hardware_Refresh">Refresh</sys:String>
@@ -128,7 +128,18 @@
     <sys:String x:Key="key_Hardware_Os">OS</sys:String>
     <sys:String x:Key="key_Hardware_Total">Total</sys:String>
     <sys:String x:Key="key_Hardware_Vram">VRAM</sys:String>
-    <sys:String x:Key="key_Hardware_Driver">Driver</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
+    <sys:String x:Key="key_Hardware_Driver">Driver</sys:String>
+    <sys:String x:Key="key_Hardware_Audio">Audio</sys:String>
+    <sys:String x:Key="key_Hardware_Output">Output</sys:String>
+    <sys:String x:Key="key_Hardware_Input">Input</sys:String>
+    <sys:String x:Key="key_Hardware_Test">Test</sys:String>
+    <sys:String x:Key="key_Hardware_TestingOutput">Playing test tone...</sys:String>
+    <sys:String x:Key="key_Hardware_TestingInput">Recording 1.5s...</sys:String>
+    <sys:String x:Key="key_Hardware_OutputOk">Test tone played</sys:String>
+    <sys:String x:Key="key_Hardware_InputLevel">Input peak {0:F0}%</sys:String>
+    <sys:String x:Key="key_Hardware_AudioFailed">Audio test failed: {0}</sys:String>
+    <sys:String x:Key="key_Hardware_NoAudio">No audio device detected</sys:String>
+    <sys:String x:Key="key_Hardware_Display">Display</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorRgb">RGB:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorPos">Pos:</sys:String>
     <sys:String x:Key="key_Toolbox_ScaleLabel">Screen Scale:</sys:String>

@@ -106,7 +106,7 @@
     <sys:String x:Key="key_Toolbox_Md5Compare">MD5 文件校验</sys:String>
     <sys:String x:Key="key_Toolbox_Md5CompareDesc">计算文件 MD5 并对比两个文件</sys:String>
     <sys:String x:Key="key_Toolbox_Hardware">硬件检查</sys:String>
-    <sys:String x:Key="key_Toolbox_HardwareDesc">查看 CPU、GPU、内存、硬盘与主板静态信息</sys:String>
+    <sys:String x:Key="key_Toolbox_HardwareDesc">查看 CPU、GPU、内存、硬盘、主板、音频与显示器静态信息</sys:String>
     <sys:String x:Key="key_Hardware_Title">硬件检查</sys:String>
     <sys:String x:Key="key_Hardware_Subtitle">静态硬件信息 · 不采集实时占用</sys:String>
     <sys:String x:Key="key_Hardware_Refresh">刷新</sys:String>
@@ -128,7 +128,18 @@
     <sys:String x:Key="key_Hardware_Os">操作系统</sys:String>
     <sys:String x:Key="key_Hardware_Total">总容量</sys:String>
     <sys:String x:Key="key_Hardware_Vram">显存</sys:String>
-    <sys:String x:Key="key_Hardware_Driver">驱动</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
+    <sys:String x:Key="key_Hardware_Driver">驱动</sys:String>
+    <sys:String x:Key="key_Hardware_Audio">音频</sys:String>
+    <sys:String x:Key="key_Hardware_Output">输出</sys:String>
+    <sys:String x:Key="key_Hardware_Input">输入</sys:String>
+    <sys:String x:Key="key_Hardware_Test">测试</sys:String>
+    <sys:String x:Key="key_Hardware_TestingOutput">正在播放测试音...</sys:String>
+    <sys:String x:Key="key_Hardware_TestingInput">正在录音 1.5 秒...</sys:String>
+    <sys:String x:Key="key_Hardware_OutputOk">测试音已播放</sys:String>
+    <sys:String x:Key="key_Hardware_InputLevel">输入峰值 {0:F0}%</sys:String>
+    <sys:String x:Key="key_Hardware_AudioFailed">音频测试失败：{0}</sys:String>
+    <sys:String x:Key="key_Hardware_NoAudio">未检测到音频设备</sys:String>
+    <sys:String x:Key="key_Hardware_Display">显示器</sys:String>    <sys:String x:Key="key_Toolbox_ColorHex">HEX:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorRgb">RGB:</sys:String>
     <sys:String x:Key="key_Toolbox_ColorPos">坐标:</sys:String>
     <sys:String x:Key="key_Toolbox_ScaleLabel">屏幕缩放:</sys:String>

@@ -1,4 +1,4 @@
-# YFrame 项目参考（AI 快速理解用）
+﻿# YFrame 项目参考（AI 快速理解用）
 
 > **编写目的：** 供 AI 在新对话中快速理解此项目，避免重复读取所有代码。
 > **生成日期：** 2026-07-22
@@ -389,7 +389,7 @@ PluginService.OnHotkeyPressedInternal()
 | 屏幕取色器 | `ViewModel/Toolbox/ColorPickerToolViewModel.cs` | `View/UC/Toolbox/ColorPickerTool.xaml` | 框选屏幕区域截图（`ScreenCaptureHelper` P/Invoke BitBlt）→ 左上显示缩略图 → 点击取色；屏幕缩放 100-200 下拉框（`Config.ScreenScale`，与截图插件共用） |
 | 正则测试 | `ViewModel/Toolbox/RegexTesterToolViewModel.cs` | `View/UC/Toolbox/RegexTesterTool.xaml` | 模式校验/选项/匹配列表，逻辑在 `YF_RegexHelper`；匹配前自动归一化换行（`\r\n`→`\n`），保证多行 `^$` 锚点生效 |
 | MD5 校验 | `ViewModel/Toolbox/Md5CompareToolViewModel.cs` | `View/UC/Toolbox/Md5CompareTool.xaml` | 单文件 MD5 / 双文件对比（版本校验），逻辑在 `YF_Md5Hasher`，异步分块 + 进度 |
-| 硬件检查 | `ViewModel/Toolbox/HardwareInfoToolViewModel.cs` | `View/UC/Toolbox/HardwareInfoTool.xaml` | WMI 读取 CPU/GPU/内存/磁盘/主板/BIOS/OS 静态信息（不做实时采样），两列卡片一屏展示，支持刷新与复制；服务在 `Service/HardwareInfoService.cs` |
+| 硬件检查 | `ViewModel/Toolbox/HardwareInfoToolViewModel.cs` | `View/UC/Toolbox/HardwareInfoTool.xaml` | WMI 读取 CPU/GPU/内存/磁盘/主板/BIOS/OS/音频/显示器静态信息（不做实时采样），支持默认输出播放测试与默认输入录音峰值测试；两列卡片一屏展示，支持刷新与复制；服务在 `Service/HardwareInfoService.cs`，音频测试在 `Service/AudioTestService.cs` |
 
 **关键设计：** 工具界面符合 MVVM（继承 `ViewModelBase`）；纯逻辑抽到 YF_Manager（`YF_Md5Hasher` / `YF_RegexHelper`）便于单元测试；取色截图零第三方依赖（P/Invoke GDI）。
 

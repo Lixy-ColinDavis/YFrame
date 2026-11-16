@@ -30,6 +30,12 @@ namespace YFrame.Model
 
         /// <summary>操作系统信息</summary>
         public OsSnapshot Os { get; set; } = new();
+
+        /// <summary>音频输入/输出设备</summary>
+        public AudioSnapshot Audio { get; set; } = new();
+
+        /// <summary>显示器信息</summary>
+        public MonitorSnapshot Monitor { get; set; } = new();
     }
 
     /// <summary>处理器静态信息</summary>
@@ -159,5 +165,44 @@ namespace YFrame.Model
 
         /// <summary>系统架构</summary>
         public string Architecture { get; set; } = string.Empty;
+    }
+
+
+    /// <summary>音频设备汇总</summary>
+    public sealed class AudioSnapshot
+    {
+        /// <summary>输出设备名称列表</summary>
+        public List<string> Outputs { get; set; } = new();
+
+        /// <summary>输入设备名称列表</summary>
+        public List<string> Inputs { get; set; } = new();
+    }
+
+    /// <summary>显示器静态信息</summary>
+    public sealed class MonitorSnapshot
+    {
+        /// <summary>显示器名称</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>厂商代号</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+
+        /// <summary>序列号</summary>
+        public string SerialNumber { get; set; } = string.Empty;
+
+        /// <summary>对角线尺寸（英寸）</summary>
+        public double SizeInch { get; set; }
+
+        /// <summary>当前主屏分辨率宽度</summary>
+        public int Width { get; set; }
+
+        /// <summary>当前主屏分辨率高度</summary>
+        public int Height { get; set; }
+
+        /// <summary>当前刷新率（Hz）</summary>
+        public int RefreshRate { get; set; }
+
+        /// <summary>附加显示器数量（多屏时提示）</summary>
+        public int AdditionalCount { get; set; }
     }
 }
