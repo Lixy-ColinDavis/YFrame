@@ -18,13 +18,13 @@
     <SolidColorBrush x:Key="TopBarBrush" Color="#E61A1033"/>
     <!-- 菜单/下拉浮层专用底色 -->
     <SolidColorBrush x:Key="MenuPanelBrush" Color="#F21E1638"/>
-    <SolidColorBrush x:Key="ToolWindowBrush" Color="#12FFFFFF"/>
+    <SolidColorBrush x:Key="ToolWindowBrush" Color="#401A1033"/>
     <SolidColorBrush x:Key="WindowBorderBrush" Color="#33FFFFFF"/>
 
     <!-- 卡片 / 面板层级 -->
-    <SolidColorBrush x:Key="PanelBrush" Color="#14FFFFFF"/>
-    <SolidColorBrush x:Key="PanelAltBrush" Color="#1FFFFFFF"/>
-    <SolidColorBrush x:Key="PanelHoverBrush" Color="#26FFFFFF"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#4D1A1033"/>
+    <SolidColorBrush x:Key="PanelAltBrush" Color="#331A1033"/>
+    <SolidColorBrush x:Key="PanelHoverBrush" Color="#4D2A1B4D"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#29FFFFFF"/>
 
     <!-- 文字 -->
