@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -35,6 +35,8 @@ namespace YFrame
                 () => new RegexTesterTool { DataContext = new RegexTesterToolViewModel() });
             RegisterTool("md5-compare", GetString("key_Toolbox_Md5Compare"), GetString("key_Toolbox_Md5CompareDesc"),
                 () => new Md5CompareTool { DataContext = new Md5CompareToolViewModel() });
+            RegisterTool("hardware-info", GetString("key_Toolbox_Hardware"), GetString("key_Toolbox_HardwareDesc"),
+                () => new HardwareInfoTool { DataContext = new HardwareInfoToolViewModel() });
         }
 
         /// <summary>

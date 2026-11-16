@@ -370,7 +370,7 @@ PluginService.OnHotkeyPressedInternal()
 | 面板 | 标签页 | 索引 | 说明 |
 |------|--------|------|------|
 | **左侧面板** | 插件列表 | 0 | VS Code 风格活动栏，垂直旋转文字，选中竖线指示 |
-| **左侧面板** | 工具箱 | 1 | 内置小工具列表（取色器/正则测试/MD5校验，点击后在主工作区打开） |
+| **左侧面板** | 工具箱 | 1 | 内置小工具列表（取色器/正则测试/MD5校验/硬件检查，点击后在主工作区打开） |
 | **右侧面板** | 日志 | 0 | 实时日志输出，支持清除 |
 | **右侧面板** | 参数 | 1 | 参数面板（待扩展） |
 
@@ -382,13 +382,14 @@ PluginService.OnHotkeyPressedInternal()
 
 **架构：** `ToolboxService`（工具注册表 ID→视图工厂 + 视图单例缓存）→ `MainWindowViewModel.SelectTool()` 打开 → 主工作区 `ActiveToolView` 叠加 ContentControl 显示。
 
-**内置工具（当前 3 个）：**
+**内置工具（当前 4 个）：**
 
 | 工具 | ViewModel | View | 说明 |
 |------|-----------|------|------|
 | 屏幕取色器 | `ViewModel/Toolbox/ColorPickerToolViewModel.cs` | `View/UC/Toolbox/ColorPickerTool.xaml` | 框选屏幕区域截图（`ScreenCaptureHelper` P/Invoke BitBlt）→ 左上显示缩略图 → 点击取色；屏幕缩放 100-200 下拉框（`Config.ScreenScale`，与截图插件共用） |
 | 正则测试 | `ViewModel/Toolbox/RegexTesterToolViewModel.cs` | `View/UC/Toolbox/RegexTesterTool.xaml` | 模式校验/选项/匹配列表，逻辑在 `YF_RegexHelper`；匹配前自动归一化换行（`\r\n`→`\n`），保证多行 `^$` 锚点生效 |
 | MD5 校验 | `ViewModel/Toolbox/Md5CompareToolViewModel.cs` | `View/UC/Toolbox/Md5CompareTool.xaml` | 单文件 MD5 / 双文件对比（版本校验），逻辑在 `YF_Md5Hasher`，异步分块 + 进度 |
+| 硬件检查 | `ViewModel/Toolbox/HardwareInfoToolViewModel.cs` | `View/UC/Toolbox/HardwareInfoTool.xaml` | WMI 读取 CPU/GPU/内存/磁盘/主板/BIOS/OS 静态信息（不做实时采样），两列卡片一屏展示，支持刷新与复制；服务在 `Service/HardwareInfoService.cs` |
 
 **关键设计：** 工具界面符合 MVVM（继承 `ViewModelBase`）；纯逻辑抽到 YF_Manager（`YF_Md5Hasher` / `YF_RegexHelper`）便于单元测试；取色截图零第三方依赖（P/Invoke GDI）。
 
