@@ -1,14 +1,8 @@
-﻿using System.Configuration;
-using System.Data;
 using System.Windows;
 
-namespace YFrame.update
-{
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
-    {
-    }
+namespace YFrame.Update;
 
+/// <summary>更新程序入口。</summary>
+public partial class App : Application
+{
 }

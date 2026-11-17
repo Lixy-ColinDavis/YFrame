@@ -5,11 +5,12 @@
         Width="480"
         SizeToContent="Height"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
         Topmost="True"
-        Background="{DynamicResource WindowBrush}"
+        Background="Transparent"
         FontFamily="{DynamicResource UiFontFamily}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
