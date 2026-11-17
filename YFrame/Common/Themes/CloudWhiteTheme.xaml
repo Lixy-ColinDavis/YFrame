@@ -25,6 +25,7 @@
     <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="PanelAltBrush" Color="#FFEEF1F7"/>
     <SolidColorBrush x:Key="PanelHoverBrush" Color="#FFF3F5FA"/>
+    <SolidColorBrush x:Key="CardHoverBrush" Color="#FFF0F4FF"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#FFE6E9F2"/>
 
     <!-- 文字 -->

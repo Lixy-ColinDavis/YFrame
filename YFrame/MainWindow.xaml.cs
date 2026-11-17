@@ -347,6 +347,39 @@ namespace YFrame
         }
 
         /// <summary>
+        /// 鼠标进入卡片：只改变独立高亮层的透明度，避免重绘整卡内容。
+        /// </summary>
+        private void HomeCard_MouseEnter(object sender, MouseEventArgs e)
+            => SetHomeCardHover(sender, true);
+
+        /// <summary>
+        /// 鼠标离开卡片：淡出高亮层。
+        /// </summary>
+        private void HomeCard_MouseLeave(object sender, MouseEventArgs e)
+            => SetHomeCardHover(sender, false);
+
+        /// <summary>
+        /// 设置卡片高亮层的目标透明度；使用 FillBehavior.Stop，避免留下动画时钟。
+        /// </summary>
+        private void SetHomeCardHover(object sender, bool isHover)
+        {
+            if (sender is not Border card) return;
+
+            Border? overlay = card.Tag?.ToString() switch
+            {
+                "0" => HomeCard0Hover,
+                "1" => HomeCard1Hover,
+                "2" => HomeCard2Hover,
+                "3" => HomeCard3Hover,
+                _ => null
+            };
+            if (overlay == null) return;
+
+            // 不做透明度动画，鼠标进入/离开立即切换，消除感知延迟
+            overlay.BeginAnimation(OpacityProperty, null);
+            overlay.Opacity = isHover ? 0.72 : 0;
+        }
+        /// <summary>
         /// 点击右侧折叠卡：切换到对应分页
         /// </summary>
         /// <param name="sender">被点击的卡片</param>
