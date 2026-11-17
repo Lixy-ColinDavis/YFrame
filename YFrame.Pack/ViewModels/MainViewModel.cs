@@ -32,7 +32,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private int _addedCount;
     private int _changedCount;
     private int _removedCount;
-    private string _incrementFileName = "increment-版本号.zip";
+    private string _incrementFileName = "increment.zip";
     private string _lastOutputDirectory = string.Empty;
 
     /// <summary>创建 ViewModel 并载入 exe 同目录配置。</summary>
@@ -183,6 +183,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         get => _incrementFileName;
         set => SetProperty(ref _incrementFileName, value);
     }
+
+    /// <summary>最新完整包复制后的固定文件名。</summary>
+    public string CurrentFileName => "current.zip";
 
     /// <summary>版本清单文件名，固定为 YF_Version.json。</summary>
     public string ManifestFileName => "YF_Version.json";
@@ -446,11 +449,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>根据旧版本路径生成增量包文件名。</summary>
-    private static string BuildIncrementFileName(string? path)
-    {
-        string? version = ParseVersion(path);
-        return string.IsNullOrEmpty(version) ? "increment-版本号.zip" : $"increment-{version}.zip";
-    }
+    private static string BuildIncrementFileName(string? path) => "increment.zip";
 
     private void RaiseCommandState()
     {

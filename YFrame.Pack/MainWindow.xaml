@@ -376,9 +376,17 @@
                                             <TextBlock Text="ZIP" FontSize="9" FontWeight="Bold"
                                                        Foreground="{DynamicResource AccentBrush}"
                                                        Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding CurrentFileName}" FontSize="10.5"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource BadgeBorder}" Margin="0,0,0,7">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="ZIP" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       Margin="0,0,8,0"/>
                                             <TextBlock Text="{Binding IncrementFileName}" FontSize="10.5"
-                                                       Foreground="{DynamicResource TextBrush}"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       Foreground="{DynamicResource TextBrush}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource BadgeBorder}">

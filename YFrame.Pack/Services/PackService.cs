@@ -25,7 +25,7 @@ public static class PackService
     /// </summary>
     /// <param name="previousZipPath">旧版本完整包路径，例如 YF-2.0.0.zip</param>
     /// <param name="currentZipPath">新版本完整包路径，例如 YF-2.0.1.zip</param>
-    /// <param name="outputDirectory">increment-版本号.zip 和 YF_Version.json 的输出目录</param>
+    /// <param name="outputDirectory">current.zip、increment.zip 和 YF_Version.json 的输出目录</param>
     /// <param name="currentUrl">current.zip 的固定下载地址</param>
     /// <param name="incrementUrl">increment.zip 的固定下载地址</param>
     /// <param name="log">进度日志回调，可为空</param>
@@ -49,7 +49,8 @@ public static class PackService
                 $"新版本 {currentVersion} 必须高于旧版本 {previousVersion}。");
 
         Directory.CreateDirectory(outputDirectory);
-        string incrementPath = Path.Combine(outputDirectory, $"increment-{previousVersion}.zip");
+        string incrementPath = Path.Combine(outputDirectory, "increment.zip");
+        string currentCopyPath = Path.Combine(outputDirectory, "current.zip");
         string manifestPath = Path.Combine(outputDirectory, "YF_Version.json");
 
         log?.Invoke($"旧版本：{previousVersion}  {Path.GetFileName(previousZipPath)}");
@@ -98,10 +99,21 @@ public static class PackService
 
         WriteIncrementArchive(currentFiles, changedPaths, incrementPath);
 
+        // 把最新完整包复制到输出目录，发布端可直接按固定文件名 current.zip 上传
+        if (!string.Equals(Path.GetFullPath(currentZipPath), Path.GetFullPath(currentCopyPath),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            File.Copy(currentZipPath, currentCopyPath, overwrite: true);
+        }
+        else if (!File.Exists(currentCopyPath))
+        {
+            File.Copy(currentZipPath, currentCopyPath, overwrite: true);
+        }
+
         long incrementSize = new FileInfo(incrementPath).Length;
         string incrementMd5 = ComputeFileMd5(incrementPath);
-        long currentSize = new FileInfo(currentZipPath).Length;
-        string currentMd5 = ComputeFileMd5(currentZipPath);
+        long currentSize = new FileInfo(currentCopyPath).Length;
+        string currentMd5 = ComputeFileMd5(currentCopyPath);
 
         var manifest = new VersionManifest
         {
@@ -131,6 +143,7 @@ public static class PackService
         };
         File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, jsonOptions), new UTF8Encoding(false));
 
+        log?.Invoke($"已复制最新完整包：{Path.GetFileName(currentCopyPath)}（{FormatBytes(currentSize)}）");
         log?.Invoke($"已生成增量包：{Path.GetFileName(incrementPath)}（{FormatBytes(incrementSize)}）");
         log?.Invoke($"已生成清单：{Path.GetFileName(manifestPath)}");
         log?.Invoke($"current MD5：{currentMd5}");
@@ -144,6 +157,7 @@ public static class PackService
             ChangedFiles = changed,
             RemovedFiles = removed,
             IncrementPath = incrementPath,
+            CurrentCopyPath = currentCopyPath,
             ManifestPath = manifestPath,
             IncrementSize = incrementSize,
             IncrementMd5 = incrementMd5,
@@ -310,6 +324,7 @@ public sealed class PackResult
     public List<string> ChangedFiles { get; init; } = new();
     public List<string> RemovedFiles { get; init; } = new();
     public string IncrementPath { get; init; } = string.Empty;
+    public string CurrentCopyPath { get; init; } = string.Empty;
     public string ManifestPath { get; init; } = string.Empty;
     public long IncrementSize { get; init; }
     public string IncrementMd5 { get; init; } = string.Empty;
