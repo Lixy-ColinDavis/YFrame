@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -23,7 +23,7 @@ namespace YFrame
         /// 标题栏显示的版本号（取自程序集版本，避免写死）
         /// </summary>
         public string AppVersion { get; } =
-            "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "1.0");
+            "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "2.0");
         #region Win32 全屏相关 API 声明
 
         // Win32 矩形结构：表示屏幕/窗口的坐标范围

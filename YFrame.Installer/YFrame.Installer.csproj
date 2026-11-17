@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -9,7 +9,6 @@
     <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
     <AssemblyName>YFrame.Installer</AssemblyName>
     <RootNamespace>YFrame.Installer</RootNamespace>
-    <Version>1.0.0</Version>
     <Authors>YFrame</Authors>
     <Description>YFrame 框架安装程序（仅安装框架本体，自包含单文件）</Description>
 
@@ -53,4 +52,7 @@
     <Page Remove="payload_staging\**" />
   </ItemGroup>
 
+
+  <!-- 全产品统一版本号 -->
+  <Import Project="..\Version.props" />
 </Project>

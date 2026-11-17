@@ -25,4 +25,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+
+  <!-- 全产品统一版本号 -->
+  <Import Project="..\Version.props" />
 </Project>

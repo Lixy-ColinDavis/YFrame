@@ -27,7 +27,7 @@ namespace YFrame.View
             if (version != null)
                 VersionText.Text = $"版本 {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
             else
-                VersionText.Text = "版本 1.0.0.0";
+                VersionText.Text = "版本未知";
 
             // 读取 DLL 最后写入时间作为生成日期
             var assemblyPath = assembly.Location;
