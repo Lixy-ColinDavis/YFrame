@@ -21,8 +21,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly PackConfig _config;
-    private string _previousZipPath;
-    private string _currentZipPath;
+    private string _previousZipPath = string.Empty;
+    private string _currentZipPath = string.Empty;
     private string _outputDirectory;
     private string _currentUrl;
     private string _incrementUrl;
@@ -438,14 +438,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>从文件名解析 YF-x.y.z.zip 的版本号。</summary>
-    private static string? ParseVersion(string path)
+    private static string? ParseVersion(string? path)
     {
+        if (string.IsNullOrWhiteSpace(path)) return null;
         Match match = VersionRegex.Match(Path.GetFileName(path));
         return match.Success ? match.Groups["version"].Value : null;
     }
 
     /// <summary>根据旧版本路径生成增量包文件名。</summary>
-    private static string BuildIncrementFileName(string path)
+    private static string BuildIncrementFileName(string? path)
     {
         string? version = ParseVersion(path);
         return string.IsNullOrEmpty(version) ? "increment-版本号.zip" : $"increment-{version}.zip";
