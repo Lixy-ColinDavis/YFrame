@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,5 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 复用主框架主题和控件样式，避免 Pack 工具出现另一套视觉 -->
+    <Resource Include="..\YFrame\Common\Themes\CloudWhiteTheme.xaml" Link="Themes\CloudWhiteTheme.xaml" />
+    <Resource Include="..\YFrame\Common\Themes\ControlStyles.xaml" Link="Themes\ControlStyles.xaml" />
+    <Resource Include="..\YFrame\Common\Images\Logo.png" Link="Assets\Logo.png" />
+  </ItemGroup>
 
 </Project>
