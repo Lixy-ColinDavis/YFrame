@@ -359,25 +359,53 @@ namespace YFrame
             => SetHomeCardHover(sender, false);
 
         /// <summary>
-        /// 设置卡片高亮层的目标透明度；使用 FillBehavior.Stop，避免留下动画时钟。
+        /// 设置卡片高亮层的目标透明度；当前展开的卡片不显示悬浮色。
         /// </summary>
+        /// <param name="sender">触发鼠标事件的卡片</param>
+        /// <param name="isHover">true 表示鼠标进入，false 表示离开</param>
         private void SetHomeCardHover(object sender, bool isHover)
         {
             if (sender is not Border card) return;
 
-            Border? overlay = card.Tag?.ToString() switch
-            {
-                "0" => HomeCard0Hover,
-                "1" => HomeCard1Hover,
-                "2" => HomeCard2Hover,
-                "3" => HomeCard3Hover,
-                _ => null
-            };
+            Border? overlay = GetHomeCardHoverOverlay(card);
             if (overlay == null) return;
+
+            // 当前选中的展开卡不再显示鼠标经过的变色效果
+            if (isHover &&
+                int.TryParse(card.Tag?.ToString(), out int index) &&
+                index == _homeSectionIndex)
+            {
+                HideHomeCardHover(overlay);
+                return;
+            }
 
             // 不做透明度动画，鼠标进入/离开立即切换，消除感知延迟
             overlay.BeginAnimation(OpacityProperty, null);
             overlay.Opacity = isHover ? 0.72 : 0;
+        }
+
+        /// <summary>
+        /// 根据卡片索引取得对应的悬浮高亮层。
+        /// </summary>
+        /// <param name="card">四张首页卡片之一</param>
+        /// <returns>对应的高亮层；索引无效时返回 null</returns>
+        private Border? GetHomeCardHoverOverlay(FrameworkElement card) => card.Tag?.ToString() switch
+        {
+            "0" => HomeCard0Hover,
+            "1" => HomeCard1Hover,
+            "2" => HomeCard2Hover,
+            "3" => HomeCard3Hover,
+            _ => null
+        };
+
+        /// <summary>
+        /// 立即隐藏指定高亮层，并清除可能存在的透明度动画。
+        /// </summary>
+        /// <param name="overlay">要隐藏的高亮层</param>
+        private static void HideHomeCardHover(Border overlay)
+        {
+            overlay.BeginAnimation(OpacityProperty, null);
+            overlay.Opacity = 0;
         }
         /// <summary>
         /// 点击右侧折叠卡：切换到对应分页
@@ -417,6 +445,18 @@ namespace YFrame
                 return;
 
             _homeSectionIndex = index;
+
+            // 选中卡不再显示鼠标悬浮色，避免点击后残留高亮
+            Border? selectedOverlay = index switch
+            {
+                0 => HomeCard0Hover,
+                1 => HomeCard1Hover,
+                2 => HomeCard2Hover,
+                3 => HomeCard3Hover,
+                _ => null
+            };
+            if (selectedOverlay != null)
+                HideHomeCardHover(selectedOverlay);
 
             // 四张卡共用同一组列，只有当前卡占满剩余宽度
             var columns = new ColumnDefinition[] { HomeCol0, HomeCol1, HomeCol2, HomeCol3 };
