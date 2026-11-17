@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -25,6 +25,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+
+  <!-- 在 VS 项目树中显示统一版本文件 -->
+  <ItemGroup>
+    <None Include="..\Version.props" Link="Version.props" />
+  </ItemGroup>
 
   <!-- 全产品统一版本号 -->
   <Import Project="..\Version.props" />

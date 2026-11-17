@@ -4,8 +4,11 @@ using Microsoft.Win32;
 using System.Configuration;
 using System.Data;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using YF_Manager;
+using YFrame.Service;
+using YFrame.View;
 
 namespace YFrame
 {
@@ -19,9 +22,9 @@ namespace YFrame
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
 
         /// <summary>
-        /// 应用启动入口：处理 --uninstall 或构建 DI 容器启动主窗口
+        /// 应用启动入口：处理 --uninstall、更新检查，然后构建 DI 容器启动主窗口。
         /// </summary>
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             // 控制面板卸载时传入 --uninstall 参数
             if (e.Args.Length > 0 && (e.Args.Contains("--uninstall") || e.Args.Contains("-uninstall")))
@@ -34,11 +37,22 @@ namespace YFrame
             // 调用父类 OnStartup，确保 WPF 标准行为执行
             base.OnStartup(e);
 
+            // 更新检查期间还没有主窗口，避免 WPF 因“最后一个窗口关闭”提前退出
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
 
             // 恢复上次选择的主题（在创建主窗口前应用，避免启动时闪回默认主题）
             ApplySavedTheme();
+
+            // 更新检查必须先于主窗口创建；失败或用户选择不更新时继续正常启动
+            bool continueStartup = await CheckForUpdatesAsync();
+            if (!continueStartup)
+            {
+                Shutdown();
+                return;
+            }
 
             // 构建 DI 容器
             var services = new ServiceCollection();
@@ -50,7 +64,48 @@ namespace YFrame
 
             // 从 DI 容器获取主窗口（ViewModel 通过属性注入已完成初始化）
             var mainWindow = provider.GetRequiredService<MainWindow>();
+            ShutdownMode = ShutdownMode.OnLastWindowClose;
             mainWindow.Show();
+        }
+
+        /// <summary>
+        /// 检查远端版本并按规则提示更新。
+        /// </summary>
+        /// <returns>true 表示继续启动主窗口；false 表示已经启动更新程序并应关闭自身</returns>
+        private static async Task<bool> CheckForUpdatesAsync()
+        {
+            try
+            {
+                string localVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+                var update = await UpdateService.CheckAsync(localVersion);
+                if (update == null || !update.ShouldPrompt)
+                    return true;
+
+                var prompt = new UpdatePromptWindow(localVersion, update.CurrentVersion);
+                bool accepted = prompt.ShowDialog() == true && prompt.UpdateAccepted;
+                if (accepted)
+                {
+                    if (UpdateService.TryStartUpdater(out string error))
+                        return false;
+
+                    MessageBox.Show(
+                        $"无法启动更新程序：\n{error}",
+                        "YFrame 更新",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return true;
+                }
+
+                // 用户选择“不更新”：记录远端版本和三天截止时间
+                UpdateService.SaveSkip(update.CurrentVersion);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // 更新流程异常不能阻断主程序启动
+                YF_Manager_Main.logger.ErrorInfo("CheckForUpdatesAsync", ex.Message);
+                return true;
+            }
         }
 
         /// <summary>
