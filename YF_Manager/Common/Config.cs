@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using YFrame.Common;
 
 namespace YF_Manager
 {
@@ -120,7 +121,7 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// 屏幕缩放因子（百分比/100，如 1.25），供截图类插件做 DIP 与物理像素坐标换算
+        /// 屏幕缩放因子（百分比/100，如 125），供截图类插件做 DIP 与物理像素坐标换算
         /// </summary>
         public static double ScreenScaleFactor
         {
@@ -129,7 +130,7 @@ namespace YF_Manager
                 // 解析配置值并做范围钳制（100-200），非法时回退默认 1.25
                 if (int.TryParse(ScreenScale, out int scale))
                     return Math.Clamp(scale, 100, 200) / 100.0;
-                return 1.25;
+                return 125;
             }
         }
 
@@ -142,6 +143,45 @@ namespace YF_Manager
             get => Get(@"Common/Themes/CloudWhiteTheme.xaml");
             set => Set(value);
         }
+
+        /// <summary>唯一默认 COS 更新根地址，实际地址由 Env 拼接。</summary>
+        public static string DefaultUpdateBaseUrl => Cos_UpdateDefaults.BaseUrl;
+
+        /// <summary>
+        /// 更新环境：uat（默认）或 pdt。
+        /// 配置文件中以明文 Env=uat / Env=pdt 保存。
+        /// </summary>
+        public static string Env
+        {
+            get => Cos_UpdateDefaults.NormalizeEnv(Get(Cos_UpdateDefaults.DefaultEnv));
+            set => Set(Cos_UpdateDefaults.NormalizeEnv(value));
+        }
+
+        /// <summary>
+        /// COS 更新根地址（明文配置）。
+        /// 项目为开源项目，COS 成本很低，无安全与经济风险。
+        /// </summary>
+        public static string UpdateBaseUrl
+        {
+            get
+            {
+                string value = Get(DefaultUpdateBaseUrl).Trim().TrimEnd('/');
+                return string.IsNullOrWhiteSpace(value) ? DefaultUpdateBaseUrl : value;
+            }
+            set => Set((value ?? string.Empty).Trim().TrimEnd('/'));
+        }
+
+        /// <summary>当前环境的版本清单地址。</summary>
+        public static string UpdateVersionUrl =>
+            $"{UpdateBaseUrl}/{Env}/YF_Version.json";
+
+        /// <summary>当前环境的完整包地址。</summary>
+        public static string UpdateCurrentUrl =>
+            $"{UpdateBaseUrl}/{Env}/current.zip";
+
+        /// <summary>当前环境的增量包地址。</summary>
+        public static string UpdateIncrementUrl =>
+            $"{UpdateBaseUrl}/{Env}/increment.zip";
 
         /// <summary>
         /// 穿透服务器IP地址

@@ -43,6 +43,9 @@ namespace YFrame
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
 
+            // 更新器自身若已被新版本替换，先在这里接替，再做远端版本检查
+            await ApplyPendingUpdaterAsync();
+
             // 恢复上次选择的主题（在创建主窗口前应用，避免启动时闪回默认主题）
             ApplySavedTheme();
 
@@ -66,6 +69,40 @@ namespace YFrame
             var mainWindow = provider.GetRequiredService<MainWindow>();
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             mainWindow.Show();
+        }
+
+        /// <summary>
+        /// 将更新器留下的 YFrame.update.new.exe 接替为正式 YFrame.update.exe。
+        /// 文件被旧更新器短暂占用时重试；失败不阻断 YFrame 启动，下次启动继续尝试。
+        /// </summary>
+        private static async Task ApplyPendingUpdaterAsync()
+        {
+            string pendingPath = Path.Combine(AppContext.BaseDirectory, "YFrame.update.new.exe");
+            if (!File.Exists(pendingPath) || new FileInfo(pendingPath).Length == 0)
+                return;
+
+            string targetPath = Path.Combine(AppContext.BaseDirectory, "YFrame.update.exe");
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                try
+                {
+                    // overwrite=true 会直接替换旧更新器；旧更新器已退出时可用
+                    File.Move(pendingPath, targetPath, overwrite: true);
+                    YF_Manager_Main.logger.LogInfo($"已接替更新器：{targetPath}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == 19)
+                    {
+                        YF_Manager_Main.logger.ErrorInfo("ApplyPendingUpdater",
+                            $"更新器接替失败：{ex.Message}");
+                        return;
+                    }
+
+                    await Task.Delay(250);
+                }
+            }
         }
 
         /// <summary>

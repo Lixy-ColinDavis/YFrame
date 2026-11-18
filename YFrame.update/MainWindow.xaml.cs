@@ -1,6 +1,8 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using YFrame.Common;
 using YFrame.Update.Models;
 using YFrame.Update.Services;
 
@@ -22,6 +24,60 @@ public partial class MainWindow : Window
         _logger.Info($"更新窗口已打开；日志={_logger.FilePath}");
     }
 
+    /// <summary>
+    /// 解析启动参数 --manifest；没有参数时读取 Config/config.conf 的 Env 和 UpdateBaseUrl。
+    /// 缺省环境为 uat，便于手动启动更新器时仍使用正确地址。
+    /// </summary>
+    private static string ResolveManifestUrl()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], "--manifest", StringComparison.OrdinalIgnoreCase) &&
+                i + 1 < args.Length)
+            {
+                return args[i + 1];
+            }
+
+            const string prefix = "--manifest=";
+            if (args[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return args[i].Substring(prefix.Length);
+        }
+
+        try
+        {
+            string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.conf");
+            if (File.Exists(configPath))
+            {
+                string env = Cos_UpdateDefaults.DefaultEnv;
+                string baseUrl = Cos_UpdateDefaults.BaseUrl;
+                foreach (string line in File.ReadAllLines(configPath))
+                {
+                    string text = line.Trim();
+                    if (text.StartsWith("#", StringComparison.Ordinal) || !text.Contains('='))
+                        continue;
+
+                    int index = text.IndexOf('=');
+                    string key = text[..index].Trim();
+                    string value = text[(index + 1)..].Trim().Trim('"');
+                    if (key.Equals("Env", StringComparison.OrdinalIgnoreCase))
+                        env = Cos_UpdateDefaults.NormalizeEnv(value);
+                    else if (key.Equals("UpdateBaseUrl", StringComparison.OrdinalIgnoreCase) &&
+                             !string.IsNullOrWhiteSpace(value))
+                        baseUrl = value.TrimEnd('/');
+                }
+
+                return $"{baseUrl}/{env}/YF_Version.json";
+            }
+        }
+        catch
+        {
+            // 配置读取失败时回退到共享默认 UAT 地址
+        }
+
+        return Cos_UpdateDefaults.ManifestUrl(Cos_UpdateDefaults.DefaultEnv);
+    }
+
     /// <summary>窗口显示后自动开始更新。</summary>
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -30,7 +86,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var runner = new UpdateRunner(logger: _logger);
+            var runner = new UpdateRunner(manifestUrl: ResolveManifestUrl(), logger: _logger);
             var progress = new Progress<UpdateProgress>(item =>
             {
                 UpdateProgressBar.Value = item.Percent;

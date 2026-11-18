@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using YFrame.Common;
 
 namespace YFrame.Pack.Models;
 
@@ -16,11 +17,11 @@ public sealed class PackConfig
 
     /// <summary>最新完整包在服务器上的固定地址。</summary>
     public string CurrentUrl { get; set; } =
-        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update/uat/current.zip";
+        Cos_UpdateDefaults.CurrentUrl(Cos_UpdateDefaults.DefaultEnv);
 
     /// <summary>增量包在服务器上的固定地址。</summary>
     public string IncrementUrl { get; set; } =
-        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update/uat/increment.zip";
+        Cos_UpdateDefaults.IncrementUrl(Cos_UpdateDefaults.DefaultEnv);
 
     /// <summary>配置文件完整路径。</summary>
     public static string ConfigPath => Path.Combine(AppContext.BaseDirectory, FileName);

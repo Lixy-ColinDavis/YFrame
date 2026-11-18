@@ -14,10 +14,6 @@ namespace YFrame.Service;
 /// </summary>
 public static class UpdateService
 {
-    /// <summary>远端版本清单固定地址。</summary>
-    public const string VersionUrl =
-        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update/uat/YF_Version.json";
-
     /// <summary>跳过提示的配置键：远端 current_version。</summary>
     private const string SkipVersionKey = "UpdateSkipVersion";
 
@@ -33,13 +29,13 @@ public static class UpdateService
     /// 检查是否需要提示更新。
     /// </summary>
     /// <param name="localVersion">本地程序集版本，例如 2.0.0.0</param>
-    /// <param name="versionUrl">可选的版本清单地址，便于测试；为空时使用固定地址</param>
+    /// <param name="versionUrl">可选的版本清单地址，便于测试；为空时按配置中的 Env 生成</param>
     /// <returns>检查结果；无法判断时返回 null</returns>
     public static async Task<UpdateCheckResult?> CheckAsync(string localVersion, string? versionUrl = null)
     {
         try
         {
-            string json = await Client.GetStringAsync(versionUrl ?? VersionUrl);
+            string json = await Client.GetStringAsync(versionUrl ?? Config.UpdateVersionUrl);
             var remote = JsonSerializer.Deserialize<RemoteVersionManifest>(json, JsonOptions);
             if (remote == null ||
                 string.IsNullOrWhiteSpace(remote.CurrentVersion) ||
@@ -110,11 +106,15 @@ public static class UpdateService
 
         try
         {
-            Process.Start(new ProcessStartInfo(updaterPath)
+            var startInfo = new ProcessStartInfo(updaterPath)
             {
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory
-            });
+            };
+            // 把当前环境对应的清单地址传给更新器，避免更新器再自行推断环境
+            startInfo.ArgumentList.Add("--manifest");
+            startInfo.ArgumentList.Add(Config.UpdateVersionUrl);
+            Process.Start(startInfo);
             return true;
         }
         catch (Exception ex)

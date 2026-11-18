@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using YFrame.Common;
 using YFrame.Update.Models;
 
 namespace YFrame.Update.Services;
@@ -15,13 +16,15 @@ namespace YFrame.Update.Services;
 /// </summary>
 public sealed class UpdateRunner
 {
-    /// <summary>远端版本清单固定地址。</summary>
-    public const string DefaultManifestUrl =
-        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update/uat/YF_Version.json";
-
     private readonly string _appRoot;
     private readonly string _manifestUrl;
     private readonly UpdateLogger _logger;
+
+    /// <summary>更新器正式文件名。</summary>
+    private const string UpdaterFileName = "YFrame.update.exe";
+
+    /// <summary>新更新器的待接替文件名，由 YFrame 下次启动时替换正式文件。</summary>
+    private const string PendingUpdaterFileName = "YFrame.update.new.exe";
 
     private static readonly HttpClient Client = new()
     {
@@ -32,12 +35,14 @@ public sealed class UpdateRunner
     /// 创建更新执行器。
     /// </summary>
     /// <param name="appRoot">YFrame 主程序目录；默认为 update.exe 所在目录</param>
-    /// <param name="manifestUrl">版本清单地址；默认使用固定地址，便于测试时可覆盖</param>
+    /// <param name="manifestUrl">版本清单地址；为空时使用共享默认 UAT 地址</param>
     /// <param name="logger">更新日志器；为空时自动创建</param>
     public UpdateRunner(string? appRoot = null, string? manifestUrl = null, UpdateLogger? logger = null)
     {
         _appRoot = Path.GetFullPath(appRoot ?? AppContext.BaseDirectory);
-        _manifestUrl = string.IsNullOrWhiteSpace(manifestUrl) ? DefaultManifestUrl : manifestUrl;
+        _manifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
+            ? Cos_UpdateDefaults.ManifestUrl(Cos_UpdateDefaults.DefaultEnv)
+            : manifestUrl;
         _logger = logger ?? new UpdateLogger(_appRoot);
     }
 
@@ -105,6 +110,16 @@ public sealed class UpdateRunner
             Report(progress, 64, "解压增量包", "正在检查文件路径...");
             var changedFiles = ExtractToStaging(downloadPath, stagingDirectory);
             _logger.Info($"增量包解压完成；文件数={changedFiles.Count}；staging={stagingDirectory}");
+
+            // 更新器自身不能在运行时直接覆盖；先落盘为 .new，由下次 YFrame 启动时接替
+            bool containsUpdater = changedFiles.RemoveAll(path =>
+                string.Equals(path, UpdaterFileName, StringComparison.OrdinalIgnoreCase)) > 0;
+            if (containsUpdater)
+            {
+                Report(progress, 67, "准备新更新器", "检测到新版本更新器，正在写入待替换文件...");
+                CopyPendingUpdater(stagingDirectory);
+                _logger.Info($"新更新器已写入 {PendingUpdaterFileName}，等待 YFrame 下次启动接替。");
+            }
 
             Report(progress, 70, "等待主程序退出", "正在等待 YFrame 关闭以释放文件...");
             await WaitForMainAppExitAsync(progress, cancellationToken);
@@ -388,6 +403,18 @@ public sealed class UpdateRunner
         return backupRoot;
     }
 
+    /// <summary>
+    /// 将 staging 中的新更新器写到根目录的待接替文件，绝不覆盖正在运行的更新器。
+    /// </summary>
+    /// <param name="stagingDirectory">增量包解压目录</param>
+    private void CopyPendingUpdater(string stagingDirectory)
+    {
+        string source = SafeCombine(stagingDirectory, UpdaterFileName);
+        string pendingPath = SafeCombine(_appRoot, PendingUpdaterFileName);
+        File.Copy(source, pendingPath, overwrite: true);
+        _logger.Info($"已写入待接替更新器：{pendingPath}");
+    }
+
     /// <summary>把 staging 中的文件替换到 YFrame 根目录；先写临时文件再原子替换。</summary>
     private void ReplaceFiles(string stagingDirectory, List<string> relativePaths)
     {
@@ -410,10 +437,25 @@ public sealed class UpdateRunner
     {
         foreach (string relativePath in removedFiles)
         {
+            // 更新器不能在自身运行时被删除；保留给 YFrame 启动时接替
+            if (IsUpdaterFile(relativePath))
+            {
+                _logger.Warn($"忽略对更新器文件的删除：{relativePath}");
+                continue;
+            }
+
             string target = SafeCombine(_appRoot, NormalizeRelativePath(relativePath));
             if (File.Exists(target))
                 File.Delete(target);
         }
+    }
+
+    /// <summary>判断路径是否为正式/待接替更新器文件。</summary>
+    private static bool IsUpdaterFile(string relativePath)
+    {
+        string path = relativePath.Replace('\\', '/').TrimStart('/');
+        return string.Equals(path, UpdaterFileName, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(path, PendingUpdaterFileName, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>把 ZIP 条目路径转换为安全的相对路径。</summary>

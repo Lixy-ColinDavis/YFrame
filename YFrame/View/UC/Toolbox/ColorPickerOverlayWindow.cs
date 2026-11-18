@@ -157,14 +157,14 @@ namespace YFrame.View.UC.Toolbox
         }
 
         /// <summary>
-        /// 读取配置中的屏幕缩放因子（百分比/100，默认 1.25，范围 100-200）
+        /// 读取配置中的屏幕缩放因子（百分比/100，默认 125，范围 100-200）
         /// </summary>
         /// <returns>屏幕缩放因子</returns>
         private static double GetScreenScaleFactor()
         {
             if (int.TryParse(YF_Manager.Config.ScreenScale, out int scale))
                 return Math.Clamp(scale, 100, 200) / 100.0;
-            return 1.25;
+            return 125;
         }
 
         /// <summary>
