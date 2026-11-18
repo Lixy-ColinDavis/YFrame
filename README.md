@@ -8,7 +8,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
   <img alt=".NET" src="https://img.shields.io/badge/.NET-8.0-512BD4">
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-0C54C2">
   <img alt="Plugins" src="https://img.shields.io/badge/plugins-10-4F46E5">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-115-059669">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-119-059669">
   <img alt="Themes" src="https://img.shields.io/badge/themes-4-7C3AED">
 </p>
 
@@ -50,7 +50,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
-| 单元测试 | 115 个 |
+| 单元测试 | 119 个 |
 | 当前版本 | 2.1.0 |
 
 ```text
@@ -243,6 +243,7 @@ UserControlsService.LoadAndShowUserControl()
 - 被代理方法必须 `public virtual`；
 - 标记 `[Log(Level = ..., Message = "...")]`；
 - 拦截器记录方法名、参数、耗时、返回值/异常；
+- 业务异常记录后必须原样抛出，AOP 不改变调用方语义；
 - 日志同时写入分类 HTML 文件并推送到 UI 日志面板。
 
 **Mediator**
@@ -614,7 +615,7 @@ Installer/YFrame.Installer.exe
 dotnet test YFrame.Tests/YFrame.Tests.csproj
 ```
 
-当前 115 个测试全部通过，覆盖命令、配置、日志、插件调度、文件/TCP/MD5/正则工具等。
+当前 119 个测试全部通过，覆盖命令、配置、日志、插件调度、文件/TCP/MD5/正则工具等。
 
 ### 8.3 CI
 

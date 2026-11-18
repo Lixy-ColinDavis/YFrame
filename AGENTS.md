@@ -53,7 +53,7 @@ YFrame.sln
 |---|---|---|---|
 | `YFrame` | `YFrame/YFrame.csproj` | WPF App | Shell、主 ViewModel、插件运行时、工具箱、更新检查 |
 | `YF_Manager` | `YF_Manager/YF_Manager.csproj` | Class Library | 插件契约、AOP、配置、Mediator、日志、通用工具 |
-| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 115 个测试 |
+| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 119 个测试 |
 | `YFrame.Installer` | `YFrame.Installer/YFrame.Installer.csproj` | WPF App | 向导式安装器，自包含单文件 |
 | `YFrame.Pack` | `YFrame.Pack/YFrame.Pack.csproj` | WPF App | ZIP 差异、增量包、版本清单 |
 | `YFrame.update` | `YFrame.update/YFrame.update.csproj` | WPF App | 自动下载、校验、备份、替换、重启 |
@@ -193,7 +193,8 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
   - 耗时；
   - 返回值/异常；
 - 同步/异步方法都支持；
-- AOP 拦截失败会静默记录，不抛出业务异常。
+- 业务异常记录后必须原样抛出，AOP 不改变调用方语义；
+- 只有日志写入失败会降级为 Debug 输出，不影响业务异常。
 
 ### 5.3 Mediator
 
@@ -571,7 +572,7 @@ dotnet test YFrame.Tests/YFrame.Tests.csproj -c Debug
 
 ```text
 0 errors
-115 tests passed
+119 tests passed
 ```
 
 如果 WPF 进程占用输出文件：
