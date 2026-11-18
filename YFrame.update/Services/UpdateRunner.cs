@@ -122,13 +122,17 @@ public sealed class UpdateRunner
             DeleteRemovedFiles(manifest.Removed);
             _logger.Info($"已删除文件处理完成；数量={manifest.Removed.Count}");
 
-            Report(progress, 97, "清理临时文件", "更新完成，准备重启 YFrame...");
+            // 更新已成功，删除整个 Backup 目录（含历史残留），避免长期占用磁盘
+            Report(progress, 96, "清理备份", "更新成功，正在删除备份目录...");
+            CleanupBackupDirectory(backupDirectory);
+
+            Report(progress, 98, "清理临时文件", "更新完成，准备重启 YFrame...");
             _logger.Info($"更新流程完成；目标版本={current}");
             return new UpdateResult
             {
                 AlreadyCurrent = false,
                 CurrentVersion = current,
-                BackupDirectory = backupDirectory
+                BackupDirectory = string.Empty
             };
         }
         catch (Exception ex)
@@ -199,6 +203,31 @@ public sealed class UpdateRunner
         }
         return false;
     }
+    /// <summary>
+    /// 更新成功后删除整个 Backup 目录，包括之前版本留下的残留。
+    /// 删除失败只记录警告，不影响已经完成的更新。
+    /// </summary>
+    /// <param name="currentBackupDirectory">本次备份目录，用于日志定位</param>
+    private void CleanupBackupDirectory(string currentBackupDirectory)
+    {
+        string backupRoot = Path.Combine(_appRoot, "Backup");
+        try
+        {
+            if (!Directory.Exists(backupRoot))
+            {
+                _logger.Info($"备份目录不存在，无需清理；本次备份={currentBackupDirectory}");
+                return;
+            }
+
+            Directory.Delete(backupRoot, recursive: true);
+            _logger.Info($"已删除备份目录：{backupRoot}；本次备份={currentBackupDirectory}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"备份目录清理失败：{backupRoot}；{ex.Message}");
+        }
+    }
+
     /// <summary>启动 YFrame 主程序；失败时抛出可读异常。</summary>
     public void StartMainApp()
     {
