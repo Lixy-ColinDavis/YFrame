@@ -93,7 +93,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 - **主题与语言**：运行时切换，无需重启；
 - **全局热键**：`Ctrl+Y`，按当前插件路由；
 - **系统托盘**：显示/隐藏/退出；
-- **更新检查**：UAT/PDT 环境、三天跳过、更新提示。
+- **更新检查**：腾讯云对象存储（COS）、UAT/PDT 环境、三天跳过、更新提示。
 
 ### 2.2 工具箱
 
@@ -762,10 +762,10 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 ## 界面预览
 
 仓库历史设计稿截图：
-
-![Home](https://raw.gitcode.com/user-images/assets/7353928/a7fe3ea5-5883-4906-a3ce-4bf435607487/image.png)
-![Plugins](https://raw.gitcode.com/user-images/assets/7353928/7a3d49cd-7d16-47dd-96a7-b6e05b69dca7/image.png)
-![Tools](https://raw.gitcode.com/user-images/assets/7353928/1e6301c3-30cb-4fcc-85cd-61ad3e98a220/image.png)
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/f73e9633-9a73-499d-9afc-1481da4414bd/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/e57fdc0c-3cc2-4dab-9d0a-cbe19999df79/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/7a41a185-693e-4c09-a42e-3ff5012f3bc8/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/a2b14f27-4cfd-4c54-a2e4-ffa2e98f71d6/image.png 'image.png')
 
 ---
 
