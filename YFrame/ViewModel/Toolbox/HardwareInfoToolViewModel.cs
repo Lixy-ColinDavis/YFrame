@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -187,22 +188,6 @@ namespace YFrame.ViewModel.Toolbox
             get => _showAudioCountdown;
             set => SetProperty(ref _showAudioCountdown, value);
         }
-        private bool _isTestingDisk;
-        /// <summary>是否正在执行磁盘测速</summary>
-        public bool IsTestingDisk
-        {
-            get => _isTestingDisk;
-            set => SetProperty(ref _isTestingDisk, value);
-        }
-
-        private string _diskSpeedText = string.Empty;
-        /// <summary>磁盘顺序读写测速结果</summary>
-        public string DiskSpeedText
-        {
-            get => _diskSpeedText;
-            set => SetProperty(ref _diskSpeedText, value);
-        }
-
         private string _monitorName = "—";
         /// <summary>显示器名称</summary>
         public string MonitorName
@@ -229,8 +214,8 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>内存条描述列表（最多展示 4 条）</summary>
         public ObservableCollection<string> MemoryModules { get; } = new();
 
-        /// <summary>物理磁盘描述列表（最多展示 4 块）</summary>
-        public ObservableCollection<string> Disks { get; } = new();
+        /// <summary>物理磁盘描述与独立测速结果（最多展示 4 块）</summary>
+        public ObservableCollection<DiskDisplayItem> Disks { get; } = new();
 
         /// <summary>显示器列表（多屏时逐台展示）</summary>
         public ObservableCollection<MonitorDisplayItem> Monitors { get; } = new();
@@ -247,8 +232,8 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>测试默认输入设备命令</summary>
         public YF_RelayCommand TestInputCommand { get; }
 
-        /// <summary>磁盘顺序读写测速命令</summary>
-        public YF_RelayCommand TestDiskSpeedCommand { get; }
+        /// <summary>磁盘顺序读写测速命令，参数为对应磁盘行</summary>
+        public YF_RelayCommand<DiskDisplayItem> TestDiskSpeedCommand { get; }
 
         /// <summary>
         /// 构造时立即异步读取一次硬件信息
@@ -259,7 +244,7 @@ namespace YFrame.ViewModel.Toolbox
             CopyCommand = new YF_RelayCommand(CopySummary);
             TestOutputCommand = new YF_RelayCommand(() => _ = TestOutputAsync());
             TestInputCommand = new YF_RelayCommand(() => _ = TestInputAsync());
-            TestDiskSpeedCommand = new YF_RelayCommand(() => _ = TestDiskSpeedAsync());
+            TestDiskSpeedCommand = new YF_RelayCommand<DiskDisplayItem>(item => _ = TestDiskSpeedAsync(item));
             _ = LoadAsync();
         }
 
@@ -361,10 +346,20 @@ namespace YFrame.ViewModel.Toolbox
                 if (disk.TransferRate > 0)
                     text += $" · {disk.TransferRate / 1024.0:F0} MB/s";
 
-                Disks.Add(text);
+                Disks.Add(new DiskDisplayItem
+                {
+                    DisplayText = text,
+                    DriveRoot = disk.DriveRoot
+                });
             }
             if (snapshot.Disks.Count > 4)
-                Disks.Add($"… +{snapshot.Disks.Count - 4}");
+            {
+                Disks.Add(new DiskDisplayItem
+                {
+                    DisplayText = $"… +{snapshot.Disks.Count - 4}",
+                    DriveRoot = string.Empty
+                });
+            }
 
             BoardText = JoinNonEmpty(snapshot.Board.Manufacturer, snapshot.Board.Product);
             BoardSerial = Fallback(snapshot.Board.SerialNumber);
@@ -523,29 +518,37 @@ namespace YFrame.ViewModel.Toolbox
         }
 
         /// <summary>
-        /// 测试磁盘顺序读写速度；测速期间按钮点击会被忽略。
+        /// 测试指定磁盘所在卷的顺序读写速度；每块盘独立执行。
         /// </summary>
-        private async Task TestDiskSpeedAsync()
+        /// <param name="item">要测速的磁盘行</param>
+        private async Task TestDiskSpeedAsync(DiskDisplayItem? item)
         {
-            if (IsTestingDisk) return;
-            IsTestingDisk = true;
-            DiskSpeedText = R("key_Hardware_TestingDisk");
+            if (item == null || item.IsTesting) return;
+
+            if (string.IsNullOrWhiteSpace(item.DriveRoot))
+            {
+                item.SpeedText = "无可用盘符";
+                return;
+            }
+
+            item.IsTesting = true;
+            item.SpeedText = R("key_Hardware_TestingDisk");
 
             try
             {
                 var result = await Task.Run(() =>
                 {
-                    bool ok = DiskSpeedTestService.Run(out double read, out double write, out string error);
+                    bool ok = DiskSpeedTestService.Run(item.DriveRoot, out double read, out double write, out string error);
                     return (ok, read, write, error);
                 });
 
-                DiskSpeedText = result.ok
+                item.SpeedText = result.ok
                     ? RF("key_Hardware_DiskSpeedFormat", result.read, result.write)
                     : RF("key_Hardware_AudioFailed", result.error);
             }
             finally
             {
-                IsTestingDisk = false;
+                item.IsTesting = false;
             }
         }
         /// <summary>
@@ -562,7 +565,7 @@ namespace YFrame.ViewModel.Toolbox
                 sb.AppendLine($"{R("key_Hardware_Memory")}: {MemoryTotal}");
                 foreach (string module in MemoryModules) sb.AppendLine($"  - {module}");
                 sb.AppendLine($"{R("key_Hardware_Disk")}:");
-                foreach (string disk in Disks) sb.AppendLine($"  - {disk}");
+                foreach (var disk in Disks) sb.AppendLine($"  - {disk.DisplayText}");
                 sb.AppendLine($"{R("key_Hardware_Board")}: {BoardText} / {BoardSerial}");
                 sb.AppendLine($"{R("key_Hardware_System")}: {SystemText} / {ComputerName}");
                 sb.AppendLine($"BIOS: {BiosText}");
@@ -620,5 +623,47 @@ namespace YFrame.ViewModel.Toolbox
 
         /// <summary>厂商与序列号</summary>
         public string Meta { get; set; } = string.Empty;
+    }
+
+    /// <summary>磁盘列表展示项，包含该磁盘独立测速状态。</summary>
+    public sealed class DiskDisplayItem : INotifyPropertyChanged
+    {
+        private string _speedText = string.Empty;
+        private bool _isTesting;
+
+        /// <summary>磁盘型号、容量、接口等信息。</summary>
+        public string DisplayText { get; set; } = string.Empty;
+
+        /// <summary>该磁盘对应盘符根目录，例如 C:\。</summary>
+        public string DriveRoot { get; set; } = string.Empty;
+
+        /// <summary>该磁盘的测速结果。</summary>
+        public string SpeedText
+        {
+            get => _speedText;
+            set
+            {
+                if (_speedText == value) return;
+                _speedText = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SpeedText)));
+            }
+        }
+
+        /// <summary>该磁盘是否正在测速。</summary>
+        public bool IsTesting
+        {
+            get => _isTesting;
+            set
+            {
+                if (_isTesting == value) return;
+                _isTesting = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsTesting)));
+            }
+        }
+
+        /// <summary>是否有可用盘符可以测速。</summary>
+        public bool CanTest => !string.IsNullOrWhiteSpace(DriveRoot);
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

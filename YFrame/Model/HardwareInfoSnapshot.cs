@@ -135,6 +135,9 @@ namespace YFrame.Model
         /// <summary>PNP 设备 ID（用于推断 NVMe/USB 接口）</summary>
         public string PnpDeviceId { get; set; } = string.Empty;
 
+        /// <summary>该物理磁盘对应的可写盘符根目录，例如 C:\</summary>
+        public string DriveRoot { get; set; } = string.Empty;
+
         /// <summary>PCIe 链路信息（如 PCIe 4.0 x4）</summary>
         public string PcieLinkText { get; set; } = string.Empty;
     }

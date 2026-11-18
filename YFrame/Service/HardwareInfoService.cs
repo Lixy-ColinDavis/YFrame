@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
@@ -167,7 +167,58 @@ namespace YFrame.Service
                 }
             }
 
+            AttachDriveRoots(disks);
             return disks;
+        }
+
+        /// <summary>
+        /// 通过 WMI 关联把物理磁盘映射到第一个固定逻辑盘符。
+        /// </summary>
+        private static void AttachDriveRoots(List<DiskSnapshot> disks)
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
+                searcher.Options.Timeout = QueryTimeout;
+                using var collection = searcher.Get();
+
+                foreach (ManagementObject diskObject in collection)
+                {
+                    using (diskObject)
+                    {
+                        int index = Int(diskObject, "Index");
+                        var disk = disks.FirstOrDefault(item => item.Index == index);
+                        if (disk == null) continue;
+
+                        foreach (ManagementObject partition in diskObject.GetRelated("Win32_DiskPartition"))
+                        {
+                            using (partition)
+                            {
+                                foreach (ManagementObject logical in partition.GetRelated("Win32_LogicalDisk"))
+                                {
+                                    using (logical)
+                                    {
+                                        // DriveType=3 表示本地固定磁盘，排除光驱/U盘/网络盘
+                                        if (Int(logical, "DriveType") != 3) continue;
+
+                                        string deviceId = Text(logical, "DeviceID").Trim();
+                                        if (string.IsNullOrEmpty(deviceId)) continue;
+
+                                        disk.DriveRoot = deviceId.TrimEnd('\\') + "\\";
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(disk.DriveRoot)) break;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 盘符映射失败不影响磁盘型号/容量等基础信息
+            }
         }
 
         /// <summary>

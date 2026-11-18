@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -379,9 +379,9 @@ namespace YFrame
                 return;
             }
 
-            // 不做透明度动画，鼠标进入/离开立即切换，消除感知延迟
+            // 边框高亮层不使用填充色，避免遮住卡片文字
             overlay.BeginAnimation(OpacityProperty, null);
-            overlay.Opacity = isHover ? 0.72 : 0;
+            overlay.Opacity = isHover ? 1 : 0;
         }
 
         /// <summary>
@@ -422,16 +422,16 @@ namespace YFrame
         }
 
         /// <summary>
-        /// 屏幕缩放下拉框：点击任意位置直接展开/收起。
-        /// 模板中的 ToggleButton 在部分 DPI/窗口样式下收不到鼠标事件，这里统一兜底。
+        /// 屏幕缩放下拉框：仅在关闭状态点击时展开。
+        /// 已在展开状态时不要拦截事件，否则点击下拉项会先把弹层关闭，导致选项选不中。
         /// </summary>
         /// <param name="sender">下拉框</param>
         /// <param name="e">鼠标事件参数</param>
         private void ScreenScaleComboBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ComboBox comboBox)
+            if (sender is ComboBox comboBox && !comboBox.IsDropDownOpen)
             {
-                comboBox.IsDropDownOpen = !comboBox.IsDropDownOpen;
+                comboBox.IsDropDownOpen = true;
                 e.Handled = true;
             }
         }

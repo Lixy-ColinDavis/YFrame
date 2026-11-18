@@ -14,18 +14,36 @@ namespace YFrame.Service
         private const int SizeMb = 32;
 
         /// <summary>
-        /// 执行一次顺序写/读测速，结束后删除临时文件。
+        /// 在系统临时目录执行一次顺序写/读测速。
         /// </summary>
+        public static bool Run(out double readMBps, out double writeMBps, out string error)
+            => Run(null, out readMBps, out writeMBps, out error);
+
+        /// <summary>
+        /// 在指定卷根目录执行一次顺序写/读测速，结束后删除临时文件。
+        /// </summary>
+        /// <param name="volumeRoot">目标卷根目录，例如 C:\ 或 D:\；为空时使用系统临时目录</param>
         /// <param name="readMBps">读取速度（MB/s）</param>
         /// <param name="writeMBps">写入速度（MB/s）</param>
         /// <param name="error">失败说明</param>
         /// <returns>是否成功</returns>
-        public static bool Run(out double readMBps, out double writeMBps, out string error)
+        public static bool Run(string? volumeRoot, out double readMBps, out double writeMBps, out string error)
         {
             readMBps = 0;
             writeMBps = 0;
             error = string.Empty;
-            string path = Path.Combine(Path.GetTempPath(), "YFrame_disk_speed.tmp");
+            string path;
+
+            try
+            {
+                string directory = ResolveTestDirectory(volumeRoot);
+                path = Path.Combine(directory, $"YFrame_disk_speed_{Guid.NewGuid():N}.tmp");
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
 
             try
             {
@@ -74,6 +92,31 @@ namespace YFrame.Service
                     // 临时文件删除失败不影响测速结果
                 }
             }
+        }
+
+        /// <summary>
+        /// 选择测速临时目录：系统盘使用系统临时目录，其他盘使用对应卷根目录。
+        /// </summary>
+        /// <param name="volumeRoot">目标卷根目录，可为空</param>
+        /// <returns>可写临时目录</returns>
+        private static string ResolveTestDirectory(string? volumeRoot)
+        {
+            if (string.IsNullOrWhiteSpace(volumeRoot))
+                return Path.GetTempPath();
+
+            string root = Path.GetFullPath(volumeRoot);
+            if (!Directory.Exists(root))
+                throw new DirectoryNotFoundException($"磁盘根目录不存在：{root}");
+
+            string? systemRoot = Path.GetPathRoot(Path.GetTempPath());
+            if (!string.IsNullOrEmpty(systemRoot) &&
+                string.Equals(root.TrimEnd('\\'), systemRoot.TrimEnd('\\'),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetTempPath();
+            }
+
+            return root;
         }
     }
 }
