@@ -29,7 +29,7 @@ YFrame 是 **Windows 桌面开发者工具平台**：
 - 反射加载外部插件；
 - 插件零编译依赖主程序；
 - 自带工具箱、日志、性能监控、主题、双语、热键、托盘；
-- 具备 Pack 增量包、Update 自动更新、Installer 安装器完整链路。
+- 具备 Pack 增量/全量包、Update 自动更新、Installer 安装器完整链路。
 
 **路径：**
 
@@ -78,10 +78,10 @@ base.OnStartup
   → ApplySavedTheme()
   → UpdateService.CheckAsync()
        ├─ 本地 == 远端 current：继续
-       ├─ 本地 == 远端 pervious：UpdatePromptWindow
-       │     ├─ 立即更新 → 启动 YFrame.update.exe → Shutdown
-       │     └─ 不更新 → 写 UpdateSkipVersion / UpdateSkipUntil（3 天）
-       └─ 其他/网络失败：继续
+       ├─ 本地 == 远端 pervious：UpdatePromptWindow（增量优先）
+       ├─ 本地 < current 的其他版本：UpdatePromptWindow（全量）
+       ├─ 本地 > current：不提示、不降级
+       └─ 网络失败/无可用包：继续
   → 构建 DI 容器
   → YF_Di.Provider
   → 解析 MainWindow
@@ -337,10 +337,12 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 `UpdateService.CheckAsync`：
 
 - 本地版本 = `AssemblyVersion.ToString(3)`；
-- 远端 `current_version` / `pervious_version`；
+- 远端 `current_version` / `pervious_version` 及 `current` / `pervious` 包信息；
 - 本地 == current：不处理；
-- 本地 == previous：提示；
-- 其他：不提示；
+- 本地 == previous：提示，增量优先；
+- 本地 < current 的其他版本：提示，走全量；
+- 本地 > current：不提示、不降级；
+- 相邻版本至少要有增量或全量包，跨版本必须有全量包；
 - 网络失败静默跳过；
 - 不更新：写 `UpdateSkipVersion` + `UpdateSkipUntil`（UTC，3 天）；
 - 同一远端版本 3 天内不再提示；
@@ -352,17 +354,24 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 
 ```text
 读取 --manifest / Config/config.conf
-→ 下载 increment.zip
+→ 本地 == current：结束
+→ 本地 < current：
+     ├─ 本地 == previous 且增量包可用：increment.zip
+     └─ 其他旧版本 / 增量缺失：current.zip
 → 校验 size + MD5
 → 解压到 staging，检查路径穿越
 → 等待 YFrame 进程退出
 → 备份
 → 替换
-→ 删除 removed
+→ 删除 removed（全量更新额外清理旧框架文件）
 → 删除整个 Backup
 → 启动 YFrame
 ```
 
+- 全量更新覆盖 `current.zip` 中的框架文件；
+- `Config/`、`Log/`、`plugins/`、`Backup/`、`File/` 等用户目录不覆盖、不清理；
+- 根目录旧框架文件以及 `runtimes/`、`Common/` 中不属于新包的文件会被清理；
+- `YFrame.Pack.exe`、`YFrame.Pack.config.json`、`YFrame.Installer.exe` 保留；
 - 日志：`Log/Update/yyyy-MM-dd.log`；
 - 失败保留备份，成功删除整个 `Backup`；
 - 新包包含 `YFrame.update.exe` → 写 `YFrame.update.new.exe`，由 YFrame 启动接替；

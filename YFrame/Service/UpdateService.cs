@@ -9,8 +9,8 @@ using YF_Manager;
 namespace YFrame.Service;
 
 /// <summary>
-/// 启动更新检查：读取远端 YF_Version.json，判断本地版本是否处于可升级的上一版本。
-/// 网络失败、JSON 异常或版本规则不匹配时静默跳过，不阻断主程序启动。
+/// 启动更新检查：读取远端 YF_Version.json，判断本地版本是否可以升级。
+/// 相邻版本优先增量，其他较旧版本使用全量包；网络失败、JSON 异常或版本规则不匹配时静默跳过，不阻断主程序启动。
 /// </summary>
 public static class UpdateService
 {
@@ -54,9 +54,25 @@ public static class UpdateService
             if (string.Equals(current, local, StringComparison.OrdinalIgnoreCase))
                 return new UpdateCheckResult(false, current, previous);
 
-            // 只有本地正好是上一版本时才提示；其他跨版本情况不擅自处理
-            if (!string.Equals(previous, local, StringComparison.OrdinalIgnoreCase))
+            bool isPrevious = string.Equals(previous, local, StringComparison.OrdinalIgnoreCase);
+            bool isOlder = IsVersionOlder(local, current);
+
+            // 既不是上一版本、也不比当前版本旧时，不擅自升级或降级
+            if (!isPrevious && !isOlder)
                 return new UpdateCheckResult(false, current, previous);
+
+            // 相邻版本至少要有增量包；跨版本必须提供全量包
+            bool hasIncrement = IsUsablePackage(remote.Previous);
+            bool hasFull = IsUsablePackage(remote.Current);
+            if (isPrevious)
+            {
+                if (!hasIncrement && !hasFull)
+                    return new UpdateCheckResult(false, current, previous);
+            }
+            else if (!hasFull)
+            {
+                return new UpdateCheckResult(false, current, previous);
+            }
 
             // 用户三天内选择过“不更新”，且远端版本没有变化，则不再提示
             if (IsSkipped(current))
@@ -157,6 +173,23 @@ public static class UpdateService
         return text;
     }
 
+    /// <summary>判断本地版本是否低于远端版本；无法解析时返回 false，避免误升级。</summary>
+    private static bool IsVersionOlder(string local, string current)
+    {
+        return Version.TryParse(local, out Version? localVersion) &&
+               Version.TryParse(current, out Version? currentVersion) &&
+               localVersion < currentVersion;
+    }
+
+    /// <summary>判断发布包信息是否完整可用。</summary>
+    private static bool IsUsablePackage(RemotePackageInfo? package)
+    {
+        return package != null &&
+               !string.IsNullOrWhiteSpace(package.Url) &&
+               package.Size > 0 &&
+               !string.IsNullOrWhiteSpace(package.Md5);
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -170,6 +203,25 @@ public static class UpdateService
 
         [JsonPropertyName("pervious_version")]
         public string PreviousVersion { get; set; } = string.Empty;
+
+        [JsonPropertyName("current")]
+        public RemotePackageInfo? Current { get; set; }
+
+        [JsonPropertyName("pervious")]
+        public RemotePackageInfo? Previous { get; set; }
+    }
+
+    /// <summary>远端发布包描述。</summary>
+    private sealed class RemotePackageInfo
+    {
+        [JsonPropertyName("url")]
+        public string Url { get; set; } = string.Empty;
+
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
+
+        [JsonPropertyName("md5")]
+        public string Md5 { get; set; } = string.Empty;
     }
 }
 

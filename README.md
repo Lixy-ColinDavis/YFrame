@@ -22,7 +22,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
 4. [核心设计](#4-核心设计)
 5. [插件生态](#5-插件生态)
 6. [硬件检查](#6-硬件检查)
-7. [增量发布与自动更新](#7-增量发布与自动更新)
+7. [发布与自动更新](#7-发布与自动更新)
 8. [工程化与版本治理](#8-工程化与版本治理)
 9. [快速开始](#9-快速开始)
 10. [目录结构](#10-目录结构)
@@ -451,7 +451,7 @@ Ctrl+Y → 全屏 BitBlt → 框选 → 标注画板 → 复制/保存/钉图
 
 ---
 
-## 7. 增量发布与自动更新
+## 7. 发布与自动更新
 
 ### 7.1 YFrame.Pack
 
@@ -493,19 +493,49 @@ output/20261118-153000/
 
 ### 7.2 YFrame.update
 
+更新器按本地版本自动选择包：
+
+```text
+本地 == current_version
+  → 已是最新，不更新
+
+本地 == pervious_version 且增量包可用
+  → 下载 increment.zip，执行增量更新
+
+本地低于 current_version 的其他版本
+  → 下载 current.zip，执行全量更新
+
+增量包缺失但全量包可用
+  → 回退全量更新
+
+本地高于 current_version
+  → 不降级
+```
+
+执行流程：
+
 ```text
 读取 --manifest 或 Config/config.conf
-→ 下载 increment.zip
+→ 选择增量包 / 全量包
+→ 下载
 → 校验 size + MD5
 → 解压到 staging，校验路径穿越
 → 等待 YFrame 退出
 → 备份
 → 替换
-→ 删除 removed
+→ 删除 removed（全量更新额外清理旧框架文件）
 → 删除整个 Backup
 → 启动 YFrame
 → 关闭自身
 ```
+
+全量更新规则：
+
+- `current.zip` 中的框架文件覆盖到安装目录；
+- `Config/`、`Log/`、`plugins/`、`Backup/`、`File/` 等用户目录不覆盖、不清理；
+- 根目录旧 `.dll` / `.exe` / `.json` / `.config` / `.pdb` 和 `runtimes/`、`Common/` 中不属于新包的文件会清理；
+- `YFrame.Pack.exe`、`YFrame.Pack.config.json`、`YFrame.Installer.exe` 保留；
+- 新包中的 `YFrame.update.exe` 仍写为 `YFrame.update.new.exe`，由下次启动接替。
 
 稳定性设计：
 
