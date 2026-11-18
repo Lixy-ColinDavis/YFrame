@@ -1,28 +1,19 @@
-﻿using LiveCharts.Defaults;
-using LiveCharts;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using YF_Manager;
 using System.IO;
+using YFrame.Model;
 
 namespace YFrame
 {
     /// <summary>
     /// 主窗口
     /// </summary>
-    public class MainWindowViewModel : INotifyPropertyChanged, I_YF_Detail
+    public class MainWindowViewModel : ViewModelBase, I_YF_Detail
     {
-        #region INotifyPropertyChanged接口实现
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
 
         #region 绑定属性（XAML 绑定点，保留在此处）
 
@@ -30,112 +21,56 @@ namespace YFrame
         public bool LeftVisible
         {
             get => _leftVisible;
-            set
-            {
-                if (_leftVisible != value)
-                {
-                    _leftVisible = value;
-                    OnPropertyChanged(nameof(LeftVisible));
-                }
-            }
+            set => SetProperty(ref _leftVisible, value);
         }
 
         private bool _rightVisible; // 右抽屉显示状态
         public bool RightVisible
         {
             get => _rightVisible;
-            set
-            {
-                if (_rightVisible != value)
-                {
-                    _rightVisible = value;
-                    OnPropertyChanged(nameof(RightVisible));
-                }
-            }
+            set => SetProperty(ref _rightVisible, value);
         }
 
         private string _txt_Cpu = "--%";  // CPU显示状态
         public string Txt_Cpu
         {
             get => _txt_Cpu;
-            set
-            {
-                if (_txt_Cpu != value)
-                {
-                    _txt_Cpu = value;
-                    OnPropertyChanged(nameof(Txt_Cpu));
-                }
-            }
+            set => SetProperty(ref _txt_Cpu, value);
         }
 
         private string _txt_Memory = "--GB";  // 内存显示状态
         public string Txt_Memory
         {
             get => _txt_Memory;
-            set
-            {
-                if (_txt_Memory != value)
-                {
-                    _txt_Memory = value;
-                    OnPropertyChanged(nameof(Txt_Memory));
-                }
-            }
+            set => SetProperty(ref _txt_Memory, value);
         }
 
         private string _logText = string.Empty;  // 日志显示
         public string LogText
         {
             get => _logText;
-            set
-            {
-                if (_logText != value)
-                {
-                    _logText = value;
-                    OnPropertyChanged(nameof(LogText));
-                }
-            }
+            set => SetProperty(ref _logText, value);
         }
 
         private UserControl _performance_Monitor_View = null!;  // 性能监视器
         public UserControl Performance_Monitor_View
         {
             get => _performance_Monitor_View;
-            set
-            {
-                if (_performance_Monitor_View != value)
-                {
-                    _performance_Monitor_View = value;
-                    OnPropertyChanged(nameof(Performance_Monitor_View));
-                }
-            }
+            set => SetProperty(ref _performance_Monitor_View, value);
         }
 
         private Grid _grid_Show_Array = null!;  // 用户控件(插件)显示列表
         public Grid Grid_Show_Array
         {
             get => _grid_Show_Array;
-            set
-            {
-                if (_grid_Show_Array != value)
-                {
-                    _grid_Show_Array = value;
-                    OnPropertyChanged(nameof(Grid_Show_Array));
-                }
-            }
+            set => SetProperty(ref _grid_Show_Array, value);
         }
 
         private bool _isFullScreen;  // 是否处于全屏状态
         public bool IsFullScreen
         {
             get => _isFullScreen;
-            set
-            {
-                if (_isFullScreen != value)
-                {
-                    _isFullScreen = value;
-                    OnPropertyChanged(nameof(IsFullScreen));
-                }
-            }
+            set => SetProperty(ref _isFullScreen, value);
         }
 
         private bool _isHotkeyEnabled;  // 热键监控是否开启
@@ -144,17 +79,67 @@ namespace YFrame
             get => _isHotkeyEnabled;
             set
             {
-                if (_isHotkeyEnabled != value)
-                {
-                    _isHotkeyEnabled = value;
-                    OnPropertyChanged(nameof(IsHotkeyEnabled));
+                if (SetProperty(ref _isHotkeyEnabled, value))
                     OnPropertyChanged(nameof(HotkeyStatusText));
-                }
             }
         }
 
         // 状态栏热键状态文本
         public string HotkeyStatusText => IsHotkeyEnabled ? "已开启" : "已关闭";
+
+        #region 屏幕缩放比例（全局设置，供截图类插件坐标换算）
+
+        /// <summary>
+        /// 缩放下拉框可选预设值（百分比，使用字符串以便只读下拉框直接绑定 SelectedItem）
+        /// </summary>
+        public List<string> ScreenScaleOptions { get; } = new() { "100", "125", "150", "175", "200" };
+
+        private string _screenScaleText = "125";
+
+        /// <summary>
+        /// 屏幕缩放百分比文本（全局设置，只读下拉框，取值 100-200）：
+        /// 保存到 Config.ScreenScale，截图类插件（OCR 翻译 / 截图标注等）
+        /// 统一读取 YF_Manager.Config.ScreenScaleFactor 进行坐标换算
+        /// </summary>
+        public string ScreenScaleText
+        {
+            get => _screenScaleText;
+            set
+            {
+                // 解析用户输入，校验范围 100-200，合法则保存到全局配置
+                if (int.TryParse(value, out int scale) && scale >= 100 && scale <= 200)
+                {
+                    if (_screenScaleText != scale.ToString())
+                    {
+                        _screenScaleText = scale.ToString();
+                        OnPropertyChanged();
+                        SaveScreenScale(scale);
+                    }
+                }
+                else
+                {
+                    // 非法输入：恢复显示为当前有效值（百分比）
+                    int current = 125;
+                    if (int.TryParse(YF_Manager.Config.ScreenScale, out int saved))
+                        current = Math.Clamp(saved, 100, 200);
+                    _screenScaleText = current.ToString();
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 保存屏幕缩放比例到全局配置文件（Config/config.conf 的 ScreenScale 键）
+        /// </summary>
+        /// <param name="scale">缩放百分比（100-200）</param>
+        private void SaveScreenScale(int scale)
+        {
+            YF_Manager.Config.ScreenScale = scale.ToString();
+            _logger.LogInfo($"屏幕缩放比例已设置为: {scale}%");
+            _messenger.Send(new LogAppendMessage($"屏幕缩放比例已设置为: {scale}%"));
+        }
+
+        #endregion
 
         /// <summary>
         /// 左侧面板激活页：0=插件列表, 1=工具箱
@@ -163,14 +148,7 @@ namespace YFrame
         public int ActiveLeftPanel
         {
             get => _activeLeftPanel;
-            set
-            {
-                if (_activeLeftPanel != value)
-                {
-                    _activeLeftPanel = value;
-                    OnPropertyChanged(nameof(ActiveLeftPanel));
-                }
-            }
+            set => SetProperty(ref _activeLeftPanel, value);
         }
 
         /// <summary>
@@ -180,14 +158,7 @@ namespace YFrame
         public int ActiveRightPanel
         {
             get => _activeRightPanel;
-            set
-            {
-                if (_activeRightPanel != value)
-                {
-                    _activeRightPanel = value;
-                    OnPropertyChanged(nameof(ActiveRightPanel));
-                }
-            }
+            set => SetProperty(ref _activeRightPanel, value);
         }
 
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
@@ -201,14 +172,51 @@ namespace YFrame
             get => _selectedPlugin;
             set
             {
-                if (_selectedPlugin != value)
-                {
-                    _selectedPlugin = value;
-                    OnPropertyChanged(nameof(SelectedPlugin));
-                    if (value != null)
-                        ShowPlugin(value.ID);
-                }
+                if (SetProperty(ref _selectedPlugin, value) && value != null)
+                    ShowPlugin(value.ID);
             }
+        }
+
+        /// <summary>
+        /// 工具箱工具列表（左侧工具箱面板数据源）
+        /// </summary>
+        public ObservableCollection<ToolItem> Tools { get; } = new ObservableCollection<ToolItem>();
+
+        private ToolItem? _selectedTool;
+
+        /// <summary>
+        /// 当前在工具箱中选中的工具（选中即打开到主工作区）
+        /// </summary>
+        public ToolItem? SelectedTool
+        {
+            get => _selectedTool;
+            set
+            {
+                if (SetProperty(ref _selectedTool, value) && value != null)
+                    SelectTool(value.ID);
+            }
+        }
+
+        private UserControl? _activeToolView;
+
+        /// <summary>
+        /// 当前在主工作区打开的工具视图（null 表示未打开任何工具）
+        /// </summary>
+        public UserControl? ActiveToolView
+        {
+            get => _activeToolView;
+            set => SetProperty(ref _activeToolView, value);
+        }
+
+        private bool _isToolActive;
+
+        /// <summary>
+        /// 是否正在显示工具箱工具（用于主工作区叠加切换，true 时覆盖插件区）
+        /// </summary>
+        public bool IsToolActive
+        {
+            get => _isToolActive;
+            set => SetProperty(ref _isToolActive, value);
         }
 
         #endregion
@@ -236,6 +244,8 @@ namespace YFrame
         public ICommand PluginManagerCommand { get; set; } = null!;              // 插件管理器事件
         public ICommand ReloadPluginsCommand { get; set; } = null!;              // 重新加载所有插件事件
         public ICommand ToggleFullScreenCommand { get; set; } = null!;           // 全屏切换事件
+        public ICommand SelectToolCommand { get; set; } = null!;                // 打开工具箱工具事件（参数为工具ID）
+        public ICommand CloseToolCommand { get; set; } = null!;                 // 关闭工具箱工具事件
 
         #endregion
 
@@ -264,6 +274,7 @@ namespace YFrame
         private TrayIconService _trayIconService = null!;
         private YF_Messenger _messenger = null!;
         private YF_FileHelper _fileHelper = null!;
+        private ToolboxService _toolboxService = null!;
 
         /// <summary>
         /// 设置依赖项（由 DI 容器创建 AOP 代理后调用）
@@ -277,7 +288,8 @@ namespace YFrame
             HotkeyService hotkeyService,
             TrayIconService trayIconService,
             YF_Messenger messenger,
-            YF_FileHelper fileHelper)
+            YF_FileHelper fileHelper,
+            ToolboxService toolboxService)
         {
             _logger = logger;
             _logService = logService;
@@ -287,6 +299,7 @@ namespace YFrame
             _trayIconService = trayIconService;
             _messenger = messenger;
             _fileHelper = fileHelper;
+            _toolboxService = toolboxService;
         }
 
         #endregion
@@ -302,6 +315,14 @@ namespace YFrame
         public virtual void Init()
         {
             _logger.LogInfo("主框架初始化-开始");
+
+            // 读取全局屏幕缩放比例（默认 125），供工具栏下拉框展示与截图类插件共享
+            int screenScale = 125;
+            if (int.TryParse(YF_Manager.Config.ScreenScale, out int savedScreenScale))
+                screenScale = Math.Clamp(savedScreenScale, 100, 200);
+            _screenScaleText = screenScale.ToString();
+            // 通知 UI 刷新（DataContext 绑定的首次求值早于 Init，需手动补一次通知）
+            OnPropertyChanged(nameof(ScreenScaleText));
 
             _logService.OnLogTextChanged = text => LogText = text;
 
@@ -336,6 +357,11 @@ namespace YFrame
                         mainWindow.Activate();
                     }
                 });
+            };
+            _trayIconService.OnHideWindow += () =>
+            {
+                // 托盘菜单"隐藏到托盘"：复用最小化到托盘逻辑（隐藏主窗口，保留托盘图标与热键）
+                MinimizeToTray();
             };
             _trayIconService.OnExitApplication += () =>
             {
@@ -376,6 +402,10 @@ namespace YFrame
                         Status = 0
                     });
                 }
+
+                // 填充工具箱工具列表
+                foreach (var tool in _toolboxService.GetTools())
+                    Tools.Add(tool);
             }
             catch (Exception ex)
             {
@@ -430,15 +460,21 @@ namespace YFrame
                 SetThemeCommand = new YF_RelayCommand<string>(themePath =>
                 {
                     var fileName = Path.GetFileNameWithoutExtension(themePath);
-                    var themeDisplayName = fileName switch
+                    // 主题显示名从当前语言字典读取，避免切换语言后日志仍显示中文
+                    string? themeKey = fileName switch
                     {
-                        "DarkGrayTheme" => "炭火暗夜",
-                        "CreamWhiteTheme" => "素火明昼",
-                        "LightBlueTheme" => "冰火深蓝",
-                        "GreenWhiteTheme" => "翠火青绿",
-                        _ => fileName
+                        "NightTechTheme" => "key_NightTech theme",
+                        "CloudWhiteTheme" => "key_CloudWhite theme",
+                        "RetroTerminalTheme" => "key_RetroTerminal theme",
+                        "GlassTheme" => "key_Glass theme",
+                        _ => null
                     };
+                    var themeDisplayName = themeKey != null
+                        ? Application.Current?.TryFindResource(themeKey) as string ?? fileName
+                        : fileName;
                     App.ChangeTheme(themePath);
+                    // 记录主题到本地配置，下次启动由 App.ApplySavedTheme() 恢复
+                    Config.Theme = themePath.Replace('\\', '/');
                     _logger.LogInfo("主题切换-" + themeDisplayName);
                     _messenger.Send(new ThemeChangedMessage(themeDisplayName, themePath));
                 });
@@ -506,6 +542,10 @@ namespace YFrame
 
                 // ===== 全屏切换 =====
                 ToggleFullScreenCommand = new YF_RelayCommand(() => ToggleFullScreen());
+
+                // ===== 工具箱工具 =====
+                SelectToolCommand = new YF_RelayCommand<string>(toolId => SelectTool(toolId));
+                CloseToolCommand = new YF_RelayCommand(() => CloseTool());
             }
             catch (Exception ex)
             {
@@ -648,6 +688,12 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "显示插件")]
         public virtual void ShowPlugin(string pluginId)
         {
+            // 显示插件时关闭工具箱工具视图，避免工具覆盖插件区
+            if (IsToolActive)
+            {
+                ActiveToolView = null;
+                IsToolActive = false;
+            }
             _pluginService.ShowPlugin(pluginId);
         }
 
@@ -683,6 +729,46 @@ namespace YFrame
         public virtual void ExecuteSaveScript()
         {
             _pluginService.ExecuteScriptCommand("Save");
+        }
+
+        #endregion
+
+        #region 工具箱操作（委托给 ToolboxService）
+
+        /// <summary>
+        /// 打开指定工具箱工具到主工作区（叠加显示，不清空插件区）
+        /// </summary>
+        /// <param name="toolId">工具唯一标识</param>
+        [Log(Level = LogLevel.Info, Message = "打开工具箱工具")]
+        public virtual void SelectTool(string toolId)
+        {
+            try
+            {
+                var view = _toolboxService.OpenTool(toolId);
+                if (view == null)
+                {
+                    _logger.ErrorInfo("SelectTool", $"工具箱中不存在该工具: {toolId}");
+                    return;
+                }
+                ActiveToolView = view;
+                IsToolActive = true;
+                _logger.LogInfo($"工具箱工具已打开: {toolId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorInfo("SelectTool", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 关闭当前工具箱工具，恢复显示插件区内容
+        /// </summary>
+        [Log(Level = LogLevel.Info, Message = "关闭工具箱工具")]
+        public virtual void CloseTool()
+        {
+            ActiveToolView = null;
+            IsToolActive = false;
+            _logger.LogInfo("工具箱工具已关闭");
         }
 
         #endregion

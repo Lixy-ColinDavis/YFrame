@@ -9,25 +9,17 @@
     <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
     <AssemblyName>YFrame.Installer</AssemblyName>
     <RootNamespace>YFrame.Installer</RootNamespace>
-    <Version>1.0.0</Version>
     <Authors>YFrame</Authors>
     <Description>YFrame 框架安装程序（仅安装框架本体，自包含单文件）</Description>
 
-    <!-- 发布配置：自包含 + 单文件（仅 Release 生效） -->
-    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
-    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
-    <IncludeNativeLibrariesForSelfExtract Condition="'$(Configuration)' == 'Release'">true</IncludeNativeLibrariesForSelfExtract>
-    <RuntimeIdentifier Condition="'$(Configuration)' == 'Release'">win-x64</RuntimeIdentifier>
-    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <!-- 单文件发布配置放在 Properties\PublishProfiles\SingleFile.pubxml，
+         避免普通 Build 也复制整套运行时文件。 -->
 
     <!-- 路径推导 -->
     <_YFrameSolutionDir Condition="'$(SolutionDir)' != '' and '$(SolutionDir)' != '*Undefined*'">$(SolutionDir)</_YFrameSolutionDir>
     <_YFrameSolutionDir Condition="'$(_YFrameSolutionDir)' == ''">$(MSBuildProjectDirectory)\..\</_YFrameSolutionDir>
     <_YFrameBinDir>$(_YFrameSolutionDir)YFrame\bin\$(Configuration)\net8.0-windows</_YFrameBinDir>
     <_InstallerOutDir>$(_YFrameSolutionDir)Installer</_InstallerOutDir>
-
-    <!-- Release 发布时直接输出到 Installer 目录 -->
-    <PublishDir Condition="'$(Configuration)' == 'Release'">$(_InstallerOutDir)\</PublishDir>
   </PropertyGroup>
 
   <!-- Debug/Release 通用：构建前收集 YFrame 核心文件 → 打包为 payload.zip → 嵌入资源 -->
@@ -53,5 +45,19 @@
     </ItemGroup>
     <Message Importance="high" Text="  payload.zip embedded as resource." />
   </Target>
+  <ItemGroup>
+    <Compile Remove="payload_staging\**" />
+    <EmbeddedResource Remove="payload_staging\**" />
+    <None Remove="payload_staging\**" />
+    <Page Remove="payload_staging\**" />
+  </ItemGroup>
 
+
+  <!-- 在 VS 项目树中显示统一版本文件 -->
+  <ItemGroup>
+    <None Include="..\Version.props" Link="Version.props" />
+  </ItemGroup>
+
+  <!-- 全产品统一版本号 -->
+  <Import Project="..\Version.props" />
 </Project>

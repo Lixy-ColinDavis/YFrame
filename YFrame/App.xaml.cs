@@ -4,8 +4,11 @@ using Microsoft.Win32;
 using System.Configuration;
 using System.Data;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using YF_Manager;
+using YFrame.Service;
+using YFrame.View;
 
 namespace YFrame
 {
@@ -19,9 +22,9 @@ namespace YFrame
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
 
         /// <summary>
-        /// 应用启动入口：处理 --uninstall 或构建 DI 容器启动主窗口
+        /// 应用启动入口：处理 --uninstall、更新检查，然后构建 DI 容器启动主窗口。
         /// </summary>
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             // 控制面板卸载时传入 --uninstall 参数
             if (e.Args.Length > 0 && (e.Args.Contains("--uninstall") || e.Args.Contains("-uninstall")))
@@ -34,8 +37,25 @@ namespace YFrame
             // 调用父类 OnStartup，确保 WPF 标准行为执行
             base.OnStartup(e);
 
+            // 更新检查期间还没有主窗口，避免 WPF 因“最后一个窗口关闭”提前退出
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
+
+            // 更新器自身若已被新版本替换，先在这里接替，再做远端版本检查
+            await ApplyPendingUpdaterAsync();
+
+            // 恢复上次选择的主题（在创建主窗口前应用，避免启动时闪回默认主题）
+            ApplySavedTheme();
+
+            // 更新检查必须先于主窗口创建；失败或用户选择不更新时继续正常启动
+            bool continueStartup = await CheckForUpdatesAsync();
+            if (!continueStartup)
+            {
+                Shutdown();
+                return;
+            }
 
             // 构建 DI 容器
             var services = new ServiceCollection();
@@ -47,7 +67,128 @@ namespace YFrame
 
             // 从 DI 容器获取主窗口（ViewModel 通过属性注入已完成初始化）
             var mainWindow = provider.GetRequiredService<MainWindow>();
+            ShutdownMode = ShutdownMode.OnLastWindowClose;
             mainWindow.Show();
+        }
+
+        /// <summary>
+        /// 将更新器留下的 YFrame.update.new.exe 接替为正式 YFrame.update.exe。
+        /// 文件被旧更新器短暂占用时重试；失败不阻断 YFrame 启动，下次启动继续尝试。
+        /// </summary>
+        private static async Task ApplyPendingUpdaterAsync()
+        {
+            string pendingPath = Path.Combine(AppContext.BaseDirectory, "YFrame.update.new.exe");
+            if (!File.Exists(pendingPath) || new FileInfo(pendingPath).Length == 0)
+                return;
+
+            string targetPath = Path.Combine(AppContext.BaseDirectory, "YFrame.update.exe");
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                try
+                {
+                    // overwrite=true 会直接替换旧更新器；旧更新器已退出时可用
+                    File.Move(pendingPath, targetPath, overwrite: true);
+                    YF_Manager_Main.logger.LogInfo($"已接替更新器：{targetPath}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == 19)
+                    {
+                        YF_Manager_Main.logger.ErrorInfo("ApplyPendingUpdater",
+                            $"更新器接替失败：{ex.Message}");
+                        return;
+                    }
+
+                    await Task.Delay(250);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 检查远端版本并按规则提示更新。
+        /// </summary>
+        /// <returns>true 表示继续启动主窗口；false 表示已经启动更新程序并应关闭自身</returns>
+        private static async Task<bool> CheckForUpdatesAsync()
+        {
+            try
+            {
+                string localVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+                var update = await UpdateService.CheckAsync(localVersion);
+                if (update == null || !update.ShouldPrompt)
+                    return true;
+
+                var prompt = new UpdatePromptWindow(localVersion, update.CurrentVersion);
+                bool accepted = prompt.ShowDialog() == true && prompt.UpdateAccepted;
+                if (accepted)
+                {
+                    if (UpdateService.TryStartUpdater(out string error))
+                        return false;
+
+                    MessageBox.Show(
+                        $"无法启动更新程序：\n{error}",
+                        "YFrame 更新",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return true;
+                }
+
+                // 用户选择“不更新”：记录远端版本和三天截止时间
+                UpdateService.SaveSkip(update.CurrentVersion);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // 更新流程异常不能阻断主程序启动
+                YF_Manager_Main.logger.ErrorInfo("CheckForUpdatesAsync", ex.Message);
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 支持的主题名（与 Common/Themes 下的资源文件名一致）
+        /// </summary>
+        private static readonly string[] SupportedThemes =
+        {
+            "NightTechTheme", "CloudWhiteTheme", "RetroTerminalTheme", "GlassTheme"
+        };
+
+        /// <summary>
+        /// 从本地配置读取上次选择的主题并应用；配置缺失或主题名非法时保持默认主题
+        /// </summary>
+        private static void ApplySavedTheme()
+        {
+            try
+            {
+                string saved = Config.Theme;
+                if (string.IsNullOrWhiteSpace(saved))
+                    return;
+
+                // 兼容旧版主题文件名，避免历史配置导致启动回退
+                string themeName = Path.GetFileNameWithoutExtension(saved.Trim());
+                themeName = themeName switch
+                {
+                    "DarkGrayTheme" => "NightTechTheme",
+                    "CreamWhiteTheme" => "CloudWhiteTheme",
+                    "LightBlueTheme" => "GlassTheme",
+                    "GreenWhiteTheme" => "RetroTerminalTheme",
+                    _ => themeName
+                };
+
+                if (Array.IndexOf(SupportedThemes, themeName) < 0)
+                {
+                    YF_Manager_Main.logger.LogInfo("启动恢复主题失败：未知主题 " + saved);
+                    return;
+                }
+
+                ChangeTheme($"Common/Themes/{themeName}.xaml");
+                YF_Manager_Main.logger.LogInfo("启动恢复主题：" + themeName);
+            }
+            catch (Exception ex)
+            {
+                // 主题恢复失败不应阻断启动，回退到 App.xaml 中的默认主题
+                YF_Manager_Main.logger.ErrorInfo("ApplySavedTheme", ex.Message);
+            }
         }
 
         /// <summary>
@@ -99,6 +240,9 @@ namespace YFrame
                 new ProxyGenerator().CreateClassProxy<TrayIconService>(new LogInterceptor())
             );
 
+            // ToolboxService：工具箱工具注册表（普通单例，无 AOP 需求）
+            services.AddSingleton<ToolboxService>();
+
             // ===== MainWindowViewModel：AOP 代理 + 全部依赖注入 =====
             services.AddSingleton(sp =>
             {
@@ -129,7 +273,8 @@ namespace YFrame
                     hotkeyService,
                     trayIconService,
                     messenger,
-                    fileHelper
+                    fileHelper,
+                    sp.GetRequiredService<ToolboxService>()
                 );
 
                 return proxy;
@@ -181,7 +326,7 @@ namespace YFrame
         /// <summary>
         /// 切换主题
         /// </summary>
-        /// <param name="themePath">主题文件相对路径，如 "Common/Themes/DarkGrayTheme.xaml"</param>
+        /// <param name="themePath">主题文件相对路径，如 "Common/Themes/NightTechTheme.xaml"</param>
         public static void ChangeTheme(string themePath)
         {
             try

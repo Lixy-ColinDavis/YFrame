@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
+using YFrame.Common;
 
 namespace YF_Manager
 {
@@ -42,7 +43,7 @@ namespace YF_Manager
         /// </summary>
         public static string AIModelpath
         {
-            get => Get(@"plugins\YF_AIHelper\Model\DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf");
+            get => Get(@"plugins\YF_AIHelper\Model\Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf");
             set => Set(value);
         }
 
@@ -110,11 +111,112 @@ namespace YF_Manager
         }
 
         /// <summary>
-        /// 截图OCR插件屏幕缩放比例
+        /// 全局屏幕缩放比例（百分比文本，100-200）
+        /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算
         /// </summary>
         public static string ScreenScale
         {
             get => Get("125");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// 屏幕缩放因子（百分比/100，如 125），供截图类插件做 DIP 与物理像素坐标换算
+        /// </summary>
+        public static double ScreenScaleFactor
+        {
+            get
+            {
+                // 解析配置值并做范围钳制（100-200），非法时回退默认 1.25
+                if (int.TryParse(ScreenScale, out int scale))
+                    return Math.Clamp(scale, 100, 200) / 100.0;
+                return 125;
+            }
+        }
+
+        /// <summary>
+        /// 当前主题文件相对路径（下次启动时恢复）
+        /// 例如 Common/Themes/CloudWhiteTheme.xaml
+        /// </summary>
+        public static string Theme
+        {
+            get => Get(@"Common/Themes/CloudWhiteTheme.xaml");
+            set => Set(value);
+        }
+
+        /// <summary>唯一默认 COS 更新根地址，实际地址由 Env 拼接。</summary>
+        public static string DefaultUpdateBaseUrl => Cos_UpdateDefaults.BaseUrl;
+
+        /// <summary>
+        /// 更新环境：uat（默认）或 pdt。
+        /// 配置文件中以明文 Env=uat / Env=pdt 保存。
+        /// </summary>
+        public static string Env
+        {
+            get => Cos_UpdateDefaults.NormalizeEnv(Get(Cos_UpdateDefaults.DefaultEnv));
+            set => Set(Cos_UpdateDefaults.NormalizeEnv(value));
+        }
+
+        /// <summary>
+        /// COS 更新根地址（明文配置）。
+        /// 项目为开源项目，COS 成本很低，无安全与经济风险。
+        /// </summary>
+        public static string UpdateBaseUrl
+        {
+            get
+            {
+                string value = Get(DefaultUpdateBaseUrl).Trim().TrimEnd('/');
+                return string.IsNullOrWhiteSpace(value) ? DefaultUpdateBaseUrl : value;
+            }
+            set => Set((value ?? string.Empty).Trim().TrimEnd('/'));
+        }
+
+        /// <summary>当前环境的版本清单地址。</summary>
+        public static string UpdateVersionUrl =>
+            $"{UpdateBaseUrl}/{Env}/YF_Version.json";
+
+        /// <summary>当前环境的完整包地址。</summary>
+        public static string UpdateCurrentUrl =>
+            $"{UpdateBaseUrl}/{Env}/current.zip";
+
+        /// <summary>当前环境的增量包地址。</summary>
+        public static string UpdateIncrementUrl =>
+            $"{UpdateBaseUrl}/{Env}/increment.zip";
+
+        /// <summary>
+        /// 穿透服务器IP地址
+        /// </summary>
+        public static string NetServerIP
+        {
+            get => Get("123.57.246.122");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// 穿透服务器端口
+        /// </summary>
+        public static string NetServerPort
+        {
+            get => Get("8888");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// 本地目标转发端口
+        /// </summary>
+        public static string NetGameServerPort
+        {
+            get => Get("8211");
+            set => Set(value);
+        }
+
+
+        /// <summary>
+        /// 本地目标转发端口
+        /// </summary>
+        public static string NetUserName
+        {
+            get => Get(Environment.UserName);
             set => Set(value);
         }
     }

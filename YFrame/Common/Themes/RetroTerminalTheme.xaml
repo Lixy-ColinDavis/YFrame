@@ -1,0 +1,84 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- ============================================================
+         风格三：复古终端（CRT 绿磷屏 + 扫描线）
+         对应设计稿 s3：近黑底 #050B06，荧光绿 #39FF6A，等宽字体
+         ============================================================ -->
+
+    <!-- 窗口外壳与主内容背景 -->
+    <LinearGradientBrush x:Key="WindowBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF07120A" Offset="0"/>
+        <GradientStop Color="#FF050B06" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#FF050B06"/>
+    <SolidColorBrush x:Key="TitleBarBrush" Color="#FF07120A"/>
+    <SolidColorBrush x:Key="MenuBarBrush" Color="#FF07120A"/>
+    <!-- 顶部菜单栏专用底色：比侧边栏更不透明，保证文字可读 -->
+    <SolidColorBrush x:Key="TopBarBrush" Color="#FF07120A"/>
+    <!-- 菜单/下拉浮层专用底色 -->
+    <SolidColorBrush x:Key="MenuPanelBrush" Color="#FF0A1A0E"/>
+    <SolidColorBrush x:Key="ToolWindowBrush" Color="#FF08140B"/>
+    <SolidColorBrush x:Key="WindowBorderBrush" Color="#6639FF6A"/>
+
+    <!-- 卡片 / 面板层级 -->
+    <SolidColorBrush x:Key="PanelBrush" Color="#0B39FF6A"/>
+    <SolidColorBrush x:Key="PanelAltBrush" Color="#1439FF6A"/>
+    <SolidColorBrush x:Key="PanelHoverBrush" Color="#1A39FF6A"/>
+    <SolidColorBrush x:Key="CardHoverBrush" Color="#FF0A2412"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#3839FF6A"/>
+
+    <!-- 文字 -->
+    <SolidColorBrush x:Key="TextBrush" Color="#FFC9FFD9"/>
+    <SolidColorBrush x:Key="SubtleTextBrush" Color="#B8B4FFC8"/>
+
+    <!-- 强调色与状态色 -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF39FF6A"/>
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FF39FF6A"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F39FF6A"/>
+    <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1F39FF6A" Offset="0"/>
+        <GradientStop Color="#0A39FF6A" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PrimaryButtonBorderBrush" Color="#FF39FF6A"/>
+    <!-- 插件图标叠加色：终端主题下统一染绿，其余主题保持原色 -->
+    <SolidColorBrush x:Key="PluginIconTintBrush" Color="#6639FF6A"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#FF39FF6A"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FFFFD24A"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#FFFF5566"/>
+
+    <!-- 列表项交互色 -->
+    <SolidColorBrush x:Key="TreeItemHoverBackground" Color="#1739FF6A"/>
+    <SolidColorBrush x:Key="TreeItemSelectedBackground" Color="#1F39FF6A"/>
+    <SolidColorBrush x:Key="TreeItemAccent" Color="#FF39FF6A"/>
+    <SolidColorBrush x:Key="TreeItemSecondaryText" Color="#B8B4FFC8"/>
+
+    <!-- 图表色 -->
+    <SolidColorBrush x:Key="ChartLine1" Color="#FF39FF6A"/>
+    <SolidColorBrush x:Key="ChartLine2" Color="#FFA4FFBE"/>
+    <SolidColorBrush x:Key="ChartFill1" Color="#3339FF6A"/>
+    <SolidColorBrush x:Key="ChartFill2" Color="#26A4FFBE"/>
+    <SolidColorBrush x:Key="ChartGrid" Color="#2239FF6A"/>
+
+    <!-- 状态栏 / 日志 -->
+    <SolidColorBrush x:Key="StatusBarBg" Color="#FF050B06"/>
+    <SolidColorBrush x:Key="LogTimeBrush" Color="#9978DC96"/>
+    <SolidColorBrush x:Key="LogSourceBrush" Color="#FF39FF6A"/>
+
+    <!-- 字体与阴影 -->
+    <FontFamily x:Key="UiFontFamily">DengXian</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">DengXian</FontFamily>
+    <DropShadowEffect x:Key="WindowShadow" BlurRadius="60" ShadowDepth="10"
+                      Opacity="0.85" Color="#FF000000" Direction="270"/>
+
+    <!-- 窗口背景氛围光 -->
+    <RadialGradientBrush x:Key="GlowBrush1" GradientOrigin="0.5,0.5" Center="0.5,0.5"
+                         RadiusX="0.5" RadiusY="0.5">
+        <GradientStop Color="#3339FF6A" Offset="0"/>
+        <GradientStop Color="#0039FF6A" Offset="1"/>
+    </RadialGradientBrush>
+    <RadialGradientBrush x:Key="GlowBrush2" GradientOrigin="0.5,0.5" Center="0.5,0.5"
+                         RadiusX="0.5" RadiusY="0.5">
+        <GradientStop Color="#1F39FF6A" Offset="0"/>
+        <GradientStop Color="#0039FF6A" Offset="1"/>
+    </RadialGradientBrush>
+</ResourceDictionary>

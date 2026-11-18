@@ -108,6 +108,11 @@ namespace YF_Manager
             _configValues["PluginManagerServerURL"] = "http://127.0.0.1";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
+            // 当前主题（下次启动恢复）
+            _configValues["Theme"] = Config.Theme; 
+            // 更新环境：uat（默认）/ pdt；地址为明文配置
+            _configValues["Env"] = "uat";
+            _configValues["UpdateBaseUrl"] = Config.DefaultUpdateBaseUrl;
         }
 
         /// <summary>
@@ -182,6 +187,12 @@ namespace YF_Manager
                 _configValues.TryAdd("PluginManagerServerURL", "http://127.0.0.1");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
+            if (!existingKeys.Contains("Theme"))
+                _configValues.TryAdd("Theme", @"Common/Themes/CloudWhiteTheme.xaml");
+            if (!existingKeys.Contains("Env"))
+                _configValues.TryAdd("Env", "uat");
+            if (!existingKeys.Contains("UpdateBaseUrl"))
+                _configValues.TryAdd("UpdateBaseUrl", Config.DefaultUpdateBaseUrl);
         }
 
         /// <summary>
@@ -199,6 +210,8 @@ namespace YF_Manager
                 var sb = new StringBuilder();
                 sb.AppendLine("# YFrame 配置文件");
                 sb.AppendLine("# 修改后重启应用生效");
+                sb.AppendLine("# 更新环境：Env=uat（默认）或 Env=pdt；UpdateBaseUrl 使用明文地址");
+                sb.AppendLine("# 项目为开源项目，COS 成本很低，无安全与经济风险");
                 sb.AppendLine();
 
                 foreach (var kvp in _configValues)

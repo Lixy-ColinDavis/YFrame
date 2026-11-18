@@ -1,0 +1,491 @@
+<UserControl x:Class="YFrame.View.UC.Toolbox.HardwareInfoTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="680" d:DesignWidth="840"
+             Background="{DynamicResource BackgroundBrush}">
+
+    <UserControl.Resources>
+        <!-- 布尔到可见性：用于读取中的遮罩层 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- 测试按钮：固定外观，无鼠标悬浮动态效果 -->
+        <Style x:Key="AudioTestButton" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinWidth" Value="48"/>
+            <Setter Property="Padding" Value="8,1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Background" Value="{DynamicResource PanelAltBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- 硬件卡片：沿用主框架 CardBorder，仅缩小内边距 -->
+        <Style x:Key="HwCard" TargetType="{x:Type Border}" BasedOn="{StaticResource CardBorder}">
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <!-- 卡片标题 -->
+        <Style x:Key="HwTitle" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 字段标签 -->
+        <Style x:Key="HwLabel" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MutedText}">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 字段值 -->
+        <Style x:Key="HwValue" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 卡片左上角的小图标块 -->
+        <Style x:Key="HwIcon" TargetType="{x:Type Border}">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="8"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 头部卡：标题 + 状态 + 刷新/复制 -->
+        <Border Grid.Row="0" Style="{StaticResource HwCard}" Padding="18,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="12"
+                        Background="{DynamicResource AccentGradientBrush}"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="HW" Foreground="White" FontSize="12.5" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource key_Hardware_Title}"
+                               FontSize="20" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock Text="{DynamicResource key_Hardware_Subtitle}"
+                               FontSize="11.5" Margin="0,3,0,0"
+                               Foreground="{DynamicResource SubtleTextBrush}"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="10.5"
+                               Margin="0,2,0,0"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{DynamicResource key_Hardware_Refresh}"
+                            Command="{Binding RefreshCommand}"
+                            Height="32" MinWidth="76" Margin="0,0,8,0"/>
+                    <Button Content="{DynamicResource key_Hardware_Copy}"
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding CopyCommand}"
+                            Height="32" MinWidth="88"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 两列三行信息卡，保证主要信息在一屏内 -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1.05*"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="160"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="1.05*"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="1.05*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- CPU -->
+            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource HwIcon}">
+                            <TextBlock Text="C" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource key_Hardware_Cpu}" Style="{StaticResource HwTitle}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Text="{Binding CpuName}"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}"
+                               TextWrapping="Wrap" Margin="0,12,0,0"/>
+
+                    <TextBlock Grid.Row="2" Text="{Binding CpuDetail}"
+                               FontSize="11.5" Margin="0,8,0,0"
+                               Foreground="{DynamicResource SubtleTextBrush}"
+                               TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <!-- GPU -->
+            <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource HwIcon}">
+                            <TextBlock Text="G" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource key_Hardware_Gpu}" Style="{StaticResource HwTitle}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Text="{Binding GpuName}"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}"
+                               TextWrapping="Wrap" Margin="0,12,0,0"/>
+
+                    <TextBlock Grid.Row="2" Text="{Binding GpuDetail}"
+                               FontSize="11.5" Margin="0,8,0,0"
+                               Foreground="{DynamicResource SubtleTextBrush}"
+                               TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <!-- 内存 -->
+            <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource HwIcon}">
+                            <TextBlock Text="M" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource key_Hardware_Memory}" Style="{StaticResource HwTitle}"/>
+                        <TextBlock Text="{DynamicResource key_Hardware_Total}"
+                                   Style="{StaticResource HwLabel}" Margin="12,0,5,0"/>
+                        <TextBlock Text="{Binding MemoryTotal}"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding MemoryModules}" Margin="0,9,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           FontFamily="{DynamicResource MonoFontFamily}"
+                                           FontSize="10.5"
+                                           Foreground="{DynamicResource SubtleTextBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <!-- 硬盘 -->
+            <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource HwIcon}">
+                                <TextBlock Text="D" FontSize="11" FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{DynamicResource key_Hardware_Disk}" Style="{StaticResource HwTitle}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" Margin="0,7,0,0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Disks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Text="{Binding DisplayText}"
+                                                   ToolTip="{Binding DisplayText}"
+                                                   FontFamily="{DynamicResource MonoFontFamily}"
+                                                   FontSize="10.5"
+                                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                Content="{DynamicResource key_Hardware_TestSpeed}"
+                                                Style="{StaticResource AudioTestButton}"
+                                                Command="{Binding DataContext.TestDiskSpeedCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding CanTest}"
+                                                Height="22" MinWidth="44" Margin="8,0,0,0"/>
+                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                                   Text="{Binding SpeedText}"
+                                                   ToolTip="{Binding SpeedText}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,2,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- 音频：默认输出/输入设备与测试 -->
+            <Border Grid.Row="4" Grid.Column="0" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource HwIcon}">
+                                <TextBlock Text="A" FontSize="11" FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{DynamicResource key_Hardware_Audio}" Style="{StaticResource HwTitle}"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Height="16">
+                            <!-- 倒计时放在进度条左侧；固定宽度避免文字变化带动进度条左右移动 -->
+                            <TextBlock Text="{Binding AudioCountdownText}"
+                                       Visibility="{Binding ShowAudioCountdown, Converter={StaticResource BoolToVisibility}}"
+                                       FontSize="10" Width="34" TextAlignment="Right" Margin="0,0,7,0"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"/>
+                            <ProgressBar Width="72" Height="6" Minimum="0" Maximum="1"
+                                         VerticalAlignment="Center"
+                                         Value="{Binding AudioInputLevel}"
+                                         Background="{DynamicResource PanelAltBrush}"
+                                         Foreground="{DynamicResource AccentBrush}"
+                                         BorderThickness="0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="38"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource key_Hardware_Output}"
+                                   Style="{StaticResource HwLabel}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AudioOutputText}"
+                                   Style="{StaticResource HwValue}" Margin="4,0,8,0"/>
+                        <Button Grid.Row="0" Grid.Column="2" Content="{DynamicResource key_Hardware_Test}"
+                                Style="{StaticResource AudioTestButton}"
+                                Command="{Binding TestOutputCommand}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource key_Hardware_Input}"
+                                   Style="{StaticResource HwLabel}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AudioInputText}"
+                                   Style="{StaticResource HwValue}" Margin="4,0,8,0"/>
+                        <Button Grid.Row="2" Grid.Column="2" Content="{DynamicResource key_Hardware_Test}"
+                                Style="{StaticResource AudioTestButton}"
+                                Command="{Binding TestInputCommand}"/>
+                    </Grid>
+                </Grid>
+            </Border>
+            <!-- 显示器 -->
+            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource HwIcon}">
+                            <TextBlock Text="V" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource key_Hardware_Display}" Style="{StaticResource HwTitle}"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" Margin="0,6,0,0" MaxHeight="112"
+                                  VerticalAlignment="Top"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Monitors}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,6">
+                                        <!-- 名称和厂商/序列号合并到第一行，每台显示器只占两行 -->
+                                        <TextBlock TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Name}" FontSize="12.5"
+                                                 FontWeight="SemiBold"
+                                                 Foreground="{DynamicResource TextBrush}"/>
+                                            <Run Text="  "/>
+                                            <Run Text="{Binding Meta}" FontSize="9.5"
+                                                 FontFamily="{DynamicResource MonoFontFamily}"
+                                                 Foreground="{DynamicResource SubtleTextBrush}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            <!-- 主板 / 系统 -->
+            <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource HwCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource HwIcon}">
+                            <TextBlock Text="S" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource key_Hardware_Board}" Style="{StaticResource HwTitle}"/>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Margin="0,9,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="72"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="72"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource key_Hardware_Board}"
+                                   Style="{StaticResource HwLabel}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BoardText}" ToolTip="{Binding BoardText}"
+                                   Style="{StaticResource HwValue}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource key_Hardware_System}"
+                                   Style="{StaticResource HwLabel}" Margin="18,0,0,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SystemText}" ToolTip="{Binding SystemText}"
+                                   Style="{StaticResource HwValue}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource key_Hardware_Serial}"
+                                   Style="{StaticResource HwLabel}" Margin="0,6,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BoardSerial}" ToolTip="{Binding BoardSerial}"
+                                   Style="{StaticResource HwValue}" Margin="0,6,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{DynamicResource key_Hardware_Computer}"
+                                   Style="{StaticResource HwLabel}" Margin="18,6,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding ComputerName}" ToolTip="{Binding ComputerName}"
+                                   Style="{StaticResource HwValue}" Margin="0,6,0,0"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource key_Hardware_Bios}"
+                                   Style="{StaticResource HwLabel}" Margin="0,6,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding BiosText}" ToolTip="{Binding BiosText}"
+                                   Style="{StaticResource HwValue}" Margin="0,6,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{DynamicResource key_Hardware_Os}"
+                                   Style="{StaticResource HwLabel}" Margin="18,6,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding OsText}" ToolTip="{Binding OsText}"
+                                   Style="{StaticResource HwValue}" Margin="0,6,0,0"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- 读取遮罩：避免 WMI 首次查询较慢时误以为界面无响应 -->
+            <Grid Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
+                  Background="{DynamicResource BackgroundBrush}" Opacity="0.86"
+                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
+                  Panel.ZIndex="10">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="180" Height="4"
+                                 Background="{DynamicResource PanelAltBrush}"
+                                 Foreground="{DynamicResource AccentBrush}"/>
+                    <TextBlock Text="{DynamicResource key_Hardware_Loading}"
+                               FontSize="12" Margin="0,10,0,0"
+                               Foreground="{DynamicResource SubtleTextBrush}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

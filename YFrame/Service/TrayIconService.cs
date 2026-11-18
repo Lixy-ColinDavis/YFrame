@@ -91,6 +91,7 @@ namespace YFrame
         private const uint TRAY_ID = 1;
         private const uint MENU_ID_SHOW = 1001;
         private const uint MENU_ID_EXIT = 1002;
+        private const uint MENU_ID_HIDE = 1003;
         #endregion
 
         #region 事件
@@ -98,6 +99,11 @@ namespace YFrame
         /// 托盘左键单击或菜单"显示主窗口"触发
         /// </summary>
         public event Action? OnShowWindow;
+
+        /// <summary>
+        /// 托盘右键菜单"隐藏到托盘"触发
+        /// </summary>
+        public event Action? OnHideWindow;
 
         /// <summary>
         /// 托盘右键菜单"退出"触发
@@ -207,6 +213,7 @@ namespace YFrame
         {
             var menu = CreatePopupMenu();
             AppendMenu(menu, MF_STRING, MENU_ID_SHOW, "显示主窗口");
+            AppendMenu(menu, MF_STRING, MENU_ID_HIDE, "隐藏到托盘");
             AppendMenu(menu, MF_SEPARATOR, 0, string.Empty);
             AppendMenu(menu, MF_STRING, MENU_ID_EXIT, "退出");
 
@@ -241,6 +248,12 @@ namespace YFrame
                 if (menuId == MENU_ID_SHOW)
                 {
                     OnShowWindow?.Invoke();
+                    handled = true;
+                }
+                else if (menuId == MENU_ID_HIDE)
+                {
+                    // 隐藏到托盘：通知订阅方隐藏主窗口
+                    OnHideWindow?.Invoke();
                     handled = true;
                 }
                 else if (menuId == MENU_ID_EXIT)

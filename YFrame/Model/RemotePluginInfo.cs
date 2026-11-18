@@ -1,29 +1,68 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using System.Windows.Media;
+using YF_Manager;
 
 namespace YFrame.Model
 {
     /// <summary>
     /// 远程插件信息模型，用于插件管理器UI列表绑定
     /// </summary>
-    public class RemotePluginInfo : INotifyPropertyChanged
+    public class RemotePluginInfo : ViewModelBase
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        /// <summary>缓存的图标背景画刷，避免每次绑定都重新创建</summary>
+        private Brush? _iconBrush;
+
+        /// <summary>图标缩写（与主窗口插件列表保持一致的生成规则）</summary>
+        public string IconText => PluginIconHelper.GetText(PluginId, PluginName);
+
+        /// <summary>图标渐变背景（按插件 ID 稳定取色）</summary>
+        public Brush IconBrush => _iconBrush ??= PluginIconHelper.GetBrush(PluginId, PluginName);
 
         private string _pluginId = "";
-        public string PluginId { get => _pluginId; set { _pluginId = value; OnPropertyChanged(); } }
+        public string PluginId
+        {
+            get => _pluginId;
+            set
+            {
+                if (_pluginId == value) return;
+
+                _pluginId = value;
+                // 先刷新图标，最后通知 PluginId，保持属性通知顺序稳定
+                _iconBrush = null;
+                OnPropertyChanged(nameof(IconText));
+                OnPropertyChanged(nameof(IconBrush));
+                OnPropertyChanged(nameof(PluginId));
+            }
+        }
 
         private string _pluginName = "";
-        public string PluginName { get => _pluginName; set { _pluginName = value; OnPropertyChanged(); } }
+        public string PluginName
+        {
+            get => _pluginName;
+            set
+            {
+                if (_pluginName == value) return;
+
+                _pluginName = value;
+                // ID 为空时图标缩写回退到名称，先刷新图标再通知名称
+                OnPropertyChanged(nameof(IconText));
+                OnPropertyChanged(nameof(PluginName));
+            }
+        }
 
         private string _folderName = "";
-        public string FolderName { get => _folderName; set { _folderName = value; OnPropertyChanged(); } }
+        public string FolderName { get => _folderName; set => SetProperty(ref _folderName, value); }
 
         private long _totalSize;
-        public long TotalSize { get => _totalSize; set { _totalSize = value; OnPropertyChanged(); OnPropertyChanged(nameof(FileSizeDisplay)); } }
+        public long TotalSize
+        {
+            get => _totalSize;
+            set
+            {
+                if (SetProperty(ref _totalSize, value))
+                    OnPropertyChanged(nameof(FileSizeDisplay));
+            }
+        }
 
         /// <summary>
         /// 文件大小格式化显示字符串
@@ -40,18 +79,50 @@ namespace YFrame.Model
         }
 
         private int _fileCount;
-        public int FileCount { get => _fileCount; set { _fileCount = value; OnPropertyChanged(); OnPropertyChanged(nameof(FileCountDisplay)); } }
+        public int FileCount
+        {
+            get => _fileCount;
+            set
+            {
+                if (SetProperty(ref _fileCount, value))
+                    OnPropertyChanged(nameof(FileCountDisplay));
+            }
+        }
         public string FileCountDisplay => $"{FileCount} 个文件";
 
         private int _downloadProgress;
-        public int DownloadProgress { get => _downloadProgress; set { _downloadProgress = value; OnPropertyChanged(); OnPropertyChanged(nameof(DownloadProgressText)); } }
+        public int DownloadProgress
+        {
+            get => _downloadProgress;
+            set
+            {
+                if (SetProperty(ref _downloadProgress, value))
+                    OnPropertyChanged(nameof(DownloadProgressText));
+            }
+        }
         public string DownloadProgressText => $"{DownloadProgress}%";
 
         private bool _isDownloading;
-        public bool IsDownloading { get => _isDownloading; set { _isDownloading = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanDownload)); } }
+        public bool IsDownloading
+        {
+            get => _isDownloading;
+            set
+            {
+                if (SetProperty(ref _isDownloading, value))
+                    OnPropertyChanged(nameof(CanDownload));
+            }
+        }
 
         private bool _isInstalled;
-        public bool IsInstalled { get => _isInstalled; set { _isInstalled = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanDownload)); } }
+        public bool IsInstalled
+        {
+            get => _isInstalled;
+            set
+            {
+                if (SetProperty(ref _isInstalled, value))
+                    OnPropertyChanged(nameof(CanDownload));
+            }
+        }
 
         /// <summary>
         /// 下载按钮是否可见（未安装且未下载中时显示）

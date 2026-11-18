@@ -1,0 +1,238 @@
+﻿using System.Collections.Generic;
+
+namespace YFrame.Model
+{
+    /// <summary>
+    /// 硬件静态信息快照（不包含实时占用数据）
+    /// </summary>
+    public sealed class HardwareInfoSnapshot
+    {
+        /// <summary>处理器信息</summary>
+        public CpuSnapshot Cpu { get; set; } = new();
+
+        /// <summary>显卡列表（可能包含集成显卡与独立显卡）</summary>
+        public List<GpuSnapshot> Gpus { get; set; } = new();
+
+        /// <summary>内存汇总与内存条列表</summary>
+        public MemorySnapshot Memory { get; set; } = new();
+
+        /// <summary>物理磁盘列表</summary>
+        public List<DiskSnapshot> Disks { get; set; } = new();
+
+        /// <summary>主板信息</summary>
+        public BoardSnapshot Board { get; set; } = new();
+
+        /// <summary>整机与 BIOS、操作系统信息</summary>
+        public SystemSnapshot System { get; set; } = new();
+
+        /// <summary>BIOS 信息</summary>
+        public BiosSnapshot Bios { get; set; } = new();
+
+        /// <summary>操作系统信息</summary>
+        public OsSnapshot Os { get; set; } = new();
+
+        /// <summary>音频输入/输出设备</summary>
+        public AudioSnapshot Audio { get; set; } = new();
+
+        /// <summary>显示器列表（多屏时逐台展示）</summary>
+        public List<MonitorSnapshot> Monitors { get; set; } = new();
+    }
+
+    /// <summary>处理器静态信息</summary>
+    public sealed class CpuSnapshot
+    {
+        /// <summary>处理器名称</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>物理核心数</summary>
+        public int Cores { get; set; }
+
+        /// <summary>逻辑线程数</summary>
+        public int Threads { get; set; }
+
+        /// <summary>标称主频（MHz）</summary>
+        public int ClockMHz { get; set; }
+
+        /// <summary>插槽标识</summary>
+        public string Socket { get; set; } = string.Empty;
+    }
+
+    /// <summary>显卡静态信息</summary>
+    public sealed class GpuSnapshot
+    {
+        /// <summary>显卡名称</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>显存字节数（WMI AdapterRAM，部分大显存会受 32 位字段限制）</summary>
+        public ulong AdapterRam { get; set; }
+
+        /// <summary>驱动版本</summary>
+        public string DriverVersion { get; set; } = string.Empty;
+    }
+
+    /// <summary>内存汇总信息</summary>
+    public sealed class MemorySnapshot
+    {
+        /// <summary>总容量字节数</summary>
+        public ulong TotalBytes { get; set; }
+
+        /// <summary>内存条列表</summary>
+        public List<MemoryModuleSnapshot> Modules { get; set; } = new();
+    }
+
+    /// <summary>单根内存条信息</summary>
+    public sealed class MemoryModuleSnapshot
+    {
+        /// <summary>容量字节数</summary>
+        public ulong CapacityBytes { get; set; }
+
+        /// <summary>频率（MT/s）</summary>
+        public int Speed { get; set; }
+
+        /// <summary>厂商</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+
+        /// <summary>插槽位置</summary>
+        public string DeviceLocator { get; set; } = string.Empty;
+    }
+
+    /// <summary>物理磁盘静态信息</summary>
+    public sealed class DiskSnapshot
+    {
+        /// <summary>磁盘型号</summary>
+        public string Model { get; set; } = string.Empty;
+
+        /// <summary>容量字节数</summary>
+        public ulong SizeBytes { get; set; }
+
+        /// <summary>接口类型（NVMe/SATA/USB 等）</summary>
+        public string InterfaceType { get; set; } = string.Empty;
+
+        /// <summary>介质类型</summary>
+        public string MediaType { get; set; } = string.Empty;
+
+        /// <summary>固件版本</summary>
+        public string FirmwareRevision { get; set; } = string.Empty;
+
+        /// <summary>序列号</summary>
+        public string SerialNumber { get; set; } = string.Empty;
+
+        /// <summary>接口类型（NVMe/SATA/USB 等，来自 MSFT_PhysicalDisk）</summary>
+        public string BusTypeText { get; set; } = string.Empty;
+
+        /// <summary>介质类型（SSD/HDD）</summary>
+        public string MediaTypeText { get; set; } = string.Empty;
+
+        /// <summary>健康状态</summary>
+        public string HealthStatus { get; set; } = string.Empty;
+
+        /// <summary>WMI 报告的传输速率（KB/s，可能为空）</summary>
+        public uint TransferRate { get; set; }
+
+        /// <summary>磁盘索引（用于匹配 MSFT_PhysicalDisk.DeviceId）</summary>
+        public int Index { get; set; }
+
+        /// <summary>PNP 设备 ID（用于推断 NVMe/USB 接口）</summary>
+        public string PnpDeviceId { get; set; } = string.Empty;
+
+        /// <summary>该物理磁盘对应的可写盘符根目录，例如 C:\</summary>
+        public string DriveRoot { get; set; } = string.Empty;
+
+        /// <summary>PCIe 链路信息（如 PCIe 4.0 x4）</summary>
+        public string PcieLinkText { get; set; } = string.Empty;
+    }
+
+    /// <summary>主板静态信息</summary>
+    public sealed class BoardSnapshot
+    {
+        /// <summary>主板厂商</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+
+        /// <summary>主板型号</summary>
+        public string Product { get; set; } = string.Empty;
+
+        /// <summary>主板序列号</summary>
+        public string SerialNumber { get; set; } = string.Empty;
+    }
+
+    /// <summary>整机静态信息</summary>
+    public sealed class SystemSnapshot
+    {
+        /// <summary>整机厂商</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+
+        /// <summary>整机型号</summary>
+        public string Model { get; set; } = string.Empty;
+
+        /// <summary>计算机名</summary>
+        public string ComputerName { get; set; } = string.Empty;
+
+        /// <summary>系统总内存字节数</summary>
+        public ulong TotalMemoryBytes { get; set; }
+    }
+
+    /// <summary>BIOS 静态信息</summary>
+    public sealed class BiosSnapshot
+    {
+        /// <summary>BIOS 版本</summary>
+        public string Version { get; set; } = string.Empty;
+
+        /// <summary>BIOS 发布日期</summary>
+        public string ReleaseDate { get; set; } = string.Empty;
+
+        /// <summary>BIOS 厂商</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+    }
+
+    /// <summary>操作系统静态信息</summary>
+    public sealed class OsSnapshot
+    {
+        /// <summary>系统名称</summary>
+        public string Caption { get; set; } = string.Empty;
+
+        /// <summary>系统版本号</summary>
+        public string Version { get; set; } = string.Empty;
+
+        /// <summary>系统架构</summary>
+        public string Architecture { get; set; } = string.Empty;
+    }
+
+
+    /// <summary>音频设备汇总</summary>
+    public sealed class AudioSnapshot
+    {
+        /// <summary>输出设备名称列表</summary>
+        public List<string> Outputs { get; set; } = new();
+
+        /// <summary>输入设备名称列表</summary>
+        public List<string> Inputs { get; set; } = new();
+    }
+
+    /// <summary>显示器静态信息</summary>
+    public sealed class MonitorSnapshot
+    {
+        /// <summary>显示器名称</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>厂商代号</summary>
+        public string Manufacturer { get; set; } = string.Empty;
+
+        /// <summary>序列号</summary>
+        public string SerialNumber { get; set; } = string.Empty;
+
+        /// <summary>对角线尺寸（英寸）</summary>
+        public double SizeInch { get; set; }
+
+        /// <summary>当前主屏分辨率宽度</summary>
+        public int Width { get; set; }
+
+        /// <summary>当前主屏分辨率高度</summary>
+        public int Height { get; set; }
+
+        /// <summary>当前刷新率（Hz）</summary>
+        public int RefreshRate { get; set; }
+
+        /// <summary>附加显示器数量（多屏时提示）</summary>
+        public int AdditionalCount { get; set; }
+    }
+}

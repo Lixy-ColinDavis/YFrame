@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    YFrame 全产品统一版本号。
+    主框架、YF_Manager、安装器、测试共用本文件。
+    发版时修改 Version（保持三段数字），AssemblyVersion / FileVersion
+    的第四位自动使用“当前日期距 2000-01-01 的天数”。
+  -->
+  <PropertyGroup>
+    <Version>2.1.0</Version>
+    <!-- 第四位：距 2000-01-01 的天数，约 9817，远小于 65535 上限 -->
+    <!-- OADate 的 2000-01-01 为 36526；先取当天 0 点，避免时间小数进入版本号 -->
+    <TodayOADate>$([System.DateTime]::Now.Date.ToOADate())</TodayOADate>
+    <BuildDay>$([MSBuild]::Subtract($(TodayOADate), 36526))</BuildDay>
+    <AssemblyVersion>$(Version).$(BuildDay)</AssemblyVersion>
+    <FileVersion>$(Version).$(BuildDay)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+</Project>

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using Microsoft.Win32;
 using YFrame.Installer.Models;
 
@@ -155,7 +156,9 @@ public class InstallService
 
             // 基本信息
             key.SetValue("DisplayName", "YFrame 工具集");
-            key.SetValue("DisplayVersion", "1.0.0");
+            // 安装器版本来自统一版本文件，避免这里再维护一份硬编码版本
+            string displayVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.0.0";
+            key.SetValue("DisplayVersion", displayVersion);
             key.SetValue("Publisher", "YFrame");
             key.SetValue("DisplayIcon", exePath);
             key.SetValue("InstallLocation", installPath);
