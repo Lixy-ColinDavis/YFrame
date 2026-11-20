@@ -46,7 +46,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | 项目 | 数量/说明 |
 |---|---|
 | 目标框架 | `.NET 8.0-windows` |
-| 解决方案项目 | 6 个 |
+| 解决方案项目 | 7 个 |
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
@@ -109,6 +109,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | 工具 | 作用 |
 |---|---|
 | `YFrame.Pack` | 比较两个版本 ZIP，生成增量包、完整包副本和版本清单 |
+| `YFrame.Sign` | 选择清单与 ECDSA 私钥，生成 YF_Version.json.sig |
 | `YFrame.update` | 下载、校验、备份、替换、删除、重启、日志 |
 | `YFrame.Installer` | 将框架本体打包为单文件安装器 |
 
@@ -142,6 +143,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | `YFrame.Tests` | xUnit | 核心服务、模型、工具类测试 |
 | `YFrame.Installer` | WPF Application | 向导式安装器、payload.zip、单文件发布 |
 | `YFrame.Pack` | WPF Application | ZIP 差异、增量包、版本清单 |
+| `YFrame.Sign` | WPF Application | 清单签名、临时密钥、路径配置 |
 | `YFrame.update` | WPF Application | 自动下载、校验、备份、替换、重启 |
 
 10 个插件位于上层目录 `..\YF_*`，独立编译并输出到主框架的 `plugins/` 下，不属于 `YFrame.sln`。
@@ -677,6 +679,9 @@ dotnet publish YFrame.update/YFrame.update.csproj -c Release -p:PublishProfile=S
 
 # 增量包工具
 dotnet build YFrame.Pack/YFrame.Pack.csproj -c Release
+
+# 清单签名工具
+dotnet build YFrame.Sign/YFrame.Sign.csproj -c Release
 ```
 
 ---
@@ -696,6 +701,7 @@ YFrame/
 ├── YFrame.Tests/                 # xUnit
 ├── YFrame.Installer/             # 向导式安装器
 ├── YFrame.Pack/                  # 增量包构建工具
+├── YFrame.Sign/                  # 清单签名工具
 ├── YFrame.update/                # 自动更新器
 ├── Version.props                 # 统一版本
 ├── YFrame.sln

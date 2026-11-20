@@ -15,7 +15,7 @@
 4. `YFrame/ViewModel/MainWindowViewModel.cs`：主 VM 门面；
 5. `YFrame/Service/*`：运行时服务；
 6. `YF_Manager/Common/*`：契约、AOP、配置、Mediator、工具；
-7. `YFrame.Pack/`、`YFrame.update/`、`YFrame.Installer/`：交付链路；
+7. `YFrame.Pack/`、`YFrame.Sign/`、`YFrame.update/`、`YFrame.Installer/`：交付链路；
 8. 上层 `..\YF_*`：10 个插件。
 
 ---
@@ -56,6 +56,7 @@ YFrame.sln
 | `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 119 个测试 |
 | `YFrame.Installer` | `YFrame.Installer/YFrame.Installer.csproj` | WPF App | 向导式安装器，自包含单文件 |
 | `YFrame.Pack` | `YFrame.Pack/YFrame.Pack.csproj` | WPF App | ZIP 差异、增量包、版本清单 |
+| `YFrame.Sign` | `YFrame.Sign/YFrame.Sign.csproj` | WPF App | 清单签名、临时密钥、路径配置 |
 | `YFrame.update` | `YFrame.update/YFrame.update.csproj` | WPF App | 自动下载、校验、备份、替换、重启 |
 
 **解决方案不含 10 个插件**；插件位于 `C:\Users\Administrator\Desktop\code\C#\YF_*`，单独构建。
@@ -465,6 +466,7 @@ dotnet build ..\YF_Clicker\YF_Clicker\YF_Clicker.csproj -c Debug
 dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishProfile=SingleFile
 dotnet publish YFrame.update/YFrame.update.csproj -c Release -p:PublishProfile=SingleFile
 dotnet build YFrame.Pack/YFrame.Pack.csproj -c Release
+dotnet build YFrame.Sign/YFrame.Sign.csproj -c Release
 ```
 
 ---
@@ -515,6 +517,7 @@ YFrame/
 │   ├── Common/Tools/YF_Sha256Hasher.cs
 │   └── Common/Interceptors/LogInterceptor.cs
 ├── YFrame.Pack/
+├── YFrame.Sign/
 ├── YFrame.update/
 ├── YFrame.Installer/
 ├── YFrame.Tests/

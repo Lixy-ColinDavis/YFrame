@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>YFrame.Sign</AssemblyName>
+    <RootNamespace>YFrame.Sign</RootNamespace>
+    <!-- 输出到 Pack 的 bin 目录，与 YFrame.Pack.exe 同目录 -->
+    <OutputPath>..\YFrame.Pack\bin\$(Configuration)\net8.0-windows\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 复用主框架主题和控件样式，保持与 Pack 一致 -->
+    <Resource Include="..\YFrame\Common\Themes\CloudWhiteTheme.xaml" Link="Themes\CloudWhiteTheme.xaml" />
+    <Resource Include="..\YFrame\Common\Themes\ControlStyles.xaml" Link="Themes\ControlStyles.xaml" />
+    <Resource Include="..\YFrame\Common\Images\Logo.png" Link="Assets\Logo.png" />
+    <!-- SHA-256 计算与 YFrame/YF_Manager 共用同一份源码 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_Sha256Hasher.cs" Link="Common\Tools\YF_Sha256Hasher.cs" />
+  </ItemGroup>
+
+</Project>
