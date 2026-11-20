@@ -8,6 +8,10 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>YFrame.update</AssemblyName>
     <RootNamespace>YFrame.Update</RootNamespace>
+    <!-- 直接输出到主框架 bin，构建后即可被 YFrame 启动 -->
+    <OutputPath>..\YFrame\bin\$(Configuration)\net8.0-windows\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,20 +28,6 @@
     <!-- 清单签名/验签统一由 YF_Manager 实现 -->
     <Compile Include="..\YF_Manager\Common\Tools\YF_ManifestSigner.cs" Link="Common\Tools\YF_ManifestSigner.cs" />
   </ItemGroup>
-
-  <!-- Debug 构建后把更新器放到 YFrame 输出根目录，便于主程序直接启动 -->
-  <Target Name="CopyUpdaterToYFrameDebugOutput" AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Debug'">
-    <ItemGroup>
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.exe" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.dll" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.deps.json" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.runtimeconfig.json" />
-    </ItemGroup>
-    <Copy SourceFiles="@(UpdaterRuntimeFiles)"
-          DestinationFolder="$(MSBuildProjectDirectory)\..\YFrame\bin\Debug\net8.0-windows\"
-          SkipUnchangedFiles="true" />
-  </Target>
 
 </Project>
 
