@@ -21,6 +21,8 @@
     <Resource Include="..\YFrame\Common\Images\Logo.png" Link="Assets\Logo.png" />
     <!-- SHA-256 计算与 YFrame/YF_Manager 共用同一份源码 -->
     <Compile Include="..\YF_Manager\Common\Tools\YF_Sha256Hasher.cs" Link="Common\Tools\YF_Sha256Hasher.cs" />
+    <!-- 清单签名/验签统一由 YF_Manager 实现 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_ManifestSigner.cs" Link="Common\Tools\YF_ManifestSigner.cs" />
   </ItemGroup>
 
 </Project>

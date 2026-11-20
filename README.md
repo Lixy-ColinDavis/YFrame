@@ -8,7 +8,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
   <img alt=".NET" src="https://img.shields.io/badge/.NET-8.0-512BD4">
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-0C54C2">
   <img alt="Plugins" src="https://img.shields.io/badge/plugins-10-4F46E5">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-119-059669">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-123-059669">
   <img alt="Themes" src="https://img.shields.io/badge/themes-4-7C3AED">
 </p>
 
@@ -50,7 +50,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
-| 单元测试 | 119 个 |
+| 单元测试 | 123 个 |
 | 当前版本 | 2.1.0 |
 
 ```text
@@ -472,7 +472,10 @@ output/20261118-153000/
   current.zip           最新完整包副本
   increment.zip         只包含新增/修改文件
   YF_Version.json       版本清单
+  YF_Version.json.sig   ECDSA 签名（由 YFrame.Sign 生成）
 ```
+
+签名文件必须与清单一起上传；`YFrame.update` 会先验签，再读取清单。缺失或验签失败时拒绝更新。
 
 `YF_Version.json`：
 
@@ -519,6 +522,9 @@ output/20261118-153000/
 
 ```text
 读取 --manifest 或 Config/config.conf
+→ 下载 YF_Version.json + YF_Version.json.sig
+→ 使用内置 UAT/PDT 公钥验签
+→ 验签失败：拒绝更新
 → 选择增量包 / 全量包
 → 下载
 → 校验 size + SHA-256
@@ -617,7 +623,7 @@ Installer/YFrame.Installer.exe
 dotnet test YFrame.Tests/YFrame.Tests.csproj
 ```
 
-当前 119 个测试全部通过，覆盖命令、配置、日志、插件调度、文件/TCP/MD5/正则工具等。
+当前 123 个测试全部通过，覆盖命令、配置、日志、插件调度、文件/TCP/MD5/正则工具等。
 
 ### 8.3 CI
 
@@ -791,7 +797,7 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 - 插件项目默认输出路径写死为 Debug 输出目录，Release 部署需单独复制；
 - AI 模型、PaddleOCR 模型体积较大，不随仓库分发；
 - OCR 翻译依赖百度翻译 API，当前凭据硬编码在源码中，公开部署前应改为配置或服务端代理；
-- 自动更新目前使用 size + SHA-256 校验，生产环境建议再增加签名清单与 Authenticode 校验；
+- 自动更新已内置清单签名校验（ECDSA P-256 + SHA-256）和包 SHA-256 校验；生产环境仍建议增加 Authenticode 校验；
 - 更新器为框架依赖单文件，目标机器需要 .NET 8 Desktop Runtime；安装器为自包含单文件。
 
 ---

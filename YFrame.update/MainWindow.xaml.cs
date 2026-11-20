@@ -25,10 +25,56 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 解析启动参数 --manifest；没有参数时读取 Config/config.conf 的 Env 和 UpdateBaseUrl。
-    /// 缺省环境为 uat，便于手动启动更新器时仍使用正确地址。
+    /// 解析当前签名环境：优先 --env，其次 Config/config.conf 的 Env，缺省 uat。
     /// </summary>
-    private static string ResolveManifestUrl()
+    private static string ResolveEnvironment()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], "--env", StringComparison.OrdinalIgnoreCase) &&
+                i + 1 < args.Length)
+            {
+                return Cos_UpdateDefaults.NormalizeEnv(args[i + 1]);
+            }
+
+            const string prefix = "--env=";
+            if (args[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return Cos_UpdateDefaults.NormalizeEnv(args[i].Substring(prefix.Length));
+        }
+
+        try
+        {
+            string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.conf");
+            if (File.Exists(configPath))
+            {
+                foreach (string line in File.ReadAllLines(configPath))
+                {
+                    string text = line.Trim();
+                    if (text.StartsWith("#", StringComparison.Ordinal) || !text.Contains('='))
+                        continue;
+
+                    int index = text.IndexOf('=');
+                    string key = text[..index].Trim();
+                    string value = text[(index + 1)..].Trim().Trim('"');
+                    if (key.Equals("Env", StringComparison.OrdinalIgnoreCase))
+                        return Cos_UpdateDefaults.NormalizeEnv(value);
+                }
+            }
+        }
+        catch
+        {
+            // 配置读取失败时回退 UAT
+        }
+
+        return Cos_UpdateDefaults.DefaultEnv;
+    }
+
+    /// <summary>
+    /// 解析启动参数 --manifest；没有参数时按环境读取 Config/config.conf 的 UpdateBaseUrl。
+    /// </summary>
+    /// <param name="environment">已解析的签名环境</param>
+    private static string ResolveManifestUrl(string environment)
     {
         string[] args = Environment.GetCommandLineArgs();
         for (int i = 0; i < args.Length; i++)
@@ -49,7 +95,6 @@ public partial class MainWindow : Window
             string configPath = Path.Combine(AppContext.BaseDirectory, "Config", "config.conf");
             if (File.Exists(configPath))
             {
-                string env = Cos_UpdateDefaults.DefaultEnv;
                 string baseUrl = Cos_UpdateDefaults.BaseUrl;
                 foreach (string line in File.ReadAllLines(configPath))
                 {
@@ -60,22 +105,20 @@ public partial class MainWindow : Window
                     int index = text.IndexOf('=');
                     string key = text[..index].Trim();
                     string value = text[(index + 1)..].Trim().Trim('"');
-                    if (key.Equals("Env", StringComparison.OrdinalIgnoreCase))
-                        env = Cos_UpdateDefaults.NormalizeEnv(value);
-                    else if (key.Equals("UpdateBaseUrl", StringComparison.OrdinalIgnoreCase) &&
-                             !string.IsNullOrWhiteSpace(value))
+                    if (key.Equals("UpdateBaseUrl", StringComparison.OrdinalIgnoreCase) &&
+                        !string.IsNullOrWhiteSpace(value))
                         baseUrl = value.TrimEnd('/');
                 }
 
-                return $"{baseUrl}/{env}/YF_Version.json";
+                return $"{baseUrl}/{environment}/YF_Version.json";
             }
         }
         catch
         {
-            // 配置读取失败时回退到共享默认 UAT 地址
+            // 配置读取失败时回退到共享默认地址
         }
 
-        return Cos_UpdateDefaults.ManifestUrl(Cos_UpdateDefaults.DefaultEnv);
+        return Cos_UpdateDefaults.ManifestUrl(environment);
     }
 
     /// <summary>窗口显示后自动开始更新。</summary>
@@ -86,7 +129,11 @@ public partial class MainWindow : Window
 
         try
         {
-            var runner = new UpdateRunner(manifestUrl: ResolveManifestUrl(), logger: _logger);
+            string environment = ResolveEnvironment();
+            var runner = new UpdateRunner(
+                manifestUrl: ResolveManifestUrl(environment),
+                environment: environment,
+                logger: _logger);
             var progress = new Progress<UpdateProgress>(item =>
             {
                 UpdateProgressBar.Value = item.Percent;

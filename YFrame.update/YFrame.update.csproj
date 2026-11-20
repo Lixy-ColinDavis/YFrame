@@ -21,6 +21,8 @@
     <Compile Include="..\YF_Manager\Common\Tools\YF_Sha256Hasher.cs" Link="Common\Tools\YF_Sha256Hasher.cs" />
     <!-- 更新清单公钥信任锚，与 YFrame/YF_Manager 共用一份代码 -->
     <Compile Include="..\YF_Manager\Common\UpdateTrustKeys.cs" Link="Common\UpdateTrustKeys.cs" />
+    <!-- 清单签名/验签统一由 YF_Manager 实现 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_ManifestSigner.cs" Link="Common\Tools\YF_ManifestSigner.cs" />
   </ItemGroup>
 
   <!-- Debug 构建后把更新器放到 YFrame 输出根目录，便于主程序直接启动 -->

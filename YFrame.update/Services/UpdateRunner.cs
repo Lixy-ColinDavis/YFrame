@@ -18,6 +18,7 @@ public sealed class UpdateRunner
 {
     private readonly string _appRoot;
     private readonly string _manifestUrl;
+    private readonly string _environment;
     private readonly UpdateLogger _logger;
 
     /// <summary>更新器正式文件名。</summary>
@@ -37,12 +38,15 @@ public sealed class UpdateRunner
     /// <param name="appRoot">YFrame 主程序目录；默认为 update.exe 所在目录</param>
     /// <param name="manifestUrl">版本清单地址；为空时使用共享默认 UAT 地址</param>
     /// <param name="logger">更新日志器；为空时自动创建</param>
-    public UpdateRunner(string? appRoot = null, string? manifestUrl = null, UpdateLogger? logger = null)
+    /// <param name="environment">签名环境 uat/pdt；为空时使用 uat</param>
+    public UpdateRunner(string? appRoot = null, string? manifestUrl = null,
+        UpdateLogger? logger = null, string? environment = null)
     {
         _appRoot = Path.GetFullPath(appRoot ?? AppContext.BaseDirectory);
         _manifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
             ? Cos_UpdateDefaults.ManifestUrl(Cos_UpdateDefaults.DefaultEnv)
             : manifestUrl;
+        _environment = Cos_UpdateDefaults.NormalizeEnv(environment);
         _logger = logger ?? new UpdateLogger(_appRoot);
     }
 
@@ -320,13 +324,26 @@ public sealed class UpdateRunner
         throw new FileNotFoundException("无法读取本地 YFrame 版本，请确认 YFrame.dll 或 YFrame.exe 存在。");
     }
 
-    /// <summary>下载并反序列化远端版本清单。</summary>
+    /// <summary>下载并验证远端版本清单签名，再反序列化。</summary>
     private async Task<RemoteUpdateManifest> ReadManifestAsync(CancellationToken cancellationToken)
     {
-        string json = await Client.GetStringAsync(_manifestUrl, cancellationToken);
-        var manifest = JsonSerializer.Deserialize<RemoteUpdateManifest>(json, JsonOptions);
+        using var manifestResponse = await Client.GetAsync(_manifestUrl, cancellationToken);
+        manifestResponse.EnsureSuccessStatusCode();
+        byte[] manifestBytes = await manifestResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        using var signatureResponse = await Client.GetAsync(_manifestUrl + ".sig", cancellationToken);
+        signatureResponse.EnsureSuccessStatusCode();
+        byte[] signatureBytes = await signatureResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        string publicKey = UpdateTrustKeys.GetPublicKey(_environment);
+        if (!YF_ManifestSigner.Verify(manifestBytes, signatureBytes, publicKey))
+            throw new InvalidDataException("更新清单签名校验失败，拒绝更新。");
+
+        var manifest = JsonSerializer.Deserialize<RemoteUpdateManifest>(manifestBytes, JsonOptions);
         if (manifest == null)
             throw new InvalidDataException("远端版本清单为空或格式错误。");
+
+        _logger.Info($"更新清单签名校验通过；环境={_environment}；keyId={UpdateTrustKeys.GetKeyId(_environment)}");
         return manifest;
     }
 

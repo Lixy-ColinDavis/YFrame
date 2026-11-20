@@ -42,8 +42,25 @@ public static class UpdateService
     {
         try
         {
-            string json = await Client.GetStringAsync(versionUrl ?? Config.UpdateVersionUrl);
-            var remote = JsonSerializer.Deserialize<RemoteVersionManifest>(json, JsonOptions);
+            string url = versionUrl ?? Config.UpdateVersionUrl;
+
+            // 先取清单和签名，验签通过后才允许解析任何版本/URL 字段
+            using var manifestResponse = await Client.GetAsync(url);
+            manifestResponse.EnsureSuccessStatusCode();
+            byte[] manifestBytes = await manifestResponse.Content.ReadAsByteArrayAsync();
+
+            using var signatureResponse = await Client.GetAsync(url + ".sig");
+            signatureResponse.EnsureSuccessStatusCode();
+            byte[] signatureBytes = await signatureResponse.Content.ReadAsByteArrayAsync();
+
+            string publicKey = UpdateTrustKeys.GetPublicKey(Config.Env);
+            if (!YF_ManifestSigner.Verify(manifestBytes, signatureBytes, publicKey))
+            {
+                Debug.WriteLine("[UpdateService] 更新清单签名校验失败，忽略本次更新。");
+                return null;
+            }
+
+            var remote = JsonSerializer.Deserialize<RemoteVersionManifest>(manifestBytes, JsonOptions);
             if (remote == null ||
                 string.IsNullOrWhiteSpace(remote.CurrentVersion) ||
                 string.IsNullOrWhiteSpace(remote.PreviousVersion))
@@ -134,7 +151,9 @@ public static class UpdateService
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory
             };
-            // 把当前环境对应的清单地址传给更新器，避免更新器再自行推断环境
+            // 把当前环境对应的清单地址和密钥环境传给更新器，避免更新器自行推断
+            startInfo.ArgumentList.Add("--env");
+            startInfo.ArgumentList.Add(Config.Env);
             startInfo.ArgumentList.Add("--manifest");
             startInfo.ArgumentList.Add(Config.UpdateVersionUrl);
             Process.Start(startInfo);
