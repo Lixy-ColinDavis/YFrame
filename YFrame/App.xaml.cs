@@ -3,8 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using YF_Manager;
 using YFrame.Service;
@@ -21,8 +24,14 @@ namespace YFrame
     {
         public static YF_Manager_Log logger = new YF_Manager_Log("App", "Interaction App");
 
+        /// <summary>单实例互斥锁名称；同一用户会话只允许一个 YFrame 实例。</summary>
+        private const string SingleInstanceMutexName = "YFrame.SingleInstance";
+
+        /// <summary>持有单实例互斥锁；进程退出前保持存活。</summary>
+        private static Mutex? _singleInstanceMutex;
+
         /// <summary>
-        /// 应用启动入口：处理 --uninstall、更新检查，然后构建 DI 容器启动主窗口。
+        /// 应用启动入口：处理 --uninstall、单实例检查、更新检查，然后构建 DI 容器启动主窗口。
         /// </summary>
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -36,6 +45,15 @@ namespace YFrame
 
             // 调用父类 OnStartup，确保 WPF 标准行为执行
             base.OnStartup(e);
+
+            // 单实例检查必须早于日志、配置、更新检查和主窗口创建
+            if (!TryAcquireSingleInstance())
+            {
+                // 第二个进程不再创建窗口，直接激活已有实例后退出
+                ActivateExistingInstance();
+                Shutdown();
+                return;
+            }
 
             // 更新检查期间还没有主窗口，避免 WPF 因“最后一个窗口关闭”提前退出
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -69,6 +87,101 @@ namespace YFrame
             var mainWindow = provider.GetRequiredService<MainWindow>();
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             mainWindow.Show();
+        }
+
+        /// <summary>是否成功持有单实例互斥锁。</summary>
+        private static bool _ownsSingleInstance;
+
+        /// <summary>
+        /// 尝试获取单实例互斥锁；已有实例运行时返回 false。
+        /// 进程异常退出留下的 abandoned mutex 允许当前进程接管。
+        /// </summary>
+        private static bool TryAcquireSingleInstance()
+        {
+            try
+            {
+                _singleInstanceMutex = new Mutex(false, SingleInstanceMutexName);
+                try
+                {
+                    if (!_singleInstanceMutex.WaitOne(0, false))
+                        return false;
+
+                    _ownsSingleInstance = true;
+                    return true;
+                }
+                catch (AbandonedMutexException)
+                {
+                    // 上一个实例异常退出，当前进程成为新的持有者
+                    _ownsSingleInstance = true;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // 互斥锁不可用时不应阻断主程序启动
+                Debug.WriteLine($"[App] 单实例锁初始化失败: {ex.Message}");
+                return true;
+            }
+        }
+
+        /// <summary>激活已经运行的 YFrame 主窗口，避免第二个进程残留。</summary>
+        private static void ActivateExistingInstance()
+        {
+            Process[] processes = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName);
+            try
+            {
+                foreach (Process process in processes)
+                {
+                    if (process.Id == Environment.ProcessId || process.MainWindowHandle == IntPtr.Zero)
+                        continue;
+
+                    // 恢复被最小化的窗口并切到前台
+                    ShowWindowAsync(process.MainWindowHandle, SW_RESTORE);
+                    SetForegroundWindow(process.MainWindowHandle);
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] 激活已有实例失败: {ex.Message}");
+            }
+            finally
+            {
+                foreach (Process process in processes)
+                    process.Dispose();
+            }
+        }
+
+        /// <summary>显示窗口并恢复其原始大小。</summary>
+        private const int SW_RESTORE = 9;
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        /// <summary>进程退出时释放单实例锁。</summary>
+        protected override void OnExit(ExitEventArgs e)
+        {
+            try
+            {
+                if (_singleInstanceMutex != null)
+                {
+                    if (_ownsSingleInstance)
+                        _singleInstanceMutex.ReleaseMutex();
+
+                    _singleInstanceMutex.Dispose();
+                    _singleInstanceMutex = null;
+                    _ownsSingleInstance = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] 释放单实例锁失败: {ex.Message}");
+            }
+
+            base.OnExit(e);
         }
 
         /// <summary>

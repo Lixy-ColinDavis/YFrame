@@ -153,14 +153,14 @@ public partial class MainWindow : Window
             {
                 _logger.Info($"更新完成；目标版本={result.CurrentVersion}；备份已清理={string.IsNullOrEmpty(result.BackupDirectory)}");
                 StatusText.Text = "更新完成";
-                DetailText.Text = $"已更新到 {result.CurrentVersion}，备份目录已清理，正在重启 YFrame...";
+                DetailText.Text = $"已更新到 {result.CurrentVersion}，备份目录已清理，3 秒后重启 YFrame...";
                 VersionText.Text = string.IsNullOrEmpty(result.BackupDirectory)
                     ? $"目标版本：{result.CurrentVersion}"
                     : $"目标版本：{result.CurrentVersion}    备份目录：{result.BackupDirectory}";
             }
 
-            // 给界面一点时间显示完成状态，再启动主程序
-            await Task.Delay(700);
+            // 给用户 3 秒查看完成状态，再启动主程序
+            await Task.Delay(3000);
             runner.StartMainApp();
             _logger.Info("YFrame 已启动，更新器即将退出。");
             Application.Current.Shutdown();
