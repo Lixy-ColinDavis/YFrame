@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using YF_Manager;
+using YFrame.Common;
 
 namespace YFrame.Service;
 
@@ -14,6 +15,12 @@ namespace YFrame.Service;
 /// </summary>
 public static class UpdateService
 {
+    /// <summary>当前环境对应的清单签名公钥（Base64 SPKI）。</summary>
+    public static string TrustedManifestPublicKey => UpdateTrustKeys.GetPublicKey(Config.Env);
+
+    /// <summary>当前环境对应的签名密钥 ID。</summary>
+    public static string TrustedManifestKeyId => UpdateTrustKeys.GetKeyId(Config.Env);
+
     /// <summary>跳过提示的配置键：远端 current_version。</summary>
     private const string SkipVersionKey = "UpdateSkipVersion";
 
