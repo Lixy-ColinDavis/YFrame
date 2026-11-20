@@ -187,7 +187,7 @@ public static class UpdateService
         return package != null &&
                !string.IsNullOrWhiteSpace(package.Url) &&
                package.Size > 0 &&
-               !string.IsNullOrWhiteSpace(package.Md5);
+               !string.IsNullOrWhiteSpace(package.Sha256);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -220,8 +220,8 @@ public static class UpdateService
         [JsonPropertyName("size")]
         public long Size { get; set; }
 
-        [JsonPropertyName("md5")]
-        public string Md5 { get; set; } = string.Empty;
+        [JsonPropertyName("sha256")]
+        public string Sha256 { get; set; } = string.Empty;
     }
 }
 

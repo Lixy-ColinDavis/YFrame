@@ -359,7 +359,7 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 → 本地 < current：
      ├─ 本地 == previous 且增量包可用：increment.zip
      └─ 其他旧版本 / 增量缺失：current.zip
-→ 校验 size + MD5
+→ 校验 size + SHA-256
 → 解压到 staging，检查路径穿越
 → 等待 YFrame 进程退出
 → 备份
@@ -385,7 +385,7 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 `YFrame.Pack`：
 
 - 输入 `YF-x.y.z.zip` 两个；
-- 按路径 + MD5 比较文件；
+- 按路径 + SHA-256 比较文件；
 - 新增/修改写入 `increment.zip`；
 - 最新完整包复制为 `current.zip`；
 - 输出 `YF_Version.json`；
@@ -512,6 +512,7 @@ YFrame/
 │   ├── Common/YF_Messenger.cs
 │   ├── Common/Tools/YF_ConfigHelper.cs
 │   ├── Common/Tools/YF_ZipHelper.cs
+│   ├── Common/Tools/YF_Sha256Hasher.cs
 │   └── Common/Interceptors/LogInterceptor.cs
 ├── YFrame.Pack/
 ├── YFrame.update/
@@ -553,7 +554,7 @@ C:\Users\Administrator\Desktop\code\C#\YF_AIHelper
 - 插件 csproj 输出路径多为 Debug 绝对路径，Release 需调整/复制；
 - AI 模型、PaddleOCR 模型不随仓库；
 - OCR 百度翻译凭据目前硬编码，生产前需配置化；
-- 更新校验使用 size + MD5，未做 Authenticode 签名验证；
+- 更新校验使用 size + SHA-256，未做签名清单与 Authenticode 验证；
 - `YFrame.update` 是框架依赖单文件，需要 .NET 8 Desktop Runtime；
 - 安装器是自包含单文件，体积较大；
 - WPF 透明窗口、高 DPI、全屏和多显示器场景需要实机验证；

@@ -15,6 +15,8 @@
     <Resource Include="..\YFrame\Common\Images\Logo.png" Link="Assets\Logo.png" />
     <!-- 更新地址唯一默认来源，与 YFrame 共用一份代码 -->
     <Compile Include="..\YF_Manager\Common\UpdateDefaults.cs" Link="Common\UpdateDefaults.cs" />
+    <!-- SHA-256 计算唯一实现，与 YFrame/YF_Manager 共用一份代码 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_Sha256Hasher.cs" Link="Common\Tools\YF_Sha256Hasher.cs" />
   </ItemGroup>
 
 </Project>

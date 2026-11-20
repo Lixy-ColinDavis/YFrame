@@ -31,8 +31,8 @@ public sealed class PackageInfo
     [JsonPropertyName("size")]
     public long Size { get; set; }
 
-    [JsonPropertyName("md5")]
-    public string Md5 { get; set; } = string.Empty;
+    [JsonPropertyName("sha256")]
+    public string Sha256 { get; set; } = string.Empty;
 }
 
 /// <summary>更新进度。</summary>

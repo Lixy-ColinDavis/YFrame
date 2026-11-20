@@ -463,7 +463,7 @@ YF-2.0.0.zip
 YF-2.0.1.zip
 ```
 
-按文件路径 + 内容 MD5 比较，输出：
+按文件路径 + 内容 SHA-256 比较，输出：
 
 ```text
 output/20261118-153000/
@@ -480,8 +480,8 @@ output/20261118-153000/
   "current_version": "2.0.1",
   "pervious_version": "2.0.0",
   "updatetime": "2026-11-18T15-30-00",
-  "current": { "url": ".../current.zip", "size": 0, "md5": "..." },
-  "pervious": { "url": ".../increment.zip", "size": 0, "md5": "..." },
+  "current": { "url": ".../current.zip", "size": 0, "sha256": "..." },
+  "pervious": { "url": ".../increment.zip", "size": 0, "sha256": "..." },
   "removed": []
 }
 ```
@@ -519,7 +519,7 @@ output/20261118-153000/
 读取 --manifest 或 Config/config.conf
 → 选择增量包 / 全量包
 → 下载
-→ 校验 size + MD5
+→ 校验 size + SHA-256
 → 解压到 staging，校验路径穿越
 → 等待 YFrame 退出
 → 备份
@@ -785,7 +785,7 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 - 插件项目默认输出路径写死为 Debug 输出目录，Release 部署需单独复制；
 - AI 模型、PaddleOCR 模型体积较大，不随仓库分发；
 - OCR 翻译依赖百度翻译 API，当前凭据硬编码在源码中，公开部署前应改为配置或服务端代理；
-- 自动更新目前使用 size + MD5 校验，生产环境建议再增加 Authenticode 签名校验；
+- 自动更新目前使用 size + SHA-256 校验，生产环境建议再增加签名清单与 Authenticode 校验；
 - 更新器为框架依赖单文件，目标机器需要 .NET 8 Desktop Runtime；安装器为自包含单文件。
 
 ---

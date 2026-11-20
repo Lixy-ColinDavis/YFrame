@@ -4,15 +4,15 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text.Json;
+using YF_Manager;
 using YFrame.Common;
 using YFrame.Update.Models;
 
 namespace YFrame.Update.Services;
 
 /// <summary>
-/// 自动更新执行器：读取远端清单、下载增量包或全量包、校验 MD5、备份、替换、删除并重启主程序。
+/// 自动更新执行器：读取远端清单、下载增量包或全量包、校验 SHA-256、备份、替换、删除并重启主程序。
 /// </summary>
 public sealed class UpdateRunner
 {
@@ -105,7 +105,7 @@ public sealed class UpdateRunner
 
         string packageKind = isFullUpdate ? "全量包" : "增量包";
         string packageFileName = isFullUpdate ? "current.zip" : "increment.zip";
-        _logger.Info($"准备下载{packageKind}；url={package.Url}；size={package.Size}；md5={package.Md5}");
+        _logger.Info($"准备下载{packageKind}；url={package.Url}；size={package.Size}；sha256={package.Sha256}");
 
         string tempDirectory = Path.Combine(Path.GetTempPath(),
             "YFrame_update_" + Guid.NewGuid().ToString("N"));
@@ -119,9 +119,9 @@ public sealed class UpdateRunner
             await DownloadAsync(package.Url, package.Size, downloadPath, progress, cancellationToken);
             _logger.Info($"{packageKind}下载完成；path={downloadPath}；size={new FileInfo(downloadPath).Length}");
 
-            Report(progress, 58, $"校验{packageKind}", "正在校验文件大小和 MD5...");
+            Report(progress, 58, $"校验{packageKind}", "正在校验文件大小和 SHA-256...");
             VerifyPackage(downloadPath, package);
-            _logger.Info($"{packageKind}大小和 MD5 校验通过。");
+            _logger.Info($"{packageKind}大小和 SHA-256 校验通过。");
 
             Report(progress, 64, $"解压{packageKind}", "正在检查文件路径...");
             var changedFiles = ExtractToStaging(downloadPath, stagingDirectory);
@@ -366,16 +366,16 @@ public sealed class UpdateRunner
         Report(progress, 56, "下载完成", FormatBytes(received));
     }
 
-    /// <summary>校验下载文件的大小和 MD5。</summary>
+    /// <summary>校验下载文件的大小和 SHA-256。</summary>
     private static void VerifyPackage(string filePath, PackageInfo package)
     {
         long actualSize = new FileInfo(filePath).Length;
         if (actualSize != package.Size)
             throw new InvalidDataException($"更新包大小不匹配：期望 {package.Size}，实际 {actualSize}。");
 
-        string actualMd5 = ComputeFileMd5(filePath);
-        if (!string.Equals(actualMd5, package.Md5.Trim(), StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException($"更新包 MD5 不匹配：期望 {package.Md5}，实际 {actualMd5}。");
+        string actualSha256 = YF_Sha256Hasher.ComputeFile(filePath);
+        if (!string.Equals(actualSha256, package.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"更新包 SHA-256 不匹配：期望 {package.Sha256}，实际 {actualSha256}。");
     }
 
     /// <summary>把更新包解压到临时 staging，并返回所有相对文件路径。</summary>
@@ -522,13 +522,6 @@ public sealed class UpdateRunner
         return combined;
     }
 
-    /// <summary>计算文件 MD5。</summary>
-    private static string ComputeFileMd5(string filePath)
-    {
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Convert.ToHexString(MD5.HashData(stream)).ToLowerInvariant();
-    }
-
     /// <summary>判断本地版本是否低于远端版本；无法解析时返回 false，避免误升级。</summary>
     private static bool IsVersionOlder(string local, string current)
     {
@@ -543,7 +536,7 @@ public sealed class UpdateRunner
         return package != null &&
                !string.IsNullOrWhiteSpace(package.Url) &&
                package.Size > 0 &&
-               !string.IsNullOrWhiteSpace(package.Md5);
+               !string.IsNullOrWhiteSpace(package.Sha256);
     }
 
     /// <summary>
