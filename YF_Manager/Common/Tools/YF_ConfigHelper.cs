@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using YFrame.Common;
 
 namespace YF_Manager
 {
@@ -109,10 +110,12 @@ namespace YF_Manager
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
-            _configValues["Theme"] = Config.Theme; 
+            // 注意：这里必须使用字面量，不能读 Config.Theme；
+            // 否则配置单例首次创建时会再次访问 Lazy<T>.Value，触发重入异常。
+            _configValues["Theme"] = @"Common/Themes/CloudWhiteTheme.xaml";
             // 更新环境：uat（默认）/ pdt；地址为明文配置
             _configValues["Env"] = "uat";
-            _configValues["UpdateBaseUrl"] = Config.DefaultUpdateBaseUrl;
+            _configValues["UpdateBaseUrl"] = Cos_UpdateDefaults.BaseUrl;
         }
 
         /// <summary>
@@ -192,7 +195,7 @@ namespace YF_Manager
             if (!existingKeys.Contains("Env"))
                 _configValues.TryAdd("Env", "uat");
             if (!existingKeys.Contains("UpdateBaseUrl"))
-                _configValues.TryAdd("UpdateBaseUrl", Config.DefaultUpdateBaseUrl);
+                _configValues.TryAdd("UpdateBaseUrl", Cos_UpdateDefaults.BaseUrl);
         }
 
         /// <summary>
