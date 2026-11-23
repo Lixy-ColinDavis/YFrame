@@ -653,7 +653,7 @@
                                         <ListBox x:Name="WorkflowList"
                                                  Grid.Row="0"
                                                  Style="{StaticResource VsPluginListBox}"
-                                                 ItemContainerStyle="{StaticResource VsToolboxListItem}"
+                                                 ItemContainerStyle="{StaticResource VsWorkflowListItem}"
                                                  ItemsSource="{Binding WorkflowBoard.Flows}"
                                                  SelectedItem="{Binding WorkflowBoard.SelectedFlow, Mode=TwoWay}"
                                                  PreviewMouseRightButtonDown="WorkflowList_PreviewMouseRightButtonDown"

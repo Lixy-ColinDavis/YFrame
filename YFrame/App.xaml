@@ -96,16 +96,24 @@
                 </Setter>
             </Style>
 
-            <!-- 菜单分隔线 -->
+            <!-- 菜单分隔线：全局铺满菜单可用宽度 -->
             <Style TargetType="{x:Type Separator}">
                 <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
                 <Setter Property="Height" Value="1"/>
-                <Setter Property="Margin" Value="8,4"/>
+                <Setter Property="Margin" Value="0,4"/>
+                <!-- 直接绑定菜单项面板宽度，避免 Separator 只按自身期望宽度排布 -->
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="Width"
+                        Value="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type StackPanel}}}"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type Separator}">
+                            <!-- Margin 只由 Separator 自身控制，模板内不再重复应用 -->
                             <Border Background="{TemplateBinding Background}"
-                                    Height="1" Margin="{TemplateBinding Margin}"/>
+                                    Height="1"
+                                    Margin="0"
+                                    HorizontalAlignment="Stretch"/>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -227,6 +235,72 @@
                                             Value="{DynamicResource TreeItemSelectedBackground}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 工作任务流程列表项：保留工具箱的渐变图标块布局，只替换扳手为流程分支图案 -->
+            <Style x:Key="VsWorkflowListItem" TargetType="{x:Type ListBoxItem}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FontFamily" Value="{DynamicResource UiFontFamily}"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                            <Border x:Name="Root" Background="Transparent" CornerRadius="9"
+                                    Margin="8,1" Padding="8,6">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="28" Height="28" CornerRadius="8"
+                                            Background="{DynamicResource AccentGradientBrush}"
+                                            VerticalAlignment="Center">
+                                        <Viewbox Width="17" Height="17"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center">
+                                            <Canvas Width="24" Height="24">
+                                                <!-- 流程分支：两个起始节点汇入一个后续节点；
+                                                     图形上下左右均以 (12,12) 为中心，保证在方块内完全居中 -->
+                                                <Path Fill="White" Opacity="0.95"
+                                                      Data="M3,4 H9 V9 H3 Z M15,4 H21 V9 H15 Z M9,15 H15 V20 H9 Z M5,9 H7 V11 H5 Z M17,9 H19 V11 H17 Z M5,11 H19 V13 H5 Z M11,13 H13 V15 H11 Z"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Border>
+                                    <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Root" Property="Background"
+                                            Value="{DynamicResource TreeItemHoverBackground}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Root" Property="Background"
+                                            Value="{DynamicResource TreeItemSelectedBackground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 流程右键菜单分隔项：用 MenuItem 承载，避免原始 Separator 被菜单项布局缩窄 -->
+            <Style x:Key="ThemedMenuSeparatorItem" TargetType="{x:Type MenuItem}">
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type MenuItem}">
+                            <Border Height="1"
+                                    Margin="0,4"
+                                    Background="{DynamicResource BorderBrush}"
+                                    HorizontalAlignment="Stretch"/>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

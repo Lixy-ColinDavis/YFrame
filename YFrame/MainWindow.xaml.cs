@@ -526,10 +526,10 @@ namespace YFrame
                 menu.Style = menuStyle;
             menu.Items.Add(CreateWorkflowMenuItem("上移", () => WorkflowBoardViewModel.MoveUp(flow)));
             menu.Items.Add(CreateWorkflowMenuItem("下移", () => WorkflowBoardViewModel.MoveDown(flow)));
-            menu.Items.Add(new Separator());
+            menu.Items.Add(CreateWorkflowSeparator());
             menu.Items.Add(CreateWorkflowMenuItem("置顶", () => WorkflowBoardViewModel.MoveTop(flow)));
             menu.Items.Add(CreateWorkflowMenuItem("置底", () => WorkflowBoardViewModel.MoveBottom(flow)));
-            menu.Items.Add(new Separator());
+            menu.Items.Add(CreateWorkflowSeparator());
             menu.Items.Add(CreateWorkflowMenuItem("删除流程", () => DeleteWorkflow(flow)));
             menu.IsOpen = true;
             e.Handled = true;
@@ -556,6 +556,15 @@ namespace YFrame
 
             if (dialog.ShowDialog() == true && dialog.Confirmed)
                 WorkflowBoardViewModel?.DeleteWorkflow(flow);
+        }
+
+        /// <summary>创建流程菜单分隔线，使用专用 MenuItem 模板保证铺满菜单宽度。</summary>
+        private MenuItem CreateWorkflowSeparator()
+        {
+            var item = new MenuItem();
+            if (TryFindResource("ThemedMenuSeparatorItem") is Style separatorStyle)
+                item.Style = separatorStyle;
+            return item;
         }
 
         /// <summary>向上查找指定类型的可视化父元素。</summary>
