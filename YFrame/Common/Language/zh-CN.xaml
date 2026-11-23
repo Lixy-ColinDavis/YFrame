@@ -497,4 +497,5 @@
     <sys:String x:Key="key_Pen_LogTitle">📜 运行日志</sys:String>
     <sys:String x:Key="key_Pen_CopyLog">📋 复制日志</sys:String>
 
+    <sys:String x:Key="key_WorkTask">工作任务</sys:String>
 </ResourceDictionary>

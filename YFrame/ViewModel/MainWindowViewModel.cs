@@ -6,6 +6,7 @@ using System.Windows.Input;
 using YF_Manager;
 using System.IO;
 using YFrame.Model;
+using YFrame.ViewModel;
 
 namespace YFrame
 {
@@ -142,14 +143,24 @@ namespace YFrame
         #endregion
 
         /// <summary>
-        /// 左侧面板激活页：0=插件列表, 1=工具箱
+        /// 左侧面板激活页：0=插件列表, 1=工具箱, 2=工作任务
         /// </summary>
         private int _activeLeftPanel;
         public int ActiveLeftPanel
         {
             get => _activeLeftPanel;
-            set => SetProperty(ref _activeLeftPanel, value);
+            set
+            {
+                if (SetProperty(ref _activeLeftPanel, value))
+                    OnPropertyChanged(nameof(IsWorkflowActive));
+            }
         }
+
+        /// <summary>当前是否显示工作任务流程画布（左侧第 3 个选项卡）。</summary>
+        public bool IsWorkflowActive => ActiveLeftPanel == 2;
+
+        /// <summary>工作任务流程画布。</summary>
+        public WorkflowBoardViewModel WorkflowBoard { get; } = new();
 
         /// <summary>
         /// 右侧面板激活页：0=日志, 1=参数
@@ -688,7 +699,8 @@ namespace YFrame
         [Log(Level = LogLevel.Info, Message = "显示插件")]
         public virtual void ShowPlugin(string pluginId)
         {
-            // 显示插件时关闭工具箱工具视图，避免工具覆盖插件区
+            // 显示插件时关闭工具箱工具视图和流程画布
+            ActiveLeftPanel = 0;
             if (IsToolActive)
             {
                 ActiveToolView = null;
@@ -752,6 +764,7 @@ namespace YFrame
                 }
                 ActiveToolView = view;
                 IsToolActive = true;
+                ActiveLeftPanel = 1;
                 _logger.LogInfo($"工具箱工具已打开: {toolId}");
             }
             catch (Exception ex)
