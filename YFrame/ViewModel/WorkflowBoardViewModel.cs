@@ -14,10 +14,10 @@ namespace YFrame.ViewModel;
 public sealed class WorkflowBoardViewModel : ViewModelBase
 {
     /// <summary>节点默认宽度。</summary>
-    public const double NodeWidth = 190;
+    public const double NodeWidth = WorkflowLayout.NodeWidth;
 
     /// <summary>节点默认高度。</summary>
-    public const double NodeHeight = 58;
+    public const double NodeHeight = WorkflowLayout.NodeHeight;
 
     private readonly DispatcherTimer _saveTimer;
     private WorkflowDocument _document;
@@ -123,12 +123,13 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
             return;
 
         WorkflowDefinition flow = SelectedFlow;
-        double x = 180;
-        double y = 120;
+        double x = WorkflowLayout.PaddingX;
+        double y = WorkflowLayout.PaddingY;
         if (flow.Nodes.Count > 0)
         {
-            x = flow.Nodes.Max(node => node.X + NodeWidth) + 66;
-            y = Math.Max(40, flow.Nodes.Min(node => node.Y));
+            x = flow.Nodes.Max(node => node.X + NodeWidth) + WorkflowLayout.GapX;
+            // 与现有步骤的最高一行对齐，避免新步骤整体比第一条向下偏移
+            y = flow.Nodes.Min(node => node.Y);
         }
 
         var node = new WorkflowNode
@@ -242,8 +243,9 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
             WorkflowNode node = ordered[i];
             int row = i / columns;
             int column = i % columns;
-            node.X = (row % 2 == 0 ? column : columns - 1 - column) * (NodeWidth + 66) + 40;
-            node.Y = row * 134 + 40;
+            node.X = (row % 2 == 0 ? column : columns - 1 - column)
+                     * (NodeWidth + WorkflowLayout.GapX) + WorkflowLayout.PaddingX;
+            node.Y = row * (NodeHeight + WorkflowLayout.GapY) + WorkflowLayout.PaddingY;
         }
 
         // 位置确定后仅调整端口朝向，不改变节点排序。

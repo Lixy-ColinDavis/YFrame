@@ -135,8 +135,8 @@ public static class WorkflowStorage
                 Id = "n" + (i + 1),
                 Order = i + 1,
                 Text = titles[i],
-                X = 40 + (i % 4) * 256,
-                Y = 40 + (i / 4) * 134
+                X = WorkflowLayout.PaddingX + (i % 4) * (WorkflowLayout.NodeWidth + WorkflowLayout.GapX),
+                Y = WorkflowLayout.PaddingY + (i / 4) * (WorkflowLayout.NodeHeight + WorkflowLayout.GapY)
             });
         }
 

@@ -2,6 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="Transparent"
+             Focusable="True"
+             FocusVisualStyle="{x:Null}"
+             PreviewKeyDown="WorkflowBoard_PreviewKeyDown"
              FontFamily="{DynamicResource UiFontFamily}">
 
     <UserControl.Resources>
@@ -34,7 +37,7 @@
                              FontSize="12" FontWeight="SemiBold"
                              ToolTip="流程名称，修改后自动保存"/>
                     <Button Content="+ 添加" Style="{StaticResource FlowToolButton}"
-                            Command="{Binding AddStepCommand}"/>
+                            Click="AddStepButton_Click"/>
                     <Button Content="重置" Style="{StaticResource FlowToolButton}"
                             Command="{Binding ResetCompletedCommand}"/>
                     <Button Content="复制" Style="{StaticResource FlowToolButton}"
@@ -68,7 +71,6 @@
                 <Canvas x:Name="BoardRoot"
                         Width="4000" Height="2600"
                         Background="Transparent"
-                        MouseWheel="BoardRoot_MouseWheel"
                         MouseLeftButtonDown="BoardRoot_MouseLeftButtonDown"
                         MouseLeftButtonUp="BoardRoot_MouseLeftButtonUp"
                         MouseMove="BoardRoot_MouseMove">

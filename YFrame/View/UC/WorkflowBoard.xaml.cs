@@ -23,6 +23,7 @@ public partial class WorkflowBoard : UserControl
     private WorkflowBoardViewModel? _viewModel;
     private WorkflowNode? _editingNode;
     private WorkflowNode? _dragNode;
+    private WorkflowNode? _hoveredNode;
     private WorkflowNode? _linkSource;
     private string _linkDirection = "right";
     private Path? _tempLinkPath;
@@ -46,6 +47,11 @@ public partial class WorkflowBoard : UserControl
         _nodeClickTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(280) };
         _nodeClickTimer.Tick += NodeClickTimer_Tick;
         DataContextChanged += WorkflowBoard_DataContextChanged;
+
+        // 节点被拖到 BoardRoot 边界外后，空白点击会落到 BoardViewport，
+        // 所以平移入口必须同时覆盖视口层，否则画布无法继续拖动。
+        BoardViewport.MouseLeftButtonDown += BoardViewport_MouseLeftButtonDown;
+        BoardViewport.PreviewMouseWheel += BoardViewport_PreviewMouseWheel;
         Loaded += (_, _) =>
         {
             RenderGraph();
@@ -227,12 +233,20 @@ public partial class WorkflowBoard : UserControl
         List<Ellipse> ports = AddPorts(border, node);
         border.MouseEnter += (_, _) =>
         {
+            _hoveredNode = node;
             // 连接点只在鼠标悬停步骤时显示
             foreach (Ellipse port in ports)
                 port.Opacity = 1;
+
+            // 让画布拿到键盘焦点，悬停时 Delete 才能删除当前步骤
+            if (EditorOverlay.Visibility != Visibility.Visible)
+                Focus();
         };
         border.MouseLeave += (_, _) =>
         {
+            if (ReferenceEquals(_hoveredNode, node))
+                _hoveredNode = null;
+
             foreach (Ellipse port in ports)
                 port.Opacity = 0;
         };
@@ -378,7 +392,9 @@ public partial class WorkflowBoard : UserControl
         _nodeClickTimer.Stop();
         _pendingClickNode = null;
         _dragNode = node;
-        _dragStart = e.GetPosition(NodeCanvas);
+        // 使用视口坐标计算拖动距离，避免自动平移改变 NodeCanvas 坐标后
+        // 下一次 MouseMove 把平移量重复计入，造成突然飞出几个屏幕。
+        _dragStart = e.GetPosition(BoardViewport);
         _dragOriginX = node.X;
         _dragOriginY = node.Y;
         _dragging = false;
@@ -392,21 +408,31 @@ public partial class WorkflowBoard : UserControl
         if (_dragNode == null || e.LeftButton != MouseButtonState.Pressed)
             return;
 
-        Point current = e.GetPosition(NodeCanvas);
-        double dx = current.X - _dragStart.X;
-        double dy = current.Y - _dragStart.Y;
+        Point current = e.GetPosition(BoardViewport);
+        double scale = Math.Max(0.05, BoardScale.ScaleX);
+        double dx = (current.X - _dragStart.X) / scale;
+        double dy = (current.Y - _dragStart.Y) / scale;
         if (Math.Abs(dx) + Math.Abs(dy) > 3)
             _dragging = true;
 
         if (!_dragging)
             return;
 
-        _dragNode.X = Math.Max(0, _dragOriginX + dx);
-        _dragNode.Y = Math.Max(0, _dragOriginY + dy);
+        _dragNode.X = _dragOriginX + dx;
+        _dragNode.Y = _dragOriginY + dy;
         if (sender is Border border)
         {
             Canvas.SetLeft(border, _dragNode.X);
             Canvas.SetTop(border, _dragNode.Y);
+
+            // 拖到视口左上边缘时自动平移画布，使节点可以继续向左/上移动；
+            // 这样默认步骤仍靠左上显示，同时不会被画布原点卡住。
+            Point screenPoint = border.TranslatePoint(new Point(0, 0), BoardViewport);
+            const double safeMargin = 36;
+            if (screenPoint.X < safeMargin)
+                BoardPan.X += safeMargin - screenPoint.X;
+            if (screenPoint.Y < safeMargin)
+                BoardPan.Y += safeMargin - screenPoint.Y;
         }
         RefreshEdges();
     }
@@ -520,7 +546,7 @@ public partial class WorkflowBoard : UserControl
     /// <summary>点击画布空白：开始平移。</summary>
     private void BoardRoot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.OriginalSource != BoardRoot || e.ChangedButton != MouseButton.Left)
+        if (e.ChangedButton != MouseButton.Left)
             return;
 
         if (e.ClickCount == 2)
@@ -539,18 +565,48 @@ public partial class WorkflowBoard : UserControl
         e.Handled = true;
     }
 
+    /// <summary>视口层空白点击：当 BoardRoot 被平移出可视区域时仍能拖动画布。</summary>
+    private void BoardViewport_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left ||
+            EditorOverlay.Visibility == Visibility.Visible ||
+            _panning)
+        {
+            return;
+        }
+
+        _panning = true;
+        _panStart = e.GetPosition(BoardViewport);
+        _panOriginX = BoardPan.X;
+        _panOriginY = BoardPan.Y;
+        BoardRoot.CaptureMouse();
+        e.Handled = true;
+    }
+
     /// <summary>鼠标滚轮缩放画布。</summary>
-    private void BoardRoot_MouseWheel(object sender, MouseWheelEventArgs e)
+    /// <summary>在整个画布视口上响应滚轮缩放，鼠标位于空白或节点上都有效。</summary>
+    private void BoardViewport_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // 编辑浮层内的 TextBox 需要正常滚动，不能被画布抢走滚轮
+        if (EditorOverlay.Visibility == Visibility.Visible)
+            return;
+
+        ZoomAt(e.GetPosition(BoardViewport), e.Delta);
+        e.Handled = true;
+    }
+
+    /// <summary>以鼠标位置为中心缩放画布。</summary>
+    /// <param name="mouse">鼠标在视口中的位置</param>
+    /// <param name="delta">滚轮增量</param>
+    private void ZoomAt(Point mouse, int delta)
     {
         double oldScale = BoardScale.ScaleX;
-        double factor = e.Delta > 0 ? 1.1 : 0.9;
-        double newScale = Math.Clamp(oldScale * factor, 0.35, 1.8);
-        Point mouse = e.GetPosition(BoardViewport);
+        double factor = delta > 0 ? 1.1 : 0.9;
+        double newScale = Math.Clamp(oldScale * factor, 0.2, 1.8);
         BoardPan.X = mouse.X - (mouse.X - BoardPan.X) * newScale / oldScale;
         BoardPan.Y = mouse.Y - (mouse.Y - BoardPan.Y) * newScale / oldScale;
         BoardScale.ScaleX = newScale;
         BoardScale.ScaleY = newScale;
-        e.Handled = true;
     }
 
     /// <summary>重新计算当前流程全部连线。</summary>
@@ -645,6 +701,55 @@ public partial class WorkflowBoard : UserControl
         RenderGraph();
     }
 
+    /// <summary>
+    /// 画布键盘操作：编辑浮层中 Esc 关闭；悬停步骤时 Delete 删除该步骤。
+    /// </summary>
+    private void WorkflowBoard_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && EditorOverlay.Visibility == Visibility.Visible)
+        {
+            CloseNodeEditor();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Delete &&
+            EditorOverlay.Visibility != Visibility.Visible &&
+            Keyboard.FocusedElement is not TextBox &&
+            _hoveredNode != null &&
+            _viewModel != null)
+        {
+            WorkflowNode node = _hoveredNode;
+            _hoveredNode = null;
+            _viewModel.DeleteNode(node);
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>工具栏添加步骤：按当前可视区域左上角定位，而不是固定画布坐标。</summary>
+    private void AddStepButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null)
+            return;
+
+        // 已有步骤时放到最右侧步骤右边，避免连续添加全部叠在视口左上角；
+        // 空流程第一条仍按可视区域左上角放置。
+        if (_viewModel.SelectedFlow is { Nodes.Count: > 0 })
+        {
+            _viewModel.AddStep();
+            return;
+        }
+
+        // 取可视窗口左上角向内 36px 的位置，转换为 NodeCanvas 世界坐标
+        Point viewportTopLeft = new(36, 36);
+        Point worldPoint = NodeCanvas.PointFromScreen(
+            BoardViewport.PointToScreen(viewportTopLeft));
+
+        _viewModel.AddStepAt(
+            worldPoint.X + NodeWidth / 2,
+            worldPoint.Y + NodeHeight / 2);
+    }
+
     /// <summary>工具栏复位视图。</summary>
     private void FitButton_Click(object sender, RoutedEventArgs e) => FitBoard();
 
@@ -668,12 +773,16 @@ public partial class WorkflowBoard : UserControl
         double height = Math.Max(1, maxY - minY);
         double scale = Math.Clamp(Math.Min(
             (BoardViewport.ActualWidth - 100) / width,
-            (BoardViewport.ActualHeight - 100) / height), 0.35, 1.15);
+            (BoardViewport.ActualHeight - 100) / height), 0.05, 1.15);
 
         BoardScale.ScaleX = scale;
         BoardScale.ScaleY = scale;
-        BoardPan.X = (BoardViewport.ActualWidth - width * scale) / 2 - minX * scale;
-        BoardPan.Y = (BoardViewport.ActualHeight - height * scale) / 2 - minY * scale;
+
+        // 内容从可视区域左上角开始显示，不再整体居中，
+        // 避免新流程/新步骤看起来向右下偏移。
+        const double viewportMargin = 40;
+        BoardPan.X = viewportMargin - minX * scale;
+        BoardPan.Y = viewportMargin - minY * scale;
     }
 
     /// <summary>编辑浮层仅在有选中流程时显示。</summary>
