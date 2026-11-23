@@ -66,6 +66,7 @@ public sealed class WorkflowNode : ViewModelBase
     private string _text = string.Empty;
     private string _note = string.Empty;
     private bool _done;
+    private int _order;
     private double _x;
     private double _y;
 
@@ -95,6 +96,15 @@ public sealed class WorkflowNode : ViewModelBase
     {
         get => _done;
         set => SetProperty(ref _done, value);
+    }
+
+    /// <summary>
+    /// 步骤序号。自动布局只按该序号排序，连线不会改变顺序。
+    /// </summary>
+    public int Order
+    {
+        get => _order;
+        set => SetProperty(ref _order, value);
     }
 
     /// <summary>画布 X 坐标。</summary>

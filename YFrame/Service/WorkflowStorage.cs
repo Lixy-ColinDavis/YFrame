@@ -77,12 +77,19 @@ public static class WorkflowStorage
             flow.Nodes ??= new ObservableCollection<WorkflowNode>();
             flow.Edges ??= new ObservableCollection<WorkflowEdge>();
 
+            int nextOrder = 1;
             foreach (WorkflowNode node in flow.Nodes)
             {
                 if (string.IsNullOrWhiteSpace(node.Id))
                     node.Id = "n" + flow.NextNodeId++;
                 node.Text ??= string.Empty;
                 node.Note ??= string.Empty;
+
+                // 旧数据没有 Order，按节点集合顺序补齐；
+                // 自动布局只依赖 Order，不依赖连线入度。
+                if (node.Order <= 0)
+                    node.Order = nextOrder;
+                nextOrder = Math.Max(nextOrder, node.Order) + 1;
             }
 
             foreach (WorkflowEdge edge in flow.Edges)
@@ -126,6 +133,7 @@ public static class WorkflowStorage
             flow.Nodes.Add(new WorkflowNode
             {
                 Id = "n" + (i + 1),
+                Order = i + 1,
                 Text = titles[i],
                 X = 40 + (i % 4) * 256,
                 Y = 40 + (i / 4) * 134

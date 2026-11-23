@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using YFrame.Model;
 using YFrame.ViewModel;
 
@@ -34,10 +35,16 @@ public partial class WorkflowBoard : UserControl
     private double _panOriginX;
     private double _panOriginY;
 
+    // 单击切换完成、双击打开编辑：用短延时区分单击与双击
+    private readonly DispatcherTimer _nodeClickTimer;
+    private WorkflowNode? _pendingClickNode;
+
     /// <summary>初始化流程画布。</summary>
     public WorkflowBoard()
     {
         InitializeComponent();
+        _nodeClickTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(280) };
+        _nodeClickTimer.Tick += NodeClickTimer_Tick;
         DataContextChanged += WorkflowBoard_DataContextChanged;
         Loaded += (_, _) =>
         {
@@ -85,6 +92,8 @@ public partial class WorkflowBoard : UserControl
     /// <summary>重绘全部节点和连线。</summary>
     private void RenderGraph()
     {
+        _nodeClickTimer.Stop();
+        _pendingClickNode = null;
         NodeCanvas.Children.Clear();
         EdgeCanvas.Children.Clear();
         _nodeViews.Clear();
@@ -111,29 +120,68 @@ public partial class WorkflowBoard : UserControl
     /// <summary>绘制单个节点。</summary>
     private void DrawNode(WorkflowNode node)
     {
+        bool done = node.Done;
         var border = new Border
         {
             Width = NodeWidth,
             Height = NodeHeight,
             CornerRadius = new CornerRadius(10),
-            Background = FindBrush("PanelAltBrush", Brushes.Transparent),
-            BorderBrush = node.Done ? FindBrush("BorderBrush", Brushes.Gray) : FindBrush("AccentBrush", Brushes.Cyan),
-            BorderThickness = new Thickness(1),
+            Background = done
+                ? FindBrush("PanelBrush", Brushes.Transparent)
+                : FindBrush("PanelAltBrush", Brushes.Transparent),
+            BorderBrush = done
+                ? FindBrush("BorderBrush", Brushes.Gray)
+                : FindBrush("AccentBrush", Brushes.Cyan),
+            BorderThickness = new Thickness(done ? 1 : 1.6),
             Tag = node,
-            Opacity = node.Done ? 0.7 : 1
+            Cursor = Cursors.Hand,
+            ToolTip = "单击切换完成状态，双击编辑步骤"
         };
 
         var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
 
-        var textPanel = new StackPanel { Margin = new Thickness(32, 8, 8, 8) };
+        // 左侧序号圆点：完成时变灰，未完成时使用强调色
+        var numberBorder = new Border
+        {
+            Width = 28,
+            Height = 28,
+            CornerRadius = new CornerRadius(14),
+            Background = done
+                ? FindBrush("PanelAltBrush", Brushes.Transparent)
+                : FindBrush("AccentSoftBrush", Brushes.Transparent),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        numberBorder.Child = new TextBlock
+        {
+            Text = node.Order > 0 ? node.Order.ToString() : "?",
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = done
+                ? FindBrush("SubtleTextBrush", Brushes.Gray)
+                : FindBrush("AccentBrush", Brushes.Cyan),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(numberBorder, 0);
+        grid.Children.Add(numberBorder);
+
+        var textPanel = new StackPanel
+        {
+            Margin = new Thickness(0, 8, 4, 8),
+            VerticalAlignment = VerticalAlignment.Center
+        };
         textPanel.Children.Add(new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(node.Text) ? "未命名步骤" : node.Text,
             FontSize = 12.5,
             FontWeight = FontWeights.SemiBold,
-            Foreground = FindBrush("TextBrush", Brushes.White),
+            Foreground = done
+                ? FindBrush("SubtleTextBrush", Brushes.Gray)
+                : FindBrush("TextBrush", Brushes.White),
             TextTrimming = TextTrimming.CharacterEllipsis
         });
         textPanel.Children.Add(new TextBlock
@@ -145,31 +193,50 @@ public partial class WorkflowBoard : UserControl
             Margin = new Thickness(0, 4, 0, 0),
             Visibility = string.IsNullOrWhiteSpace(node.Note) ? Visibility.Collapsed : Visibility.Visible
         });
-        Grid.SetColumn(textPanel, 0);
+        Grid.SetColumn(textPanel, 1);
         grid.Children.Add(textPanel);
 
-        var check = new CheckBox
+        // 右侧完成勾：仅完成状态显示，颜色与主框架成功色一致
+        var checkBorder = new Border
         {
+            Width = 20,
+            Height = 20,
+            CornerRadius = new CornerRadius(10),
+            Background = FindBrush("SuccessBrush", Brushes.Green),
+            HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0),
-            ToolTip = "标记步骤完成"
+            Visibility = done ? Visibility.Visible : Visibility.Hidden
         };
-        check.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty,
-            new System.Windows.Data.Binding(nameof(WorkflowNode.Done))
-            {
-                Source = node,
-                Mode = System.Windows.Data.BindingMode.TwoWay,
-                UpdateSourceTrigger = System.Windows.Data.UpdateSourceTrigger.PropertyChanged
-            });
-        Grid.SetColumn(check, 1);
-        grid.Children.Add(check);
+        checkBorder.Child = new TextBlock
+        {
+            Text = "✓",
+            FontSize = 11,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(checkBorder, 2);
+        grid.Children.Add(checkBorder);
 
         border.Child = grid;
         border.MouseLeftButtonDown += Node_MouseLeftButtonDown;
         border.MouseMove += Node_MouseMove;
         border.MouseLeftButtonUp += Node_MouseLeftButtonUp;
 
-        AddPorts(border, node);
+        List<Ellipse> ports = AddPorts(border, node);
+        border.MouseEnter += (_, _) =>
+        {
+            // 连接点只在鼠标悬停步骤时显示
+            foreach (Ellipse port in ports)
+                port.Opacity = 1;
+        };
+        border.MouseLeave += (_, _) =>
+        {
+            foreach (Ellipse port in ports)
+                port.Opacity = 0;
+        };
+
         Canvas.SetLeft(border, node.X);
         Canvas.SetTop(border, node.Y);
         NodeCanvas.Children.Add(border);
@@ -177,16 +244,21 @@ public partial class WorkflowBoard : UserControl
     }
 
     /// <summary>给节点添加四个连接端口。</summary>
-    private void AddPorts(Border border, WorkflowNode node)
+    /// <returns>端口圆点列表，用于悬停显示/隐藏</returns>
+    private List<Ellipse> AddPorts(Border border, WorkflowNode node)
     {
-        AddPort(border, node, "top", HorizontalAlignment.Center, VerticalAlignment.Top);
-        AddPort(border, node, "bottom", HorizontalAlignment.Center, VerticalAlignment.Bottom);
-        AddPort(border, node, "left", HorizontalAlignment.Left, VerticalAlignment.Center);
-        AddPort(border, node, "right", HorizontalAlignment.Right, VerticalAlignment.Center);
+        return new List<Ellipse>
+        {
+            AddPort(border, node, "top", HorizontalAlignment.Center, VerticalAlignment.Top),
+            AddPort(border, node, "bottom", HorizontalAlignment.Center, VerticalAlignment.Bottom),
+            AddPort(border, node, "left", HorizontalAlignment.Left, VerticalAlignment.Center),
+            AddPort(border, node, "right", HorizontalAlignment.Right, VerticalAlignment.Center)
+        };
     }
 
     /// <summary>添加单个端口圆点。</summary>
-    private void AddPort(Border border, WorkflowNode node, string direction,
+    /// <returns>创建的端口圆点</returns>
+    private Ellipse AddPort(Border border, WorkflowNode node, string direction,
         HorizontalAlignment horizontal, VerticalAlignment vertical)
     {
         var port = new Ellipse
@@ -199,23 +271,22 @@ public partial class WorkflowBoard : UserControl
             HorizontalAlignment = horizontal,
             VerticalAlignment = vertical,
             Margin = new Thickness(-5),
-            Opacity = 0.55,
+            Opacity = 0,
             Cursor = Cursors.Cross,
             Tag = new PortTag(node, direction),
             ToolTip = "拖动此端口创建连线"
         };
         port.MouseLeftButtonDown += Port_MouseLeftButtonDown;
-        port.MouseEnter += (_, _) => port.Opacity = 1;
-        port.MouseLeave += (_, _) => port.Opacity = 0.55;
         Panel.SetZIndex(port, 10);
 
         if (border.Child is Grid grid)
         {
-            // 节点 Grid 有“内容列 + 复选框列”两列；
-            // 端口必须跨两列，才能贴合整个节点外框，而不是贴在第一列右边缘。
-            Grid.SetColumnSpan(port, 2);
+            // 端口跨全部列，中心才能落在节点外框上，而不是第一列边缘
+            Grid.SetColumnSpan(port, grid.ColumnDefinitions.Count);
             grid.Children.Add(port);
         }
+
+        return port;
     }
 
     /// <summary>绘制一条贝塞尔连线。</summary>
@@ -296,11 +367,16 @@ public partial class WorkflowBoard : UserControl
 
         if (e.ClickCount == 2)
         {
+            // 双击取消待执行的单击切换，只打开编辑浮层
+            _nodeClickTimer.Stop();
+            _pendingClickNode = null;
             OpenNodeEditor(node);
             e.Handled = true;
             return;
         }
 
+        _nodeClickTimer.Stop();
+        _pendingClickNode = null;
         _dragNode = node;
         _dragStart = e.GetPosition(NodeCanvas);
         _dragOriginX = node.X;
@@ -347,8 +423,30 @@ public partial class WorkflowBoard : UserControl
         _dragNode = null;
         _dragging = false;
         if (moved)
+        {
             _viewModel?.NotifyNodeMoved();
+        }
+        else
+        {
+            // 没有拖动视为单击：延时执行，避免双击编辑时先切换完成状态
+            _pendingClickNode = node;
+            _nodeClickTimer.Stop();
+            _nodeClickTimer.Start();
+        }
         e.Handled = true;
+    }
+
+    /// <summary>单击步骤后切换完成状态。</summary>
+    private void NodeClickTimer_Tick(object? sender, EventArgs e)
+    {
+        _nodeClickTimer.Stop();
+        WorkflowNode? node = _pendingClickNode;
+        _pendingClickNode = null;
+        if (node == null)
+            return;
+
+        node.Done = !node.Done;
+        _viewModel?.NotifyNodeEdited();
     }
 
     /// <summary>从端口开始拉线。</summary>
@@ -494,6 +592,7 @@ public partial class WorkflowBoard : UserControl
     {
         _editingNode = node;
         NodeTitleBox.Text = node.Text;
+        NodeOrderBox.Text = node.Order.ToString();
         NodeNoteBox.Text = node.Note;
         NodeDoneBox.IsChecked = node.Done;
         EditorOverlay.Visibility = Visibility.Visible;
@@ -519,6 +618,13 @@ public partial class WorkflowBoard : UserControl
             : NodeTitleBox.Text.Trim();
         _editingNode.Note = NodeNoteBox.Text.Trim();
         _editingNode.Done = NodeDoneBox.IsChecked == true;
+
+        if (int.TryParse(NodeOrderBox.Text, out int order) && order > 0 &&
+            order != _editingNode.Order)
+        {
+            _viewModel?.SetNodeOrder(_editingNode, order);
+        }
+
         CloseNodeEditor();
         _viewModel?.NotifyNodeEdited();
         RenderGraph();

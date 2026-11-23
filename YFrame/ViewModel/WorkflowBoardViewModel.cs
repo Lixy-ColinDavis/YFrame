@@ -134,6 +134,7 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
         var node = new WorkflowNode
         {
             Id = "n" + flow.NextNodeId++,
+            Order = NextOrder(flow),
             Text = "新步骤",
             X = x,
             Y = y
@@ -156,6 +157,7 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
         var node = new WorkflowNode
         {
             Id = "n" + flow.NextNodeId++,
+            Order = NextOrder(flow),
             Text = "新步骤",
             X = Math.Max(0, x - NodeWidth / 2),
             Y = Math.Max(0, y - NodeHeight / 2)
@@ -217,60 +219,67 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
         ScheduleSave();
     }
 
-    /// <summary>自动布局：按拓扑顺序蛇形排列，并重算端口方向。</summary>
+    /// <summary>
+    /// 自动布局：只按节点序号 Order 排序后蛇形排列，连线不参与排序。
+    /// </summary>
     public void AutoLayout()
     {
         if (SelectedFlow == null || SelectedFlow.Nodes.Count == 0)
             return;
 
         WorkflowDefinition flow = SelectedFlow;
-        var indegree = flow.Nodes.ToDictionary(node => node.Id, _ => 0);
-        foreach (WorkflowEdge edge in flow.Edges)
-        {
-            if (indegree.ContainsKey(edge.To))
-                indegree[edge.To]++;
-        }
 
-        var queue = new Queue<string>(flow.Nodes.Where(node => indegree[node.Id] == 0).Select(node => node.Id));
-        var ordered = new List<string>();
-        while (queue.Count > 0)
-        {
-            string id = queue.Dequeue();
-            ordered.Add(id);
-            foreach (WorkflowEdge edge in flow.Edges.Where(edge => edge.From == id))
-            {
-                if (!indegree.ContainsKey(edge.To))
-                    continue;
-                if (--indegree[edge.To] == 0)
-                    queue.Enqueue(edge.To);
-            }
-        }
-
-        foreach (WorkflowNode node in flow.Nodes)
-        {
-            if (!ordered.Contains(node.Id))
-                ordered.Add(node.Id);
-        }
+        // 关键：排序输入只有 Order，不读取 Edges。
+        // 因此新增、删除或反向连线都不会改变步骤顺序与位置。
+        var ordered = flow.Nodes
+            .OrderBy(node => node.Order)
+            .ThenBy(node => node.Id, StringComparer.Ordinal)
+            .ToList();
 
         const int columns = 4;
         for (int i = 0; i < ordered.Count; i++)
         {
-            WorkflowNode? node = flow.Nodes.FirstOrDefault(item => item.Id == ordered[i]);
-            if (node == null)
-                continue;
-
+            WorkflowNode node = ordered[i];
             int row = i / columns;
             int column = i % columns;
             node.X = (row % 2 == 0 ? column : columns - 1 - column) * (NodeWidth + 66) + 40;
             node.Y = row * 134 + 40;
         }
 
+        // 位置确定后仅调整端口朝向，不改变节点排序。
         foreach (WorkflowEdge edge in flow.Edges)
             AssignNearestDirections(flow, edge);
 
         GraphChanged?.Invoke();
         FitRequested?.Invoke();
         SaveNow();
+    }
+
+    /// <summary>取当前流程的下一个步骤序号。</summary>
+    /// <param name="flow">目标流程</param>
+    /// <returns>当前最大序号 + 1；空流程从 1 开始</returns>
+    private static int NextOrder(WorkflowDefinition flow)
+        => flow.Nodes.Count == 0 ? 1 : flow.Nodes.Max(node => node.Order) + 1;
+
+    /// <summary>
+    /// 修改节点序号；若目标序号已被占用，则与原节点交换序号。
+    /// </summary>
+    /// <param name="node">待修改节点</param>
+    /// <param name="order">新序号，最小为 1</param>
+    public void SetNodeOrder(WorkflowNode node, int order)
+    {
+        if (SelectedFlow == null || !SelectedFlow.Nodes.Contains(node))
+            return;
+
+        order = Math.Max(1, order);
+        WorkflowNode? occupied = SelectedFlow.Nodes
+            .FirstOrDefault(item => !ReferenceEquals(item, node) && item.Order == order);
+        if (occupied != null)
+            occupied.Order = node.Order;
+
+        node.Order = order;
+        GraphChanged?.Invoke();
+        ScheduleSave();
     }
 
     /// <summary>重置当前流程所有步骤为未完成。</summary>
@@ -306,6 +315,7 @@ public sealed class WorkflowBoardViewModel : ViewModelBase
             copy.Nodes.Add(new WorkflowNode
             {
                 Id = newId,
+                Order = node.Order,
                 Text = node.Text,
                 Note = node.Note,
                 Done = node.Done,

@@ -103,6 +103,9 @@
                             <TextBlock Text="编辑步骤" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="步骤内容" Style="{StaticResource MutedText}" Margin="0,12,0,5"/>
                             <TextBox x:Name="NodeTitleBox" MaxLength="60"/>
+                            <TextBlock Text="步骤序号" Style="{StaticResource MutedText}" Margin="0,10,0,5"/>
+                            <TextBox x:Name="NodeOrderBox" MaxLength="6"
+                                     ToolTip="修改后自动布局会按此序号排列"/>
                             <TextBlock Text="备注 / 注释" Style="{StaticResource MutedText}" Margin="0,10,0,5"/>
                             <TextBox x:Name="NodeNoteBox" MaxLength="120"
                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
