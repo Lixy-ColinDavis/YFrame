@@ -243,6 +243,206 @@
                         </Grid>
                     </Border>
 
+                    <!-- 插件包 -->
+                    <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,12">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="插件包压缩与上传" Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Text="{Binding PluginCountText}"
+                                           Style="{StaticResource MonoText}"
+                                           FontSize="10"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="插件源目录" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding PluginSourceRoot, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{Binding PluginSourceRoot}"
+                                         Margin="0,0,8,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <Button Content="浏览" Margin="0,0,6,0"
+                                            Command="{Binding BrowsePluginSourceCommand}"/>
+                                    <Button Content="刷新" Command="{Binding RefreshPluginListCommand}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="ZIP 输出目录" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding PluginZipOutputRoot, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{Binding PluginZipOutputRoot}"
+                                         Margin="0,0,8,0"/>
+                                <Button Grid.Column="2" Content="浏览"
+                                        Command="{Binding BrowsePluginOutputCommand}"/>
+                            </Grid>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="220"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="ZIP 前缀" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Margin="0,0,12,0"
+                                         Text="{Binding PluginRemotePrefix, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="清单文件" Grid.Column="2"
+                                           Style="{StaticResource MutedText}"
+                                           Width="58" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="3"
+                                         Text="{Binding PluginManifestFileName, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="ZIP 地址" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding PluginBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{Binding PluginBaseUrl}"/>
+                            </Grid>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="220"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="清单前缀" Style="{StaticResource MutedText}"
+                                           VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Margin="0,0,12,0"
+                                         Text="{Binding PluginManifestRemotePrefix, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="清单地址" Grid.Column="2"
+                                           Style="{StaticResource MutedText}"
+                                           Width="58" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="3"
+                                         Text="{Binding PluginManifestBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{Binding PluginManifestBaseUrl}"/>
+                            </Grid>
+
+                            <TextBlock Text="清单上传地址："
+                                       Style="{StaticResource MutedText}"
+                                       FontSize="10"
+                                       Margin="0,8,0,2"/>
+                            <TextBlock Text="{Binding PluginManifestUploadUrl}"
+                                       FontFamily="{DynamicResource MonoFontFamily}"
+                                       FontSize="9.5"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+
+                            <TextBlock Text="本地清单："
+                                       Style="{StaticResource MutedText}"
+                                       FontSize="10"
+                                       Margin="0,6,0,2"/>
+                            <TextBlock Text="{Binding PluginManifestPath}"
+                                       FontFamily="{DynamicResource MonoFontFamily}"
+                                       FontSize="9.5"
+                                       Foreground="{DynamicResource SubtleTextBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+
+                            <ItemsControl ItemsSource="{Binding PluginPackages}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource PanelAltBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="10,7"
+                                                Margin="0,0,0,5">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="70"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0"
+                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip="勾选后参与压缩、上传和清单生成"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding FolderName}"
+                                                               FontSize="11.5"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextBrush}"/>
+                                                    <TextBlock Text="{Binding Url}"
+                                                               FontFamily="{DynamicResource MonoFontFamily}"
+                                                               FontSize="9"
+                                                               Foreground="{DynamicResource SubtleTextBrush}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding ZipSizeText}"
+                                                           Style="{StaticResource MutedText}"
+                                                           FontSize="10"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="3"
+                                                           Text="{Binding Status}"
+                                                           FontSize="10"
+                                                           Foreground="{DynamicResource AccentBrush}"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Text="提示：先点击“仅压缩”生成 ZIP 和 plugins.json，再点击“上传已压缩包”；上传阶段不会重新压缩。"
+                                       Style="{StaticResource MutedText}"
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"/>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding PluginStatus}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextBrush}"/>
+                                    <ProgressBar Height="8"
+                                                 Margin="0,8,18,0"
+                                                 Minimum="0" Maximum="100"
+                                                 Value="{Binding PluginProgressPercent, Mode=OneWay}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="仅压缩"
+                                            Style="{StaticResource PrimaryButton}"
+                                            MinWidth="92"
+                                            Command="{Binding CompressPluginsCommand}"/>
+                                    <Button Content="上传已压缩包"
+                                            Style="{StaticResource PrimaryButton}"
+                                            MinWidth="130"
+                                            Margin="8,0,0,0"
+                                            Command="{Binding UploadPluginsCommand}"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <!-- 日志 -->
                     <Border Style="{StaticResource CardBorder}" Padding="14">
                         <StackPanel>

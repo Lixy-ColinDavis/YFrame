@@ -6,18 +6,18 @@ using YFrame.upload.cos.Models;
 namespace YFrame.upload.cos.Services;
 
 /// <summary>
-/// COS 简单上传服务：按 current → increment → sig → manifest 的顺序上传四个文件。
+/// COS 简单上传服务，支持更新包四文件批量和插件包批量。
 /// </summary>
 public sealed class CosUploadService
 {
-    /// <summary>上传四个 Pack 文件。</summary>
+    /// <summary>上传更新包的四个文件。</summary>
     /// <param name="credentials">COS 凭证</param>
     /// <param name="bucket">存储桶</param>
     /// <param name="region">地域</param>
-    /// <param name="files">待上传文件，顺序必须固定</param>
+    /// <param name="files">待上传文件</param>
     /// <param name="progress">进度回调</param>
     /// <param name="cancellationToken">取消令牌</param>
-    public async Task UploadAsync(
+    public Task UploadAsync(
         CosCredentials credentials,
         string bucket,
         string region,
@@ -27,6 +27,35 @@ public sealed class CosUploadService
     {
         if (files.Count != 4)
             throw new InvalidOperationException("上传文件数量必须为 4。");
+
+        var uploadFiles = files.Select(file => new CosUploadFile
+        {
+            Name = file.Name,
+            LocalPath = file.FullPath,
+            ObjectKey = file.ObjectKey,
+            Length = file.Length
+        }).ToList();
+
+        return UploadObjectsAsync(credentials, bucket, region, uploadFiles, progress, cancellationToken);
+    }
+
+    /// <summary>上传任意数量对象；用于插件 ZIP 和清单。</summary>
+    /// <param name="credentials">COS 凭证</param>
+    /// <param name="bucket">存储桶</param>
+    /// <param name="region">地域</param>
+    /// <param name="files">对象文件列表</param>
+    /// <param name="progress">进度回调</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    public async Task UploadObjectsAsync(
+        CosCredentials credentials,
+        string bucket,
+        string region,
+        IReadOnlyList<CosUploadFile> files,
+        IProgress<UploadProgressInfo> progress,
+        CancellationToken cancellationToken = default)
+    {
+        if (files.Count == 0)
+            return;
 
         var config = new CosXmlConfig.Builder()
             .SetRegion(region)
@@ -41,10 +70,9 @@ public sealed class CosUploadService
         for (int i = 0; i < files.Count; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            PackFileItem file = files[i];
-            file.Status = "上传中";
+            CosUploadFile file = files[i];
 
-            var request = new PutObjectRequest(bucket, file.ObjectKey, file.FullPath);
+            var request = new PutObjectRequest(bucket, file.ObjectKey, file.LocalPath);
             long fileIndex = i;
             request.SetCosProgressCallback((completed, total) =>
             {
@@ -63,12 +91,11 @@ public sealed class CosUploadService
 
             try
             {
-                // SDK 调用本身是同步的，放到后台线程避免阻塞 UI
+                // SDK 调用是同步的，放到后台线程避免阻塞 UI
                 PutObjectResult result = await Task.Run(
                     () => cosXml.PutObject(request), cancellationToken);
 
                 completedBefore += file.Length;
-                file.Status = "成功";
                 progress.Report(new UploadProgressInfo
                 {
                     FileName = file.Name,
@@ -81,11 +108,26 @@ public sealed class CosUploadService
             }
             catch (Exception ex)
             {
-                file.Status = "失败";
                 throw new InvalidOperationException($"上传 {file.Name} 失败：{ex.Message}", ex);
             }
         }
     }
+}
+
+/// <summary>批量上传的通用对象描述。</summary>
+public sealed class CosUploadFile
+{
+    /// <summary>显示名称。</summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>本地文件路径。</summary>
+    public string LocalPath { get; init; } = string.Empty;
+
+    /// <summary>COS 对象键。</summary>
+    public string ObjectKey { get; init; } = string.Empty;
+
+    /// <summary>文件大小。</summary>
+    public long Length { get; init; }
 }
 
 /// <summary>上传进度信息。</summary>

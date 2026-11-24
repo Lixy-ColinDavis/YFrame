@@ -24,6 +24,37 @@ public sealed class UploadSettings
 
     /// <summary>发布环境：uat 或 pdt。</summary>
     public string Environment { get; set; } = "uat";
+
+    /// <summary>本地插件目录，下面每个子文件夹对应一个插件。</summary>
+    public string PluginSourceRoot { get; set; } =
+        @"C:\Users\Administrator\Desktop\code\C#\YFrame\YFrame\bin\Release\net8.0-windows\plugins";
+
+    /// <summary>插件 ZIP 和清单的本地输出目录。</summary>
+    public string PluginZipOutputRoot { get; set; } =
+        Path.Combine(AppContext.BaseDirectory, "PluginPackages");
+
+    /// <summary>COS 上的插件目录前缀。</summary>
+    public string PluginRemotePrefix { get; set; } = "YFrame/plugins/file";
+
+    /// <summary>插件包和清单的公开访问根地址。</summary>
+    public string PluginBaseUrl { get; set; } =
+        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/file";
+
+    /// <summary>COS 上 plugins.json 的独立目录前缀。</summary>
+    public string PluginManifestRemotePrefix { get; set; } = "YFrame/plugins";
+
+    /// <summary>plugins.json 的公开访问根地址。</summary>
+    public string PluginManifestBaseUrl { get; set; } =
+        "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins";
+
+    /// <summary>插件配置清单文件名。</summary>
+    public string PluginManifestFileName { get; set; } = "plugins.json";
+
+    /// <summary>
+    /// 已勾选的插件目录名。null 表示旧配置尚未初始化，默认全选；
+    /// 空集合表示用户明确取消全部勾选。
+    /// </summary>
+    public List<string>? SelectedPlugins { get; set; }
 }
 
 /// <summary>
