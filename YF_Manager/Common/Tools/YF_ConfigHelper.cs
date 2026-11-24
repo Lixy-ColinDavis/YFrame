@@ -107,6 +107,10 @@ namespace YF_Manager
             _configValues["PluginServerPort"] = "9000";
             // 插件管理器上次连接的服务器地址（不含端口）
             _configValues["PluginManagerServerURL"] = "http://127.0.0.1";
+            // 插件来源模式与 HTTPS 清单地址
+            _configValues["PluginSourceMode"] = "https";
+            _configValues["PluginManifestUrl"] =
+                "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
@@ -188,6 +192,11 @@ namespace YF_Manager
                 _configValues.TryAdd("PluginServerPort", "9000");
             if (!existingKeys.Contains("PluginManagerServerURL"))
                 _configValues.TryAdd("PluginManagerServerURL", "http://127.0.0.1");
+            if (!existingKeys.Contains("PluginSourceMode"))
+                _configValues.TryAdd("PluginSourceMode", "https");
+            if (!existingKeys.Contains("PluginManifestUrl"))
+                _configValues.TryAdd("PluginManifestUrl",
+                    "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))

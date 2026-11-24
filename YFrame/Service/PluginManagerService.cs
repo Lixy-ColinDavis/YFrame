@@ -46,6 +46,19 @@ namespace YFrame.Service
             public int FileCount { get; set; }              // 文件数量
         }
 
+        private class PluginManifestResponse
+        {
+            public List<PluginManifestItemResponse> Plugins { get; set; } = new();
+        }
+
+        private class PluginManifestItemResponse
+        {
+            public string Name { get; set; } = "";
+            public string FileName { get; set; } = "";
+            public string Url { get; set; } = "";
+            public long Size { get; set; }
+        }
+
         #endregion
 
         #region 成员字段
@@ -106,20 +119,85 @@ namespace YFrame.Service
             return result;
         }
 
-        #endregion
+        /// <summary>
+        /// 从 HTTPS/COS 配置清单读取插件列表。
+        /// 清单中的 url 是每个插件 ZIP 的实际下载地址。
+        /// </summary>
+        /// <param name="manifestUrl">plugins.json 地址</param>
+        /// <returns>插件信息列表</returns>
+        [Log(Level = LogLevel.Info, Message = "从 HTTPS 清单获取插件列表")]
+        public virtual async Task<List<YF_Model.RemotePluginInfo>> FetchPluginListFromManifestAsync(string manifestUrl)
+        {
+            string url = NormalizeUrl(manifestUrl);
+            if (string.IsNullOrWhiteSpace(url))
+                throw new InvalidOperationException("插件清单地址为空。");
 
-        #region 插件下载安装
+            using var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+            var manifest = JsonSerializer.Deserialize<PluginManifestResponse>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException("插件清单格式错误。");
+
+            var manifestBase = new Uri(url);
+            var result = new List<YF_Model.RemotePluginInfo>();
+            foreach (PluginManifestItemResponse item in manifest.Plugins)
+            {
+                string folderName = string.IsNullOrWhiteSpace(item.Name)
+                    ? Path.GetFileNameWithoutExtension(item.FileName)
+                    : item.Name.Trim();
+                ValidateFolderName(folderName);
+
+                string downloadUrl = ResolveDownloadUrl(manifestBase, item.Url, item.FileName);
+                result.Add(new YF_Model.RemotePluginInfo
+                {
+                    PluginId = folderName,
+                    PluginName = folderName,
+                    FolderName = folderName,
+                    TotalSize = item.Size,
+                    // 清单没有文件数量字段，用 -1 显示为 “-”
+                    FileCount = -1,
+                    DownloadUrl = downloadUrl,
+                    IsInstalled = Directory.Exists(Path.Combine(_pluginsDir, folderName))
+                });
+            }
+
+            return result;
+        }
 
         /// <summary>
-        /// 从服务器流式下载插件 ZIP 并解压到本地 plugins 目录
+        /// 从 TCP 插件服务器下载插件 ZIP 并解压。
         /// </summary>
         /// <param name="folderName">插件文件夹名称</param>
-        /// <param name="progress">下载进度报告器（0-100）</param>
+        /// <param name="progress">下载进度</param>
         /// <param name="cancellationToken">取消令牌</param>
         [Log(Level = LogLevel.Info, Message = "下载并安装插件")]
         public virtual async Task InstallPluginAsync(string folderName, IProgress<int> progress, CancellationToken cancellationToken)
         {
-            var downloadUrl = $"{_lastBaseUrl}/api/plugins/{folderName}/download";
+            ValidateFolderName(folderName);
+            string downloadUrl = $"{_lastBaseUrl}/api/plugins/{folderName}/download";
+            await InstallPluginFromUrlAsync(folderName, downloadUrl, progress, cancellationToken);
+        }
+
+        /// <summary>
+        /// 从清单提供的完整 URL 下载插件 ZIP 并解压。
+        /// </summary>
+        /// <param name="folderName">插件文件夹名称</param>
+        /// <param name="downloadUrl">ZIP 下载地址</param>
+        /// <param name="progress">下载进度</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        [Log(Level = LogLevel.Info, Message = "按地址下载并安装插件")]
+        public virtual async Task InstallPluginFromUrlAsync(
+            string folderName,
+            string downloadUrl,
+            IProgress<int> progress,
+            CancellationToken cancellationToken)
+        {
+            ValidateFolderName(folderName);
+            if (string.IsNullOrWhiteSpace(downloadUrl))
+                throw new InvalidOperationException("插件下载地址为空。");
 
             using var response = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -156,11 +234,44 @@ namespace YFrame.Service
             YF_ZipHelper.Instance.ExtractToDirectory(tempZip, pluginDir);
 
             // 清理临时文件
-            try { File.Delete(tempZip); } 
-            catch (Exception ex){ _logger.ErrorInfo("InstallPluginAsync", "清理临时文件失败" + ex.Message); }        
+            try { File.Delete(tempZip); }
+            catch (Exception ex) { _logger.ErrorInfo("InstallPluginFromUrlAsync", "清理临时文件失败" + ex.Message); }
         }
 
         #endregion
+
+        /// <summary>
+        /// 从清单中的 url/fileName 解析完整下载地址。
+        /// </summary>
+        /// <param name="manifestBase">清单地址</param>
+        /// <param name="url">清单 url 字段</param>
+        /// <param name="fileName">清单 fileName 字段</param>
+        /// <returns>绝对下载地址</returns>
+        private static string ResolveDownloadUrl(Uri manifestBase, string url, string fileName)
+        {
+            string value = string.IsNullOrWhiteSpace(url) ? fileName : url;
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidDataException("插件清单缺少下载地址和文件名。");
+
+            if (Uri.TryCreate(value, UriKind.Absolute, out Uri? absolute))
+                return absolute.ToString();
+
+            return new Uri(manifestBase, value).ToString();
+        }
+
+        /// <summary>
+        /// 校验插件文件夹名，禁止路径穿越。
+        /// </summary>
+        /// <param name="folderName">插件文件夹名</param>
+        private static void ValidateFolderName(string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(folderName) ||
+                folderName is "." or ".." ||
+                !string.Equals(Path.GetFileName(folderName), folderName, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"非法插件文件夹名：{folderName}");
+            }
+        }
 
         #region URL 构建
 

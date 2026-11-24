@@ -111,6 +111,24 @@ namespace YF_Manager
         }
 
         /// <summary>
+        /// 插件来源模式：tcp 或 https。默认使用 COS 清单。
+        /// </summary>
+        public static string PluginSourceMode
+        {
+            get => Get("https");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// HTTPS 插件清单地址，默认使用 COS YFrame/plugins/plugins.json。
+        /// </summary>
+        public static string PluginManifestUrl
+        {
+            get => Get("https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
+            set => Set(value);
+        }
+
+        /// <summary>
         /// 全局屏幕缩放比例（百分比文本，100-200）
         /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算
         /// </summary>

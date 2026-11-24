@@ -58,6 +58,63 @@ namespace YFrame.ViewModel
             set => SetProperty(ref _serverURL, value);
         }
 
+        private string _manifestUrl = "";
+
+        /// <summary>HTTPS 插件清单地址。</summary>
+        public string ManifestUrl
+        {
+            get => _manifestUrl;
+            set => SetProperty(ref _manifestUrl, value);
+        }
+
+        private string _sourceMode = "https";
+
+        /// <summary>是否为 TCP 模式。</summary>
+        public bool IsTcpMode
+        {
+            get => string.Equals(_sourceMode, "tcp", StringComparison.OrdinalIgnoreCase);
+            set
+            {
+                if (value)
+                    SetSourceMode("tcp");
+            }
+        }
+
+        /// <summary>是否为 HTTPS 清单模式。</summary>
+        public bool IsHttpsMode
+        {
+            get => string.Equals(_sourceMode, "https", StringComparison.OrdinalIgnoreCase);
+            set
+            {
+                if (value)
+                    SetSourceMode("https");
+            }
+        }
+
+        /// <summary>当前模式下的地址输入框内容。</summary>
+        public string CurrentAddress
+        {
+            get => IsTcpMode ? ServerURL : ManifestUrl;
+            set
+            {
+                if (IsTcpMode)
+                    ServerURL = value;
+                else
+                    ManifestUrl = value;
+                OnPropertyChanged(nameof(CurrentAddress));
+            }
+        }
+
+        /// <summary>地址输入框标题。</summary>
+        public string AddressLabel => IsTcpMode
+            ? R("key_PluginManager_ServerLabel")
+            : R("key_PluginManager_ManifestLabel");
+
+        /// <summary>当前模式提示。</summary>
+        public string ModeHint => IsTcpMode
+            ? R("key_PluginManager_TcpHint")
+            : R("key_PluginManager_HttpsHint");
+
         private bool _isConnected;
 
         /// <summary>是否已连接到服务器</summary>
@@ -141,6 +198,11 @@ namespace YFrame.ViewModel
             var savedUrl = Config.PluginManagerServerURL;
             var savedPort = Config.PluginServerPort;
             ServerURL = _service.BuildFullUrl(savedUrl, savedPort);
+            ManifestUrl = Config.PluginManifestUrl;
+            _sourceMode = string.Equals(Config.PluginSourceMode, "tcp", StringComparison.OrdinalIgnoreCase)
+                ? "tcp"
+                : "https";
+
             SetStatus(R("key_PluginManager_NotConnected"), B("SubtleTextBrush", Brushes.Gray));
             PluginCountText = R("key_PluginManager_NotConnected");
 
@@ -161,21 +223,33 @@ namespace YFrame.ViewModel
         [Log(Level = LogLevel.Info, Message = "连接插件服务器")]
         public virtual async void Connect()
         {
-            var url = _service.NormalizeUrl(ServerURL);
+            var url = _service.NormalizeUrl(CurrentAddress);
             if (string.IsNullOrEmpty(url))
             {
                 SetStatus(R("key_PluginManager_EnterAddress"), B("WarningBrush", Brushes.Orange));
                 return;
             }
-            ServerURL = url;
 
-            // 持久化地址
-            Config.PluginManagerServerURL = url;
+            if (IsTcpMode)
+            {
+                ServerURL = url;
+                Config.PluginManagerServerURL = url;
+            }
+            else
+            {
+                ManifestUrl = url;
+                Config.PluginManifestUrl = url;
+            }
+            Config.PluginSourceMode = _sourceMode;
+            OnPropertyChanged(nameof(CurrentAddress));
+
             SetStatus(R("key_PluginManager_Connecting"), B("AccentBrush", Brushes.DodgerBlue));
 
             try
             {
-                var plugins = await _service.FetchPluginListAsync(url);
+                var plugins = IsTcpMode
+                    ? await _service.FetchPluginListAsync(url)
+                    : await _service.FetchPluginListFromManifestAsync(url);
 
                 RemotePlugins.Clear();
                 foreach (var p in plugins)
@@ -244,7 +318,16 @@ namespace YFrame.ViewModel
 
             try
             {
-                await _service.InstallPluginAsync(pluginInfo.FolderName, progress, pluginInfo.Cts.Token);
+                if (!string.IsNullOrWhiteSpace(pluginInfo.DownloadUrl))
+                {
+                    await _service.InstallPluginFromUrlAsync(
+                        pluginInfo.FolderName, pluginInfo.DownloadUrl, progress, pluginInfo.Cts.Token);
+                }
+                else
+                {
+                    await _service.InstallPluginAsync(
+                        pluginInfo.FolderName, progress, pluginInfo.Cts.Token);
+                }
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
@@ -281,6 +364,34 @@ namespace YFrame.ViewModel
                 pluginInfo.Cts?.Dispose();
                 pluginInfo.Cts = null;
             }
+        }
+
+        #endregion
+
+        #region 模式切换
+
+        /// <summary>
+        /// 切换 TCP/HTTPS 来源模式，并刷新地址框和提示。
+        /// </summary>
+        /// <param name="mode">tcp 或 https</param>
+        private void SetSourceMode(string mode)
+        {
+            string normalized = string.Equals(mode, "tcp", StringComparison.OrdinalIgnoreCase)
+                ? "tcp"
+                : "https";
+            if (string.Equals(_sourceMode, normalized, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _sourceMode = normalized;
+            Config.PluginSourceMode = normalized;
+            OnPropertyChanged(nameof(IsTcpMode));
+            OnPropertyChanged(nameof(IsHttpsMode));
+            OnPropertyChanged(nameof(CurrentAddress));
+            OnPropertyChanged(nameof(AddressLabel));
+            OnPropertyChanged(nameof(ModeHint));
+
+            if (IsConnected)
+                Disconnect();
         }
 
         #endregion

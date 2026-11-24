@@ -53,6 +53,14 @@ namespace YFrame.Model
         private string _folderName = "";
         public string FolderName { get => _folderName; set => SetProperty(ref _folderName, value); }
 
+        private string _downloadUrl = "";
+        /// <summary>HTTPS 清单中的 ZIP 下载地址；TCP 模式为空。</summary>
+        public string DownloadUrl
+        {
+            get => _downloadUrl;
+            set => SetProperty(ref _downloadUrl, value);
+        }
+
         private long _totalSize;
         public long TotalSize
         {
@@ -88,7 +96,7 @@ namespace YFrame.Model
                     OnPropertyChanged(nameof(FileCountDisplay));
             }
         }
-        public string FileCountDisplay => $"{FileCount} 个文件";
+        public string FileCountDisplay => FileCount < 0 ? "-" : $"{FileCount} 个文件";
 
         private int _downloadProgress;
         public int DownloadProgress

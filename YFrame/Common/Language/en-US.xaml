@@ -498,4 +498,11 @@
     <sys:String x:Key="key_Pen_CopyLog">📋 Copy Log</sys:String>
 
     <sys:String x:Key="key_WorkTask">Work Tasks</sys:String>
+    <sys:String x:Key="key_PluginManager_Mode">Mode</sys:String>
+    <sys:String x:Key="key_PluginManager_Tcp">TCP</sys:String>
+    <sys:String x:Key="key_PluginManager_Https">HTTPS</sys:String>
+    <sys:String x:Key="key_PluginManager_ServerLabel">Server</sys:String>
+    <sys:String x:Key="key_PluginManager_ManifestLabel">Manifest</sys:String>
+    <sys:String x:Key="key_PluginManager_TcpHint">Read the plugin list from /api/plugins and download from the plugin server</sys:String>
+    <sys:String x:Key="key_PluginManager_HttpsHint">Read plugins.json from COS and download each plugin by its manifest URL</sys:String>
 </ResourceDictionary>

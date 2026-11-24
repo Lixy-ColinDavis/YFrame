@@ -498,4 +498,11 @@
     <sys:String x:Key="key_Pen_CopyLog">📋 复制日志</sys:String>
 
     <sys:String x:Key="key_WorkTask">工作任务</sys:String>
+    <sys:String x:Key="key_PluginManager_Mode">连接模式</sys:String>
+    <sys:String x:Key="key_PluginManager_Tcp">TCP</sys:String>
+    <sys:String x:Key="key_PluginManager_Https">HTTPS</sys:String>
+    <sys:String x:Key="key_PluginManager_ServerLabel">服务器地址</sys:String>
+    <sys:String x:Key="key_PluginManager_ManifestLabel">清单地址</sys:String>
+    <sys:String x:Key="key_PluginManager_TcpHint">从插件服务器 /api/plugins 获取列表和下载地址</sys:String>
+    <sys:String x:Key="key_PluginManager_HttpsHint">从 COS plugins.json 获取列表，并按清单中的 URL 下载</sys:String>
 </ResourceDictionary>
