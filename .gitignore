@@ -35,3 +35,5 @@
 *.private.pem
 *.pfx
 *.key
+/YFrame.upload.cos/obj
+/YFrame.upload.cos/bin
