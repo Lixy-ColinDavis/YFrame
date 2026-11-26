@@ -163,6 +163,34 @@ namespace YF_Manager
             set => Set(value);
         }
 
+        /// <summary>是否启用 CloudBase 硬件信息上传。</summary>
+        public static bool CloudBaseEnabled
+        {
+            get => string.Equals(Get("false"), "true", StringComparison.OrdinalIgnoreCase);
+            set => Set(value ? "true" : "false");
+        }
+
+        /// <summary>CloudBase 环境 ID。</summary>
+        public static string CloudBaseEnvId
+        {
+            get => Get("worldwide-scorpion-d3c6y1e374741");
+            set => Set(value);
+        }
+
+        /// <summary>CloudBase API Key；建议优先通过环境变量 CLOUDBASE_API_KEY 提供。</summary>
+        public static string CloudBaseApiKey
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>CloudBase PostgreSQL 硬件表名。</summary>
+        public static string CloudBaseHardwareTable
+        {
+            get => Get("yframe_hardware");
+            set => Set(value);
+        }
+
         /// <summary>
         /// 全局屏幕缩放比例（百分比文本，100-200）
         /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算

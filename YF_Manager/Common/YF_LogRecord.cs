@@ -20,4 +20,7 @@ public sealed class YF_LogRecord
 
     /// <summary>日志正文。</summary>
     public string Message { get; init; } = string.Empty;
+
+    /// <summary>关联异常；没有异常对象时为空。</summary>
+    public Exception? Exception { get; init; }
 }

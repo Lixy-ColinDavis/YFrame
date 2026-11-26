@@ -92,7 +92,8 @@ namespace YF_Manager
                 stopwatch.Stop();
                 TryLog(logger, logAttr,
                     $"执行失败 | {logAttr.Message} 耗时: {stopwatch.ElapsedMilliseconds}ms | " +
-                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName);
+                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName,
+                    ex);
 
                 // AOP 不能吞掉业务异常，使用 throw 保留原始堆栈
                 throw;
@@ -129,7 +130,8 @@ namespace YF_Manager
 
                 TryLog(logger, logAttr,
                     $"执行失败 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | " +
-                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName);
+                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName,
+                    ex);
 
                 // 保留原始异步异常及堆栈
                 throw;
@@ -169,7 +171,8 @@ namespace YF_Manager
 
                 TryLog(logger, logAttr,
                     $"执行失败 | {logAttr.Message} 耗时:(异步) {stopwatch.ElapsedMilliseconds}ms | " +
-                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName);
+                    $"错误: {ex.GetType().Name}: {ex.Message} | 函数位置：" + methodName,
+                    ex);
 
                 // 保留原始异步异常及堆栈
                 throw;
@@ -182,11 +185,13 @@ namespace YF_Manager
         /// <param name="logger">日志记录器</param>
         /// <param name="logAttr">日志特性</param>
         /// <param name="message">日志内容</param>
-        private static void TryLog(YF_Manager_Log logger, LogAttribute logAttr, string message)
+        /// <param name="exception">业务异常；成功日志为空</param>
+        private static void TryLog(YF_Manager_Log logger, LogAttribute logAttr, string message,
+            Exception? exception = null)
         {
             try
             {
-                logger.InterceptorsLog(message, logAttr.Level.ToString());
+                logger.InterceptorsLog(message, logAttr.Level.ToString(), exception);
             }
             catch (Exception logException)
             {

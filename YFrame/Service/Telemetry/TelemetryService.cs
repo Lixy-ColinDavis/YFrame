@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using OpenTelemetry;
@@ -200,8 +201,126 @@ public static class TelemetryService
         if (!string.Equals(record.Level, "[Error]", StringComparison.Ordinal))
             return;
 
+        CreateErrorSpan(record);
+
         _logger.LogError("[{Component}/{Id}] {Message}",
             record.Name, record.Id, record.Message);
+    }
+
+    /// <summary>
+    /// 将 Error 日志转换成 Error.&lt;类别&gt; Span，便于在 APM 链路追踪和错误分析中查看。
+    /// </summary>
+    /// <param name="record">错误日志记录</param>
+    private static void CreateErrorSpan(YF_LogRecord record)
+    {
+        if (!_initialized)
+            return;
+
+        string category = ClassifyError(record);
+        using Activity? activity = ActivitySource.StartActivity(
+            $"Error.{category}", ActivityKind.Internal);
+        if (activity == null)
+            return;
+
+        activity.SetTag("error.category", category);
+        activity.SetTag("error.source", record.Id);
+        activity.SetTag("error.component", record.Name);
+        activity.SetTag("error.message", record.Message);
+        activity.SetTag("error.type", record.Exception?.GetType().FullName ?? "LogError");
+        activity.SetStatus(ActivityStatusCode.Error, record.Message);
+
+        Match statusMatch = Regex.Match(record.Message, @"\bHTTP\s+(\d{3})\b",
+            RegexOptions.IgnoreCase);
+        if (statusMatch.Success && int.TryParse(statusMatch.Groups[1].Value, out int status))
+            activity.SetTag("error.http_status", status);
+
+        if (record.Exception != null)
+        {
+            activity.AddEvent(new ActivityEvent("exception",
+                DateTimeOffset.UtcNow,
+                new ActivityTagsCollection
+                {
+                    ["exception.type"] = record.Exception.GetType().FullName
+                                         ?? record.Exception.GetType().Name,
+                    ["exception.message"] = record.Exception.Message,
+                    ["exception.stacktrace"] = record.Exception.StackTrace ?? string.Empty,
+                    ["exception.source"] = record.Id
+                }));
+        }
+        else
+        {
+            activity.AddEvent(new ActivityEvent("error",
+                DateTimeOffset.UtcNow,
+                new ActivityTagsCollection
+                {
+                    ["error.category"] = category,
+                    ["error.message"] = record.Message,
+                    ["error.source"] = record.Id
+                }));
+        }
+    }
+
+    /// <summary>
+    /// 根据异常类型名、来源和消息归类错误；异常类型直接使用类型名并移除 Exception 后缀。
+    /// </summary>
+    /// <param name="record">错误日志记录</param>
+    /// <returns>错误类别名称，不包含 Error. 前缀</returns>
+    private static string ClassifyError(YF_LogRecord record)
+    {
+        string source = $"{record.Id} {record.Name}";
+        string message = record.Message ?? string.Empty;
+
+        // 上传业务优先归为 upload；即使底层是 401/权限错误也保留上传入口语义
+        if (source.Contains("cloudbase", StringComparison.OrdinalIgnoreCase)
+            || source.Contains("upload", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("上传", StringComparison.Ordinal)
+            || message.Contains("upload", StringComparison.OrdinalIgnoreCase))
+            return "upload";
+
+        // 有真实异常时直接使用类型名：NullReferenceException -> NullReference
+        if (record.Exception != null)
+        {
+            const string exceptionSuffix = "Exception";
+            string typeName = record.Exception.GetType().Name;
+            if (typeName.EndsWith(exceptionSuffix, StringComparison.Ordinal))
+                typeName = typeName[..^exceptionSuffix.Length];
+
+            return string.IsNullOrWhiteSpace(typeName) ? "Unknown" : typeName;
+        }
+
+        if (message.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("401", StringComparison.Ordinal)
+            || message.Contains("403", StringComparison.Ordinal)
+            || message.Contains("权限", StringComparison.Ordinal))
+            return "PermissionDenied";
+
+        if (message.Contains("不存在", StringComparison.Ordinal)
+            || message.Contains("未找到", StringComparison.Ordinal)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            return "NotFound";
+
+        if (message.Contains("索引", StringComparison.Ordinal)
+            || message.Contains("越界", StringComparison.Ordinal)
+            || message.Contains("index out of range", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("outside the bounds", StringComparison.OrdinalIgnoreCase))
+            return "IndexOutOfRange";
+
+        if (message.Contains("out of the range", StringComparison.OrdinalIgnoreCase))
+            return "ArgumentOutOfRange";
+
+        if (message.Contains("not present in the dictionary", StringComparison.OrdinalIgnoreCase))
+            return "KeyNotFound";
+
+        if (message.Contains("Object reference not set", StringComparison.OrdinalIgnoreCase))
+            return "NullReference";
+
+        if (message.Contains("Could not find file", StringComparison.OrdinalIgnoreCase))
+            return "FileNotFound";
+
+        if (message.Contains("Access to the path", StringComparison.OrdinalIgnoreCase))
+            return "Unauthorized";
+
+        return "Unknown";
     }
 
     /// <summary>记录 AppDomain 未处理异常。</summary>

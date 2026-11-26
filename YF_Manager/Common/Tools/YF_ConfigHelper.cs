@@ -117,6 +117,11 @@ namespace YF_Manager
             _configValues["ApmToken"] = "uRNEPJAeWlEeOMRqXykE";
             _configValues["ApmServiceName"] = "YFrame";
             _configValues["ApmEnvironment"] = "uat";
+            // CloudBase 硬件表上传默认关闭，配置 API Key 后再启用
+            _configValues["CloudBaseEnabled"] = "false";
+            _configValues["CloudBaseEnvId"] = "worldwide-scorpion-d3c6y1e374741";
+            _configValues["CloudBaseApiKey"] = "";
+            _configValues["CloudBaseHardwareTable"] = "yframe_hardware";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
@@ -218,6 +223,14 @@ namespace YF_Manager
                 _configValues.TryAdd("ApmServiceName", "YFrame");
             if (!existingKeys.Contains("ApmEnvironment"))
                 _configValues.TryAdd("ApmEnvironment", "uat");
+            if (!existingKeys.Contains("CloudBaseEnabled"))
+                _configValues.TryAdd("CloudBaseEnabled", "false");
+            if (!existingKeys.Contains("CloudBaseEnvId"))
+                _configValues.TryAdd("CloudBaseEnvId", "worldwide-scorpion-d3c6y1e374741");
+            if (!existingKeys.Contains("CloudBaseApiKey"))
+                _configValues.TryAdd("CloudBaseApiKey", "");
+            if (!existingKeys.Contains("CloudBaseHardwareTable"))
+                _configValues.TryAdd("CloudBaseHardwareTable", "yframe_hardware");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))
