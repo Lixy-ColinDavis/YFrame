@@ -47,7 +47,67 @@ namespace YFrame.Service
             if (snapshot.Memory.TotalBytes == 0)
                 snapshot.Memory.TotalBytes = snapshot.System.TotalMemoryBytes;
 
+            // 将本次扫描结果附加到 hardware.scan Span，便于在 APM 链路详情中直接查看
+            AttachHardwareTelemetry(activity, snapshot);
+
             return snapshot;
+        }
+
+        /// <summary>
+        /// 将硬件快照写入当前 Span 属性。
+        /// 摘要字段用于快速筛选，GPU 名称按序号单独记录。
+        /// </summary>
+        /// <param name="activity">当前 hardware.scan Span，未启用 APM 时为 null</param>
+        /// <param name="snapshot">本次扫描得到的硬件快照</param>
+        private static void AttachHardwareTelemetry(
+            Activity? activity,
+            HardwareInfoSnapshot snapshot)
+        {
+            // APM 关闭时不做序列化，避免无意义的 CPU 和内存开销
+            if (activity == null)
+                return;
+
+            try
+            {
+                double memoryGb = snapshot.Memory.TotalBytes / 1024d / 1024d / 1024d;
+                string summary = string.Join(" | ", new[]
+                {
+                    string.IsNullOrWhiteSpace(snapshot.Cpu.Name) ? "CPU未知" : snapshot.Cpu.Name,
+                    $"{snapshot.Gpus.Count} GPU",
+                    $"{memoryGb:F1} GB",
+                    $"{snapshot.Disks.Count} 磁盘",
+                    string.IsNullOrWhiteSpace(snapshot.Os.Caption) ? "OS未知" : snapshot.Os.Caption
+                });
+
+                activity.SetTag("hardware.summary", summary);
+                activity.SetTag("hardware.cpu", snapshot.Cpu.Name);
+                activity.SetTag("hardware.cpu.cores", snapshot.Cpu.Cores);
+                activity.SetTag("hardware.cpu.threads", snapshot.Cpu.Threads);
+                activity.SetTag("hardware.memory_gb", Math.Round(memoryGb, 1));
+                activity.SetTag("hardware.gpu_count", snapshot.Gpus.Count);
+                activity.SetTag("hardware.disk_count", snapshot.Disks.Count);
+                activity.SetTag("hardware.monitor_count", snapshot.Monitors.Count);
+                activity.SetTag("hardware.os", snapshot.Os.Caption);
+
+                // 记录全部 GPU 名称：汇总字段便于查看，逐项字段保留多显卡顺序
+                string gpuNames = string.Join(" | ", snapshot.Gpus
+                    .Select(g => g.Name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+                activity.SetTag("hardware.gpu_names",
+                    string.IsNullOrWhiteSpace(gpuNames) ? "未检测到" : gpuNames);
+
+                for (int i = 0; i < snapshot.Gpus.Count; i++)
+                {
+                    string name = snapshot.Gpus[i].Name;
+                    if (!string.IsNullOrWhiteSpace(name))
+                        activity.SetTag($"hardware.gpu_{i}_name", name);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 采集成功但属性写入失败时不能让硬件页面报错
+                Debug.WriteLine($"[HardwareInfoService] 硬件信息上报失败: {ex.Message}");
+            }
         }
 
         /// <summary>查询处理器信息</summary>
