@@ -2,7 +2,7 @@
 
 > **用途：** 让新的 AI 会话在不重复通读全部代码的情况下，准确理解 YFrame 的架构、插件契约、构建方式、更新链路和当前约束。
 >
-> **最后更新：** 2026-11-18
+> **最后更新：** 2026-11-26
 > **产品版本：** 2.1.0
 
 ---
@@ -75,6 +75,8 @@ YFrame.sln
 base.OnStartup
   → ShutdownMode = OnExplicitShutdown
   → 初始化 YF_Manager_Main.logger
+  → TelemetryService.Initialize()（ApmEnabled）
+  → 创建 app.startup Span
   → ApplyPendingUpdaterAsync()
   → ApplySavedTheme()
   → UpdateService.CheckAsync()
@@ -228,7 +230,9 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 | `TrayIconService` | Shell_NotifyIcon、托盘菜单 |
 | `ToolboxService` | 工具注册表、视图工厂、视图缓存 |
 | `UpdateService` | 远端版本检查、三天跳过、启动 updater |
-| `HardwareInfoService` | WMI/注册表/PCIe/多显示器/音频信息 |
+| `TelemetryService` | OpenTelemetry APM：启动/硬件/上传 Span、Error 分类 Span、OTLP |
+| `CloudBaseHardwareService` | 硬件结果按 `device_name` 查询后 PATCH 或 POST |
+| `HardwareInfoService` | WMI/注册表/PCIe/多显示器/音频信息，并写入硬件摘要 Span |
 | `AudioTestService` | `winmm.dll` 播放/录音、电平 |
 | `DiskSpeedTestService` | 指定卷 32MB 顺序读写测速 |
 | `UpdateRunner` | 下载、校验、备份、替换、删除、重启 |
@@ -306,6 +310,37 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 - 显示器每台两行：名称+厂商/序列号，第二行尺寸/分辨率/刷新率；
 - 显示器顶部对齐，最大化后不会在顶部留大空白；
 - 音频区倒计时在进度条左侧，固定 16px 高容器，进度条不上下移动。
+
+### 8.1 可观测性
+
+- `YFrame.csproj` 引用 `OpenTelemetry` 1.12.0 与 `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.12.0；
+- `TelemetryService` 使用 `ActivitySource("YFrame")` + OTLP gRPC；
+- 当前 Span：`app.startup`、`hardware.scan`、`cloudbase.upload`、`Error.<类型>`；
+- `hardware.scan` 附加 `hardware.summary`、CPU/内存/GPU/磁盘/显示器/OS 标签；
+- 多 GPU 使用 `hardware.gpu_names` 汇总，并提供 `hardware.gpu_0_name`、`hardware.gpu_1_name`；
+- 只有 `[Error]` 日志进入 APM；
+- `Error.<类型>` 直接取异常类型名并移除 `Exception` 后缀，例如 `NullReferenceException` → `Error.NullReference`；
+- 无异常对象时按来源/消息兜底，CloudBase 上传失败为 `Error.upload`；
+- `LogInterceptor` 会把 AOP 捕获的异常传入日志事件，因此 AOP 失败也会生成 Error Span；
+- 当前没有 MeterProvider、自定义 Metric、CPU/内存指标。
+
+### 8.2 CloudBase 硬件入库
+
+- 服务：`YFrame/Service/CloudBase/CloudBaseHardwareService.cs`；
+- 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseApiKey`、`CloudBaseHardwareTable`；
+- API Key 优先读环境变量 `CLOUDBASE_API_KEY`；
+- 地址：`https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/yframe_hardware`；
+- 先按 `device_name` 查询：存在则 PATCH，不存在则 POST；
+- 表字段：`device_name`、`cpu`、`gpu`、`memory`、`disk`、`updatetime`；`id`/`created_at` 用默认值；
+- 多 GPU、多磁盘分别用 ` | ` 合并后写入 text 字段；
+- Publishable Key 对应 `anon`，需要表级 `SELECT/INSERT/UPDATE`：
+
+```sql
+GRANT SELECT, INSERT, UPDATE ON public.yframe_hardware TO anon;
+```
+
+- RLS 关闭只关闭行级策略，不能替代表级 GRANT；
+- 当前按 `device_name` 查询后写入，若需要严格防重复，建议给 `device_name` 加唯一索引。
 
 ---
 
@@ -437,6 +472,15 @@ dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishPro
 | `AIModelpath` | `plugins\YF_AIHelper\Model\...gguf` |
 | `Env` | `uat` / `pdt` |
 | `UpdateBaseUrl` | COS 根地址 |
+| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `false` |
+| `ApmEndpoint` | APM OTLP 接入点 |
+| `ApmToken` | APM Token，建议使用 `YFRAME_APM_TOKEN` 环境变量 |
+| `ApmServiceName` | APM 服务名，默认 `YFrame` |
+| `ApmEnvironment` | APM 环境，默认 `uat` |
+| `CloudBaseEnabled` | 是否启用硬件入库，默认 `false` |
+| `CloudBaseEnvId` | CloudBase 环境 ID |
+| `CloudBaseApiKey` | CloudBase API Key，建议使用 `CLOUDBASE_API_KEY` 环境变量 |
+| `CloudBaseHardwareTable` | 硬件表名，默认 `yframe_hardware` |
 
 ---
 
@@ -505,6 +549,8 @@ YFrame/
 │   ├── MainWindow.xaml / .cs
 │   ├── MainWindowViewModel.cs
 │   ├── Service/*.cs
+│   ├── Service/Telemetry/        # OpenTelemetry / APM
+│   ├── Service/CloudBase/        # CloudBase 硬件入库
 │   ├── View/UC/Toolbox/*.xaml
 │   ├── Controls/Sparkline.cs
 │   ├── Controls/VerticalText.cs
@@ -566,7 +612,11 @@ C:\Users\Administrator\Desktop\code\C#\YF_AIHelper
 - `YFrame.update` 是框架依赖单文件，需要 .NET 8 Desktop Runtime；
 - 安装器是自包含单文件，体积较大；
 - WPF 透明窗口、高 DPI、全屏和多显示器场景需要实机验证；
-- `.sln` 的 CI 只构建核心 + 测试，不构建 Pack/update/插件。
+- `.sln` 的 CI 只构建核心 + 测试，不构建 Pack/update/插件；
+- APM 目前只有 Trace/Error Span，没有 CPU/内存 Metric，也没有 CLS 式日志检索；
+- CloudBase 使用 Publishable Key 时对应 `anon`，必须显式授予 `SELECT/INSERT/UPDATE`；
+- 关闭 RLS 只关闭行级策略，不能替代表级 GRANT；
+- Publishable Key 可被客户端提取，生产环境建议用云函数代理并限制写入范围。
 
 ---
 

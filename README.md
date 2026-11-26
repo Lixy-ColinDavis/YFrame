@@ -21,7 +21,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
 3. [技术架构](#3-技术架构)
 4. [核心设计](#4-核心设计)
 5. [插件生态](#5-插件生态)
-6. [硬件检查](#6-硬件检查)
+6. [硬件检查与云端同步](#6-硬件检查与云端同步)
 7. [发布与自动更新](#7-发布与自动更新)
 8. [工程化与版本治理](#8-工程化与版本治理)
 9. [快速开始](#9-快速开始)
@@ -89,6 +89,8 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 - **插件管理器**：连接插件服务器，浏览远程插件并下载安装；
 - **工具箱**：取色器、正则测试、MD5 校验、硬件检查；
 - **日志系统**：AOP 自动记录、分类 HTML 日志、UI 实时回显；
+- **APM 可观测性**：OpenTelemetry Trace、硬件扫描标签、Error.<类型> Span、OTLP 上报；
+- **CloudBase 同步**：硬件扫描结果按 `device_name` 查询，存在更新、不存在插入；
 - **性能监视器**：CPU / 内存采样、自绘 Sparkline；
 - **主题与语言**：运行时切换，无需重启；
 - **全局热键**：`Ctrl+Y`，按当前插件路由；
@@ -412,7 +414,7 @@ Ctrl+Y → 全屏 BitBlt → 框选 → 标注画板 → 复制/保存/钉图
 
 ---
 
-## 6. 硬件检查
+## 6. 硬件检查与云端同步
 
 硬件检查是框架内置的系统级工具，不使用第三方硬件库，基于 WMI、注册表和 Win32 P/Invoke。
 
@@ -451,6 +453,102 @@ Ctrl+Y → 全屏 BitBlt → 框选 → 标注画板 → 复制/保存/钉图
 - 每台两行：名称+厂商/序列号，尺寸/分辨率/刷新率；
 - 顶部对齐，最大化后不会在顶部出现大块空白；
 - 超过两台时卡片内部滚动。
+
+### 6.5 APM 可观测性
+
+框架通过 OpenTelemetry OTLP 接入腾讯云 APM，默认关闭，配置后启用：
+
+```ini
+ApmEnabled=true
+ApmEndpoint=https://ap-guangzhou.apm.tencentcs.com:4320
+ApmToken=<APM Token>
+ApmServiceName=YFrame
+ApmEnvironment=uat
+```
+
+当前上报的 Span：
+
+| Span | 触发时机 | 说明 |
+|---|---|---|
+| `app.startup` | 应用启动 | 启动主流程耗时 |
+| `hardware.scan` | 打开/刷新硬件检查 | 硬件采集耗时与硬件摘要 |
+| `cloudbase.upload` | 硬件扫描后上传 CloudBase | 上传结果、HTTP 状态 |
+| `Error.<类型>` | 任意 Error 日志 | 例如 `Error.NullReference`、`Error.upload` |
+
+`hardware.scan` 会附带：
+
+```text
+hardware.summary
+hardware.cpu / cores / threads
+hardware.memory_gb
+hardware.gpu_count
+hardware.gpu_names
+hardware.gpu_0_name / hardware.gpu_1_name ...
+hardware.disk_count
+hardware.monitor_count
+hardware.os
+```
+
+错误处理规则：
+
+- 只有 Error 日志进入 APM；
+- Error 日志会创建 `Error.<异常类型>` Span；
+- 类型名移除 `Exception` 后缀，例如 `NullReferenceException` → `Error.NullReference`；
+- 没有异常对象时按来源/消息兜底，例如 CloudBase 上传失败 → `Error.upload`；
+- AOP 异常也会携带原始异常并进入 Error Span。
+
+当前没有：
+
+```text
+自定义 Metric
+CPU/内存指标曲线
+CLS 全量日志检索
+```
+
+### 6.6 CloudBase 硬件入库
+
+硬件扫描完成后，后台调用 CloudBase PostgreSQL PostgREST API：
+
+```text
+https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/yframe_hardware
+```
+
+处理逻辑：
+
+```text
+GET  ?select=id&device_name=eq.<device_name>&limit=1
+  ├─ 存在：PATCH ?device_name=eq.<device_name>
+  └─ 不存在：POST
+```
+
+字段映射：
+
+| 表字段 | 内容 |
+|---|---|
+| `device_name` | 计算机名 |
+| `cpu` | CPU 名称、核心/线程、频率 |
+| `gpu` | 全部 GPU 名称，多个用 ` | ` 分隔 |
+| `memory` | 内存容量与内存条数量 |
+| `disk` | 全部磁盘型号、容量、接口、介质 |
+| `updatetime` | 上传时间（UTC） |
+| `id` / `created_at` | 使用数据库默认值 |
+
+配置：
+
+```ini
+CloudBaseEnabled=true
+CloudBaseEnvId=<CloudBase 环境 ID>
+CloudBaseApiKey=<Publishable Key 或 API Key>
+CloudBaseHardwareTable=yframe_hardware
+```
+
+数据库需要给 `anon` 表级权限：
+
+```sql
+GRANT SELECT, INSERT, UPDATE ON public.yframe_hardware TO anon;
+```
+
+注意：关闭 RLS 只关闭行级策略，不能替代表级 GRANT。
 
 ---
 
@@ -700,6 +798,8 @@ YFrame/
 │   ├── MainWindow.xaml/.cs
 │   ├── ViewModel/
 │   ├── Service/
+│   │   ├── Telemetry/           # OpenTelemetry / APM
+│   │   └── CloudBase/           # 硬件表上传
 │   ├── View/UC/Toolbox/
 │   ├── Controls/                 # Sparkline / VerticalText
 │   └── Common/                   # Themes / Language / Images
@@ -788,6 +888,15 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 | `AIModelpath` | 本地 AI 模型路径 |
 | `Env` | 更新环境：`uat` / `pdt` |
 | `UpdateBaseUrl` | COS 更新根地址 |
+| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `false` |
+| `ApmEndpoint` | APM OTLP 接入点 |
+| `ApmToken` | APM Token，建议用 `YFRAME_APM_TOKEN` 环境变量 |
+| `ApmServiceName` | APM 服务名，默认 `YFrame` |
+| `ApmEnvironment` | APM 环境，默认 `uat` |
+| `CloudBaseEnabled` | 是否上传硬件信息，默认 `false` |
+| `CloudBaseEnvId` | CloudBase 环境 ID |
+| `CloudBaseApiKey` | CloudBase API Key，建议用 `CLOUDBASE_API_KEY` 环境变量 |
+| `CloudBaseHardwareTable` | 硬件表名，默认 `yframe_hardware` |
 
 ---
 
@@ -798,7 +907,9 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 - AI 模型、PaddleOCR 模型体积较大，不随仓库分发；
 - OCR 翻译依赖百度翻译 API，当前凭据硬编码在源码中，公开部署前应改为配置或服务端代理；
 - 自动更新已内置清单签名校验（ECDSA P-256 + SHA-256）和包 SHA-256 校验；生产环境仍建议增加 Authenticode 校验；
-- 更新器为框架依赖单文件，目标机器需要 .NET 8 Desktop Runtime；安装器为自包含单文件。
+- 更新器为框架依赖单文件，目标机器需要 .NET 8 Desktop Runtime；安装器为自包含单文件；
+- APM 当前只上报 Trace 和 Error Span，不包含 CPU/内存 Metric；APM 控制台没有 CLS 式日志检索，完整日志需接 CLS；
+- CloudBase 使用 Publishable Key 时对应 `anon` 角色，必须显式授予 `SELECT/INSERT/UPDATE`；Publishable Key 可被客户端提取，生产环境建议改用云函数代理。
 
 ---
 
