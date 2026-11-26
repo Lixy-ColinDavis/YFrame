@@ -111,16 +111,13 @@ namespace YF_Manager
             _configValues["PluginSourceMode"] = "https";
             _configValues["PluginManifestUrl"] =
                 "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json";
-            // APM OpenTelemetry 默认关闭，避免无感上报
+            // APM OpenTelemetry 默认开启，接入地址与 Token 已固定在源码
             _configValues["ApmEnabled"] = "true";
-            _configValues["ApmEndpoint"] = "https://ap-guangzhou.apm.tencentcs.com:4320";
-            _configValues["ApmToken"] = "uRNEPJAeWlEeOMRqXykE";
             _configValues["ApmServiceName"] = "YFrame";
             _configValues["ApmEnvironment"] = "uat";
-            // CloudBase 硬件表上传默认关闭，配置 API Key 后再启用
-            _configValues["CloudBaseEnabled"] = "false";
+            // CloudBase 硬件表上传默认开启，API Key 已固定在源码
+            _configValues["CloudBaseEnabled"] = "true";
             _configValues["CloudBaseEnvId"] = "worldwide-scorpion-d3c6y1e374741";
-            _configValues["CloudBaseApiKey"] = "";
             _configValues["CloudBaseHardwareTable"] = "yframe_hardware";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
@@ -214,21 +211,15 @@ namespace YF_Manager
                 _configValues.TryAdd("PluginManifestUrl",
                     "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
             if (!existingKeys.Contains("ApmEnabled"))
-                _configValues.TryAdd("ApmEnabled", "false");
-            if (!existingKeys.Contains("ApmEndpoint"))
-                _configValues.TryAdd("ApmEndpoint", "");
-            if (!existingKeys.Contains("ApmToken"))
-                _configValues.TryAdd("ApmToken", "");
+                _configValues.TryAdd("ApmEnabled", "true");
             if (!existingKeys.Contains("ApmServiceName"))
                 _configValues.TryAdd("ApmServiceName", "YFrame");
             if (!existingKeys.Contains("ApmEnvironment"))
                 _configValues.TryAdd("ApmEnvironment", "uat");
             if (!existingKeys.Contains("CloudBaseEnabled"))
-                _configValues.TryAdd("CloudBaseEnabled", "false");
+                _configValues.TryAdd("CloudBaseEnabled", "true");
             if (!existingKeys.Contains("CloudBaseEnvId"))
                 _configValues.TryAdd("CloudBaseEnvId", "worldwide-scorpion-d3c6y1e374741");
-            if (!existingKeys.Contains("CloudBaseApiKey"))
-                _configValues.TryAdd("CloudBaseApiKey", "");
             if (!existingKeys.Contains("CloudBaseHardwareTable"))
                 _configValues.TryAdd("CloudBaseHardwareTable", "yframe_hardware");
             if (!existingKeys.Contains("ScreenScale"))

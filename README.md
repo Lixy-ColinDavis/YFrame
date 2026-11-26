@@ -456,15 +456,21 @@ Ctrl+Y → 全屏 BitBlt → 框选 → 标注画板 → 复制/保存/钉图
 
 ### 6.5 APM 可观测性
 
-框架通过 OpenTelemetry OTLP 接入腾讯云 APM，默认关闭，配置后启用：
+框架通过 OpenTelemetry OTLP 接入腾讯云 APM，默认开启：
 
 ```ini
 ApmEnabled=true
-ApmEndpoint=https://ap-guangzhou.apm.tencentcs.com:4320
-ApmToken=<APM Token>
 ApmServiceName=YFrame
 ApmEnvironment=uat
 ```
+
+APM Endpoint 与 Token 固定在源码：
+
+```text
+YFrame/Service/Telemetry/ApmBuiltInSettings.cs
+```
+
+不再写入 `config.conf`。
 
 当前上报的 Span：
 
@@ -538,9 +544,16 @@ GET  ?select=id&device_name=eq.<device_name>&limit=1
 ```ini
 CloudBaseEnabled=true
 CloudBaseEnvId=<CloudBase 环境 ID>
-CloudBaseApiKey=<Publishable Key 或 API Key>
 CloudBaseHardwareTable=yframe_hardware
 ```
+
+CloudBase API Key 固定在源码：
+
+```text
+YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs
+```
+
+不再写入 `config.conf`。
 
 数据库需要给 `anon` 表级权限：
 
@@ -888,14 +901,11 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 | `AIModelpath` | 本地 AI 模型路径 |
 | `Env` | 更新环境：`uat` / `pdt` |
 | `UpdateBaseUrl` | COS 更新根地址 |
-| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `false` |
-| `ApmEndpoint` | APM OTLP 接入点 |
-| `ApmToken` | APM Token，建议用 `YFRAME_APM_TOKEN` 环境变量 |
+| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `true` |
 | `ApmServiceName` | APM 服务名，默认 `YFrame` |
 | `ApmEnvironment` | APM 环境，默认 `uat` |
-| `CloudBaseEnabled` | 是否上传硬件信息，默认 `false` |
+| `CloudBaseEnabled` | 是否上传硬件信息，默认 `true` |
 | `CloudBaseEnvId` | CloudBase 环境 ID |
-| `CloudBaseApiKey` | CloudBase API Key，建议用 `CLOUDBASE_API_KEY` 环境变量 |
 | `CloudBaseHardwareTable` | 硬件表名，默认 `yframe_hardware` |
 
 ---

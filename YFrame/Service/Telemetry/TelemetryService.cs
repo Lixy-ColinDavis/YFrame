@@ -37,8 +37,8 @@ public static class TelemetryService
         if (!Config.ApmEnabled)
             return;
 
-        string endpoint = Config.ApmEndpoint.Trim();
-        string token = Environment.GetEnvironmentVariable("YFRAME_APM_TOKEN") ?? Config.ApmToken;
+        string endpoint = ApmBuiltInSettings.Endpoint;
+        string token = ApmBuiltInSettings.Token;
         token = token?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(token))
         {

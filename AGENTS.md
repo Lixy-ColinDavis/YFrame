@@ -314,6 +314,7 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 ### 8.1 可观测性
 
 - `YFrame.csproj` 引用 `OpenTelemetry` 1.12.0 与 `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.12.0；
+- APM Endpoint/Token 固定在 `YFrame/Service/Telemetry/ApmBuiltInSettings.cs`，不写入 config.conf；
 - `TelemetryService` 使用 `ActivitySource("YFrame")` + OTLP gRPC；
 - 当前 Span：`app.startup`、`hardware.scan`、`cloudbase.upload`、`Error.<类型>`；
 - `hardware.scan` 附加 `hardware.summary`、CPU/内存/GPU/磁盘/显示器/OS 标签；
@@ -327,8 +328,8 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 ### 8.2 CloudBase 硬件入库
 
 - 服务：`YFrame/Service/CloudBase/CloudBaseHardwareService.cs`；
-- 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseApiKey`、`CloudBaseHardwareTable`；
-- API Key 优先读环境变量 `CLOUDBASE_API_KEY`；
+- 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseHardwareTable`；
+- API Key 固定在源码 `YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs`，不写入 config.conf；
 - 地址：`https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/yframe_hardware`；
 - 先按 `device_name` 查询：存在则 PATCH，不存在则 POST；
 - 表字段：`device_name`、`cpu`、`gpu`、`memory`、`disk`、`updatetime`；`id`/`created_at` 用默认值；
@@ -472,14 +473,11 @@ dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishPro
 | `AIModelpath` | `plugins\YF_AIHelper\Model\...gguf` |
 | `Env` | `uat` / `pdt` |
 | `UpdateBaseUrl` | COS 根地址 |
-| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `false` |
-| `ApmEndpoint` | APM OTLP 接入点 |
-| `ApmToken` | APM Token，建议使用 `YFRAME_APM_TOKEN` 环境变量 |
+| `ApmEnabled` | 是否启用 APM OpenTelemetry，默认 `true` |
 | `ApmServiceName` | APM 服务名，默认 `YFrame` |
 | `ApmEnvironment` | APM 环境，默认 `uat` |
-| `CloudBaseEnabled` | 是否启用硬件入库，默认 `false` |
+| `CloudBaseEnabled` | 是否启用硬件入库，默认 `true` |
 | `CloudBaseEnvId` | CloudBase 环境 ID |
-| `CloudBaseApiKey` | CloudBase API Key，建议使用 `CLOUDBASE_API_KEY` 环境变量 |
 | `CloudBaseHardwareTable` | 硬件表名，默认 `yframe_hardware` |
 
 ---

@@ -8,6 +8,10 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>YFrame.upload.cos</AssemblyName>
     <RootNamespace>YFrame.upload.cos</RootNamespace>
+    <!-- 与 YFrame.Sign 保持一致，统一输出到 Pack 的 bin 目录 -->
+    <OutputPath>..\YFrame.Pack\bin\$(Configuration)\net8.0-windows\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

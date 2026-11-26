@@ -37,8 +37,7 @@ public static class CloudBaseHardwareService
         if (!Config.CloudBaseEnabled)
             return;
 
-        string apiKey = Environment.GetEnvironmentVariable("CLOUDBASE_API_KEY")
-                        ?? Config.CloudBaseApiKey;
+        string apiKey = CloudBaseBuiltInSettings.ApiKey;
         apiKey = apiKey?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(apiKey))
         {

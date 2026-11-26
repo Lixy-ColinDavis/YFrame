@@ -135,20 +135,6 @@ namespace YF_Manager
             set => Set(value ? "true" : "false");
         }
 
-        /// <summary>APM OTLP 接入点。</summary>
-        public static string ApmEndpoint
-        {
-            get => Get(string.Empty);
-            set => Set(value);
-        }
-
-        /// <summary>APM 应用 Token；建议优先通过环境变量 YFRAME_APM_TOKEN 提供。</summary>
-        public static string ApmToken
-        {
-            get => Get(string.Empty);
-            set => Set(value);
-        }
-
         /// <summary>APM 服务名。</summary>
         public static string ApmServiceName
         {
@@ -174,13 +160,6 @@ namespace YF_Manager
         public static string CloudBaseEnvId
         {
             get => Get("worldwide-scorpion-d3c6y1e374741");
-            set => Set(value);
-        }
-
-        /// <summary>CloudBase API Key；建议优先通过环境变量 CLOUDBASE_API_KEY 提供。</summary>
-        public static string CloudBaseApiKey
-        {
-            get => Get(string.Empty);
             set => Set(value);
         }
 
