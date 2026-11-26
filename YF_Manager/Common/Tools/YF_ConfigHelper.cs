@@ -111,6 +111,12 @@ namespace YF_Manager
             _configValues["PluginSourceMode"] = "https";
             _configValues["PluginManifestUrl"] =
                 "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json";
+            // APM OpenTelemetry 默认关闭，避免无感上报
+            _configValues["ApmEnabled"] = "true";
+            _configValues["ApmEndpoint"] = "https://ap-guangzhou.apm.tencentcs.com:4320";
+            _configValues["ApmToken"] = "uRNEPJAeWlEeOMRqXykE";
+            _configValues["ApmServiceName"] = "YFrame";
+            _configValues["ApmEnvironment"] = "uat";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
@@ -156,7 +162,12 @@ namespace YF_Manager
                 }
 
                 // 补齐缺失的默认键（兼容旧配置缺少新配置项）
+                int countBeforeDefaults = _configValues.Count;
                 EnsureAllDefaultsExist();
+
+                // 新增默认键必须写回文件，否则配置文件中永远看不到新键
+                if (_configValues.Count > countBeforeDefaults)
+                    SaveToFileInternal();
             }
             catch (Exception ex)
             {
@@ -197,6 +208,16 @@ namespace YF_Manager
             if (!existingKeys.Contains("PluginManifestUrl"))
                 _configValues.TryAdd("PluginManifestUrl",
                     "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
+            if (!existingKeys.Contains("ApmEnabled"))
+                _configValues.TryAdd("ApmEnabled", "false");
+            if (!existingKeys.Contains("ApmEndpoint"))
+                _configValues.TryAdd("ApmEndpoint", "");
+            if (!existingKeys.Contains("ApmToken"))
+                _configValues.TryAdd("ApmToken", "");
+            if (!existingKeys.Contains("ApmServiceName"))
+                _configValues.TryAdd("ApmServiceName", "YFrame");
+            if (!existingKeys.Contains("ApmEnvironment"))
+                _configValues.TryAdd("ApmEnvironment", "uat");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))

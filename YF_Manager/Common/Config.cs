@@ -128,6 +128,41 @@ namespace YF_Manager
             set => Set(value);
         }
 
+        /// <summary>是否启用腾讯云 APM OpenTelemetry 上报。</summary>
+        public static bool ApmEnabled
+        {
+            get => string.Equals(Get("false"), "true", StringComparison.OrdinalIgnoreCase);
+            set => Set(value ? "true" : "false");
+        }
+
+        /// <summary>APM OTLP 接入点。</summary>
+        public static string ApmEndpoint
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>APM 应用 Token；建议优先通过环境变量 YFRAME_APM_TOKEN 提供。</summary>
+        public static string ApmToken
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>APM 服务名。</summary>
+        public static string ApmServiceName
+        {
+            get => Get("YFrame");
+            set => Set(value);
+        }
+
+        /// <summary>APM 部署环境，例如 uat/pdt。</summary>
+        public static string ApmEnvironment
+        {
+            get => Get("uat");
+            set => Set(value);
+        }
+
         /// <summary>
         /// 全局屏幕缩放比例（百分比文本，100-200）
         /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算

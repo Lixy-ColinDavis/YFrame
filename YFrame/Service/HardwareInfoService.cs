@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using YFrame.Model;
+using YFrame.Service.Telemetry;
 
 namespace YFrame.Service
 {
@@ -27,6 +29,7 @@ namespace YFrame.Service
         /// <returns>硬件静态信息快照</returns>
         public static HardwareInfoSnapshot Load()
         {
+            using Activity? activity = TelemetryService.StartActivity("hardware.scan");
             var snapshot = new HardwareInfoSnapshot();
 
             snapshot.Cpu = QueryCpu();

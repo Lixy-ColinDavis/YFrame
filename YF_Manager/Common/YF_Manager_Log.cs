@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +11,12 @@ namespace YF_Manager
     {
         // log回调，界面输出
         public static YF_DelegateFunctionModel.dvFunc_Vs d_LogWrite;
+
+        /// <summary>
+        /// 结构化日志事件，供主程序接入 APM/OpenTelemetry。
+        /// 插件只引用 YF_Manager，不会因此引入云 SDK。
+        /// </summary>
+        public static event Action<YF_LogRecord>? LogEmitted;
 
         // 初始化的log对象信息
         private string _name = "Default";
@@ -61,11 +67,16 @@ namespace YF_Manager
             LogInfo(msg, "[Command]");
         }
 
-        public void TcpInfo(string msg) => Write(CheckPath(@$"{Config.LogPath}\TcpLog"), _name + ": " + msg);
+        public void TcpInfo(string msg)
+        {
+            Write(CheckPath(@$"{Config.LogPath}\TcpLog"), _name + ": " + msg);
+            Emit("[Tcp]", msg);
+        }
 
         public void LogInfo(string msg, string type = "[Info]")
         {
             Write(CheckPath(@$"{Config.LogPath}\InfoLog"), _name + $": {type}" + msg);
+            Emit(type, msg);
             if (d_LogWrite != null)
             {
                 var mainLogger = YF_Manager_Main.logger;
@@ -78,6 +89,32 @@ namespace YF_Manager
         {
             Write(CheckPath(@$"{Config.LogPath}\InterceptorsLog"), _name + $": [{type}]" + msg);
             LogInfo(msg);
+        }
+
+        /// <summary>
+        /// 发出结构化日志事件；监听器异常不能影响原日志。
+        /// </summary>
+        private void Emit(string level, string message)
+        {
+            Action<YF_LogRecord>? handler = LogEmitted;
+            if (handler == null)
+                return;
+
+            try
+            {
+                handler(new YF_LogRecord
+                {
+                    Timestamp = DateTime.Now,
+                    Name = _name,
+                    Id = _id,
+                    Level = level,
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[YF_Manager_Log] 日志事件处理失败: {ex.Message}");
+            }
         }
 
         /// <summary>

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Windows;
 using YF_Manager;
 using YFrame.Service;
+using YFrame.Service.Telemetry;
 using YFrame.View;
 
 namespace YFrame
@@ -61,6 +62,11 @@ namespace YFrame
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
 
+            // APM 默认关闭；开启后从启动链路开始埋点
+            TelemetryService.Initialize();
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            using Activity? startupActivity = TelemetryService.StartActivity("app.startup");
+
             // 更新器自身若已被新版本替换，先在这里接替，再做远端版本检查
             await ApplyPendingUpdaterAsync();
 
@@ -78,7 +84,7 @@ namespace YFrame
             // 构建 DI 容器
             var services = new ServiceCollection();
             ConfigureServices(services);
-            var provider = services.BuildServiceProvider();
+            ServiceProvider provider = services.BuildServiceProvider();
 
             // 设置全局 DI 持有者，供插件和底层库解析
             YF_Di.Provider = provider;
@@ -161,9 +167,25 @@ namespace YFrame
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        /// <summary>进程退出时释放单实例锁。</summary>
+        /// <summary>记录 WPF 派发线程未处理异常，不改变原始崩溃行为。</summary>
+        private static void OnDispatcherUnhandledException(
+            object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            TelemetryService.TrackException(e.Exception, "dispatcher.unhandled");
+        }
+
+        /// <summary>进程退出时释放单实例锁和 APM 资源。</summary>
         protected override void OnExit(ExitEventArgs e)
         {
+            try
+            {
+                TelemetryService.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] 关闭 APM 失败: {ex.Message}");
+            }
+
             try
             {
                 if (_singleInstanceMutex != null)
