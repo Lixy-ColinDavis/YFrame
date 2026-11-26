@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -34,6 +34,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private int _removedCount;
     private string _incrementFileName = "increment.zip";
     private string _lastOutputDirectory = string.Empty;
+    private string _releaseSourceDirectory = string.Empty;
+    private string _releaseArchiveOutputDirectory = string.Empty;
+    private string _versionPropsPath = string.Empty;
+    private string _lastReleaseArchivePath = string.Empty;
 
     /// <summary>创建 ViewModel 并载入 exe 同目录配置。</summary>
     public MainViewModel()
@@ -44,6 +48,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _incrementUrl = _config.IncrementUrl;
         _lastOutputDirectory = _config.OutputDirectory;
         _incrementFileName = BuildIncrementFileName(_previousZipPath);
+        _releaseSourceDirectory = _config.ReleaseSourceDirectory;
+        _releaseArchiveOutputDirectory = _config.ReleaseArchiveOutputDirectory;
+        _versionPropsPath = _config.VersionPropsPath;
 
         BrowsePreviousCommand = new RelayCommand(BrowsePrevious);
         BrowseCurrentCommand = new RelayCommand(BrowseCurrent);
@@ -53,8 +60,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OpenOutputCommand = new RelayCommand(OpenOutput);
         ClearLogCommand = new RelayCommand(() => LogText = string.Empty);
 
+        BrowseReleaseSourceCommand = new RelayCommand(BrowseReleaseSource);
+        BrowseReleaseOutputCommand = new RelayCommand(BrowseReleaseOutput);
+        BrowseVersionPropsCommand = new RelayCommand(BrowseVersionProps);
+        BuildReleaseCommand = new AsyncRelayCommand(BuildReleaseAsync, CanBuildRelease);
+        OpenReleaseOutputCommand = new RelayCommand(OpenReleaseOutput);
+
         AppendLog($"配置文件：{PackConfig.ConfigPath}");
-        AppendLog($"自动扫描目录：{AppContext.BaseDirectory}");
+        AppendLog($"自动扫描目录：{ReleaseArchiveOutputDirectory} | {AppContext.BaseDirectory}");
         LoadLatestPackages();
     }
 
@@ -67,6 +80,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ICommand BuildCommand { get; }
     public ICommand OpenOutputCommand { get; }
     public ICommand ClearLogCommand { get; }
+    public ICommand BrowseReleaseSourceCommand { get; }
+    public ICommand BrowseReleaseOutputCommand { get; }
+    public ICommand BrowseVersionPropsCommand { get; }
+    public ICommand BuildReleaseCommand { get; }
+    public ICommand OpenReleaseOutputCommand { get; }
 
     /// <summary>旧版本完整包路径。</summary>
     public string PreviousZipPath
@@ -104,6 +122,61 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (!SetProperty(ref _outputDirectory, value)) return;
             OnPropertyChanged(nameof(IncrementFileName));
             OnPropertyChanged(nameof(ManifestFileName));
+        }
+    }
+
+    /// <summary>发布包压缩源目录。</summary>
+    public string ReleaseSourceDirectory
+    {
+        get => _releaseSourceDirectory;
+        set
+        {
+            if (SetProperty(ref _releaseSourceDirectory, value))
+                RaiseCommandState();
+        }
+    }
+
+    /// <summary>发布包 ZIP 输出目录。</summary>
+    public string ReleaseArchiveOutputDirectory
+    {
+        get => _releaseArchiveOutputDirectory;
+        set
+        {
+            if (SetProperty(ref _releaseArchiveOutputDirectory, value))
+            {
+                OnPropertyChanged(nameof(ReleaseArchiveName));
+                RaiseCommandState();
+            }
+        }
+    }
+
+    /// <summary>Version.props 路径。</summary>
+    public string VersionPropsPath
+    {
+        get => _versionPropsPath;
+        set
+        {
+            if (SetProperty(ref _versionPropsPath, value))
+            {
+                OnPropertyChanged(nameof(ReleaseArchiveName));
+                RaiseCommandState();
+            }
+        }
+    }
+
+    /// <summary>根据 Version.props 预览发布包文件名。</summary>
+    public string ReleaseArchiveName
+    {
+        get
+        {
+            try
+            {
+                return $"YF-{ReleasePackageService.ReadVersion(VersionPropsPath)}.zip";
+            }
+            catch
+            {
+                return "YF-版本号.zip";
+            }
         }
     }
 
@@ -193,6 +266,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>是否有可打开的输出目录。</summary>
     public bool HasOutput => Directory.Exists(_lastOutputDirectory);
 
+    /// <summary>是否有可打开的发布包目录。</summary>
+    public bool HasReleaseOutput => Directory.Exists(_releaseArchiveOutputDirectory);
+
     /// <summary>
     /// 打开旧版本 ZIP 选择框。
     /// </summary>
@@ -240,6 +316,136 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         (PreviousZipPath, CurrentZipPath) = (CurrentZipPath, PreviousZipPath);
         SaveConfig();
+    }
+
+    /// <summary>选择 Release 发布目录。</summary>
+    private void BrowseReleaseSource()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "选择 YFrame Release 输出目录",
+            InitialDirectory = Directory.Exists(ReleaseSourceDirectory)
+                ? ReleaseSourceDirectory
+                : AppContext.BaseDirectory
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            ReleaseSourceDirectory = dialog.FolderName;
+            SaveConfig();
+        }
+    }
+
+    /// <summary>选择发布包 ZIP 输出目录。</summary>
+    private void BrowseReleaseOutput()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "选择发布包输出目录",
+            InitialDirectory = Directory.Exists(ReleaseArchiveOutputDirectory)
+                ? ReleaseArchiveOutputDirectory
+                : AppContext.BaseDirectory
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            ReleaseArchiveOutputDirectory = dialog.FolderName;
+            SaveConfig();
+        }
+    }
+
+    /// <summary>选择 Version.props。</summary>
+    private void BrowseVersionProps()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择 Version.props",
+            Filter = "Version.props|Version.props|MSBuild 属性文件|*.props|所有文件|*.*",
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            VersionPropsPath = dialog.FileName;
+            SaveConfig();
+        }
+    }
+
+    /// <summary>发布包构建前检查。</summary>
+    private bool CanBuildRelease()
+        => !IsBusy &&
+           Directory.Exists(ReleaseSourceDirectory) &&
+           File.Exists(VersionPropsPath) &&
+           !string.IsNullOrWhiteSpace(ReleaseArchiveOutputDirectory);
+
+    /// <summary>压缩 Release 目录并生成版本发布包。</summary>
+    private async Task BuildReleaseAsync()
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+        StatusText = "正在生成发布包...";
+        LogText = string.Empty;
+        SaveConfig();
+
+        try
+        {
+            var progress = new Progress<string>(AppendLog);
+            ReleasePackageResult result = await Task.Run(() => ReleasePackageService.BuildAsync(
+                ReleaseSourceDirectory,
+                ReleaseArchiveOutputDirectory,
+                VersionPropsPath,
+                message => ((IProgress<string>)progress).Report(message))
+                .GetAwaiter().GetResult());
+
+            _lastReleaseArchivePath = result.OutputPath;
+            OnPropertyChanged(nameof(ReleaseArchiveName));
+            OnPropertyChanged(nameof(HasReleaseOutput));
+
+            // 发布包生成后立即刷新上方版本比较，自动取最新两个版本
+            LoadLatestPackages();
+
+            StatusText = $"发布包完成：{Path.GetFileName(result.OutputPath)}";
+            AppendLog(string.Empty);
+            AppendLog("发布包构建完成。");
+            AppendLog($"输出文件：{result.OutputPath}");
+            AppendLog($"文件数量：{result.FileCount}");
+        }
+        catch (Exception ex)
+        {
+            StatusText = "发布包构建失败";
+            AppendLog($"错误：{ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>打开发布包所在目录，并尽量选中生成的 ZIP。</summary>
+    private void OpenReleaseOutput()
+    {
+        string target = File.Exists(_lastReleaseArchivePath)
+            ? _lastReleaseArchivePath
+            : ReleaseArchiveOutputDirectory;
+        if (!Directory.Exists(ReleaseArchiveOutputDirectory) && !File.Exists(target))
+        {
+            AppendLog("发布包目录尚不存在，请先生成发布包。");
+            return;
+        }
+
+        try
+        {
+            string arguments = File.Exists(target)
+                ? $"/select,\"{target}\""
+                : $"\"{ReleaseArchiveOutputDirectory}\"";
+            Process.Start(new ProcessStartInfo("explorer.exe", arguments) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"无法打开发布包目录：{ex.Message}");
+        }
     }
 
     /// <summary>构建前检查：两个路径存在且不是同一文件。</summary>
@@ -345,15 +551,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
         /// <summary>
-        /// 启动时扫描 exe 所在目录，自动加载版本号最高的两个 YF-*.zip。
+        /// 扫描发布包输出目录和 exe 目录，自动加载版本号最高的两个 YF-*.zip。
         /// 输入路径只在当前会话使用，不写入配置文件。
         /// </summary>
         private void LoadLatestPackages()
         {
             try
             {
-                var candidates = Directory
-                    .EnumerateFiles(AppContext.BaseDirectory, "YF-*.zip", SearchOption.TopDirectoryOnly)
+                var roots = new[]
+                    {
+                        ReleaseArchiveOutputDirectory,
+                        AppContext.BaseDirectory
+                    }
+                    .Where(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (roots.Count == 0)
+                {
+                    AppendLog("自动加载：没有可扫描的版本包目录。");
+                    return;
+                }
+
+                var candidates = roots
+                    .SelectMany(root => Directory.EnumerateFiles(
+                        root, "YF-*.zip", SearchOption.TopDirectoryOnly))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Select(path => new { Path = path, VersionText = ParseVersion(path) })
                     .Where(item => !string.IsNullOrWhiteSpace(item.VersionText))
                     .Select(item => new { item.Path, Version = Version.Parse(item.VersionText!) })
@@ -370,7 +593,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 }
                 else
                 {
-                    AppendLog($"自动加载：目录中找到 {candidates.Count} 个有效版本包，请手动选择两个 YF-*.zip。");
+                    AppendLog($"自动加载：找到 {candidates.Count} 个有效版本包，请手动选择两个 YF-*.zip。");
                 }
             }
             catch (Exception ex)
@@ -406,6 +629,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _config.OutputDirectory = OutputDirectory;
         _config.CurrentUrl = CurrentUrl;
         _config.IncrementUrl = IncrementUrl;
+        _config.ReleaseSourceDirectory = ReleaseSourceDirectory;
+        _config.ReleaseArchiveOutputDirectory = ReleaseArchiveOutputDirectory;
+        _config.VersionPropsPath = VersionPropsPath;
         _config.Save();
     }
 
@@ -455,6 +681,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (BuildCommand is AsyncRelayCommand asyncCommand)
             asyncCommand.RaiseCanExecuteChanged();
+        if (BuildReleaseCommand is AsyncRelayCommand releaseCommand)
+            releaseCommand.RaiseCanExecuteChanged();
     }
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
