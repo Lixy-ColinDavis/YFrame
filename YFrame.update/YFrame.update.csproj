@@ -8,6 +8,12 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>YFrame.update</AssemblyName>
     <RootNamespace>YFrame.Update</RootNamespace>
+    <!-- 直接输出到主框架 bin，构建后即可被 YFrame 启动 -->
+    <OutputPath>..\YFrame\bin\$(Configuration)\net8.0-windows\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!-- 单文件发布临时目录，构建结束后只把 exe 留在主框架 bin -->
+    <UpdaterSingleFileStaging>$(MSBuildProjectDirectory)\obj\singlefile-publish</UpdaterSingleFileStaging>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,20 +23,35 @@
     <Resource Include="..\YFrame\Common\Images\Logo.png" Link="Assets\Logo.png" />
     <!-- 更新地址唯一默认来源，与 YFrame 共用一份代码 -->
     <Compile Include="..\YF_Manager\Common\UpdateDefaults.cs" Link="Common\UpdateDefaults.cs" />
+    <!-- SHA-256 计算唯一实现，与 YFrame/YF_Manager 共用一份代码 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_Sha256Hasher.cs" Link="Common\Tools\YF_Sha256Hasher.cs" />
+    <!-- 更新清单公钥信任锚，与 YFrame/YF_Manager 共用一份代码 -->
+    <Compile Include="..\YF_Manager\Common\UpdateTrustKeys.cs" Link="Common\UpdateTrustKeys.cs" />
+    <!-- 清单签名/验签统一由 YF_Manager 实现 -->
+    <Compile Include="..\YF_Manager\Common\Tools\YF_ManifestSigner.cs" Link="Common\Tools\YF_ManifestSigner.cs" />
   </ItemGroup>
 
-  <!-- Debug 构建后把更新器放到 YFrame 输出根目录，便于主程序直接启动 -->
-  <Target Name="CopyUpdaterToYFrameDebugOutput" AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Debug'">
-    <ItemGroup>
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.exe" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.dll" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.deps.json" />
-      <UpdaterRuntimeFiles Include="$(TargetDir)YFrame.update.runtimeconfig.json" />
-    </ItemGroup>
-    <Copy SourceFiles="@(UpdaterRuntimeFiles)"
-          DestinationFolder="$(MSBuildProjectDirectory)\..\YFrame\bin\Debug\net8.0-windows\"
-          SkipUnchangedFiles="true" />
+  <!--
+    普通 dotnet build 只能生成 exe + dll + deps + runtimeconfig。
+    构建结束后自动调用一次 publish 单文件发布，只把 YFrame.update.exe 留在主框架 bin。
+    使用 SkipUpdaterSingleFile 防止 publish 内部再次触发本目标。
+  -->
+  <Target Name="BuildUpdaterSingleFile"
+          AfterTargets="Build"
+          Condition="'$(SkipUpdaterSingleFile)' != 'true' and '$(PublishSingleFile)' != 'true' and '$(DesignTimeBuild)' != 'true'">
+    <RemoveDir Directories="$(UpdaterSingleFileStaging)" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c $(Configuration) -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=None -p:IncludeNativeLibrariesForSelfExtract=false -p:SkipUpdaterSingleFile=true -o &quot;$(UpdaterSingleFileStaging)&quot; --nologo" />
+
+    <Copy SourceFiles="$(UpdaterSingleFileStaging)\YFrame.update.exe"
+          DestinationFiles="$(TargetDir)YFrame.update.exe"
+          SkipUnchangedFiles="false" />
+
+    <!-- 单文件运行时不再需要这些附属文件，避免被 Pack 打进更新包 -->
+    <Delete Files="$(TargetDir)YFrame.update.dll;
+                   $(TargetDir)YFrame.update.deps.json;
+                   $(TargetDir)YFrame.update.runtimeconfig.json;
+                   $(TargetDir)YFrame.update.pdb" />
   </Target>
 
 </Project>

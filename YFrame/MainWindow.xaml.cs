@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,6 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using YF_Manager;
+using YFrame.Model;
+using YFrame.ViewModel;
 
 namespace YFrame
 {
@@ -502,5 +504,128 @@ namespace YFrame
                 {
                     EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
                 });
-        }    }
+        }
+
+        /// <summary>获取工作任务 ViewModel。</summary>
+        private WorkflowBoardViewModel? WorkflowBoardViewModel =>
+            (DataContext as MainWindowViewModel)?.WorkflowBoard;
+
+        /// <summary>在工作流列表上打开右键菜单，避免在 XAML Style 中生成错误的连接类型。</summary>
+        private void WorkflowList_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            ListBoxItem? item = FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject);
+            if (item?.DataContext is not WorkflowDefinition flow || WorkflowBoardViewModel == null)
+                return;
+
+            WorkflowList.SelectedItem = flow;
+            var menu = new ContextMenu
+            {
+                PlacementTarget = item
+            };
+            if (TryFindResource("ThemedContextMenu") is Style menuStyle)
+                menu.Style = menuStyle;
+            menu.Items.Add(CreateWorkflowMenuItem("上移", () => WorkflowBoardViewModel.MoveUp(flow)));
+            menu.Items.Add(CreateWorkflowMenuItem("下移", () => WorkflowBoardViewModel.MoveDown(flow)));
+            menu.Items.Add(CreateWorkflowSeparator());
+            menu.Items.Add(CreateWorkflowMenuItem("置顶", () => WorkflowBoardViewModel.MoveTop(flow)));
+            menu.Items.Add(CreateWorkflowMenuItem("置底", () => WorkflowBoardViewModel.MoveBottom(flow)));
+            menu.Items.Add(CreateWorkflowSeparator());
+            menu.Items.Add(CreateWorkflowMenuItem("删除流程", () => DeleteWorkflow(flow)));
+            menu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        /// <summary>创建右键菜单项。</summary>
+        private MenuItem CreateWorkflowMenuItem(string header, Action action)
+        {
+            var item = new MenuItem { Header = header };
+            if (TryFindResource("ThemedMenuItem") is Style itemStyle)
+                item.Style = itemStyle;
+            item.Click += (_, _) => action();
+            return item;
+        }
+
+        /// <summary>确认并删除工作流。</summary>
+        private void DeleteWorkflow(WorkflowDefinition flow)
+        {
+            var dialog = new View.WorkflowConfirmWindow(
+                $"确定删除流程“{flow.Name}”吗？该操作不可恢复。")
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true && dialog.Confirmed)
+                WorkflowBoardViewModel?.DeleteWorkflow(flow);
+        }
+
+        /// <summary>创建流程菜单分隔线，使用专用 MenuItem 模板保证铺满菜单宽度。</summary>
+        private MenuItem CreateWorkflowSeparator()
+        {
+            var item = new MenuItem();
+            if (TryFindResource("ThemedMenuSeparatorItem") is Style separatorStyle)
+                item.Style = separatorStyle;
+            return item;
+        }
+
+        /// <summary>向上查找指定类型的可视化父元素。</summary>
+        private static T? FindAncestor<T>(DependencyObject? source) where T : DependencyObject
+        {
+            while (source != null)
+            {
+                if (source is T target)
+                    return target;
+                source = source is Visual
+                    ? VisualTreeHelper.GetParent(source)
+                    : LogicalTreeHelper.GetParent(source);
+            }
+            return null;
+        }
+
+        /// <summary>获取右键菜单对应的流程。</summary>
+        private static WorkflowDefinition? GetWorkflowFromMenu(object sender)
+            => (sender as MenuItem)?.DataContext as WorkflowDefinition;
+
+        /// <summary>上移流程。</summary>
+        private void WorkflowMoveUp_Click(object sender, RoutedEventArgs e)
+            => RunWorkflowMenu(sender, flow => WorkflowBoardViewModel?.MoveUp(flow));
+
+        /// <summary>下移流程。</summary>
+        private void WorkflowMoveDown_Click(object sender, RoutedEventArgs e)
+            => RunWorkflowMenu(sender, flow => WorkflowBoardViewModel?.MoveDown(flow));
+
+        /// <summary>置顶流程。</summary>
+        private void WorkflowMoveTop_Click(object sender, RoutedEventArgs e)
+            => RunWorkflowMenu(sender, flow => WorkflowBoardViewModel?.MoveTop(flow));
+
+        /// <summary>置底流程。</summary>
+        private void WorkflowMoveBottom_Click(object sender, RoutedEventArgs e)
+            => RunWorkflowMenu(sender, flow => WorkflowBoardViewModel?.MoveBottom(flow));
+
+        /// <summary>删除流程，先确认。</summary>
+        private void WorkflowDelete_Click(object sender, RoutedEventArgs e)
+        {
+            WorkflowDefinition? flow = GetWorkflowFromMenu(sender);
+            if (flow == null || WorkflowBoardViewModel == null)
+                return;
+
+            MessageBoxResult result = MessageBox.Show(
+                $"确定删除流程“{flow.Name}”吗？",
+                "删除流程",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+                WorkflowBoardViewModel.DeleteWorkflow(flow);
+        }
+
+        /// <summary>执行流程排序操作并保持选中。</summary>
+        private void RunWorkflowMenu(object sender, Action<WorkflowDefinition> action)
+        {
+            WorkflowDefinition? flow = GetWorkflowFromMenu(sender);
+            if (flow == null || WorkflowBoardViewModel == null)
+                return;
+
+            WorkflowBoardViewModel.SelectedFlow = flow;
+            action(flow);
+        }
+    }
 }

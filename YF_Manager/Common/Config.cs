@@ -111,6 +111,87 @@ namespace YF_Manager
         }
 
         /// <summary>
+        /// 插件来源模式：tcp 或 https。默认使用 COS 清单。
+        /// </summary>
+        public static string PluginSourceMode
+        {
+            get => Get("https");
+            set => Set(value);
+        }
+
+        /// <summary>
+        /// HTTPS 插件清单地址，默认使用 COS YFrame/plugins/plugins.json。
+        /// </summary>
+        public static string PluginManifestUrl
+        {
+            get => Get("https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
+            set => Set(value);
+        }
+
+        /// <summary>是否启用腾讯云 APM OpenTelemetry 上报。</summary>
+        public static bool ApmEnabled
+        {
+            get => string.Equals(Get("false"), "true", StringComparison.OrdinalIgnoreCase);
+            set => Set(value ? "true" : "false");
+        }
+
+        /// <summary>APM OTLP 接入点。</summary>
+        public static string ApmEndpoint
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>APM 应用 Token；建议优先通过环境变量 YFRAME_APM_TOKEN 提供。</summary>
+        public static string ApmToken
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>APM 服务名。</summary>
+        public static string ApmServiceName
+        {
+            get => Get("YFrame");
+            set => Set(value);
+        }
+
+        /// <summary>APM 部署环境，例如 uat/pdt。</summary>
+        public static string ApmEnvironment
+        {
+            get => Get("uat");
+            set => Set(value);
+        }
+
+        /// <summary>是否启用 CloudBase 硬件信息上传。</summary>
+        public static bool CloudBaseEnabled
+        {
+            get => string.Equals(Get("false"), "true", StringComparison.OrdinalIgnoreCase);
+            set => Set(value ? "true" : "false");
+        }
+
+        /// <summary>CloudBase 环境 ID。</summary>
+        public static string CloudBaseEnvId
+        {
+            get => Get("worldwide-scorpion-d3c6y1e374741");
+            set => Set(value);
+        }
+
+        /// <summary>CloudBase API Key；建议优先通过环境变量 CLOUDBASE_API_KEY 提供。</summary>
+        public static string CloudBaseApiKey
+        {
+            get => Get(string.Empty);
+            set => Set(value);
+        }
+
+        /// <summary>CloudBase PostgreSQL 硬件表名。</summary>
+        public static string CloudBaseHardwareTable
+        {
+            get => Get("yframe_hardware");
+            set => Set(value);
+        }
+
+        /// <summary>
         /// 全局屏幕缩放比例（百分比文本，100-200）
         /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算
         /// </summary>

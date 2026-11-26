@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 # 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
 ################################################################################
 
@@ -27,3 +27,13 @@
 /YFrame.Pack/bin
 /YFrame.update/obj
 /YFrame.update/bin
+/YFrame.Sign/bin
+/YFrame.Sign/obj
+
+# 签名私钥与测试密钥，绝不提交
+/SigningKeys/
+*.private.pem
+*.pfx
+*.key
+/YFrame.upload.cos/obj
+/YFrame.upload.cos/bin

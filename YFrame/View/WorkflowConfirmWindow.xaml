@@ -1,0 +1,48 @@
+<Window x:Class="YFrame.View.WorkflowConfirmWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="YFrame"
+        Width="380" Height="180"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="{DynamicResource UiFontFamily}">
+    <Border Background="{DynamicResource WindowBrush}"
+            BorderBrush="{DynamicResource WindowBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="20"
+            MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="删除流程"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextBrush}"/>
+
+            <TextBlock x:Name="MessageText"
+                       Grid.Row="1"
+                       Margin="0,14,0,10"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource SubtleTextBrush}"/>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="取消" Width="76" Margin="0,0,8,0" Click="CancelButton_Click"/>
+                <Button Content="删除" Width="76"
+                        Background="{DynamicResource DangerBrush}"
+                        Foreground="White"
+                        Style="{StaticResource PrimaryButton}"
+                        Click="ConfirmButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

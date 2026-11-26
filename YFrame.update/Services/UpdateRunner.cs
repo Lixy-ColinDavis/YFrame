@@ -4,20 +4,21 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text.Json;
+using YF_Manager;
 using YFrame.Common;
 using YFrame.Update.Models;
 
 namespace YFrame.Update.Services;
 
 /// <summary>
-/// 自动更新执行器：读取远端清单、下载增量包、校验 MD5、备份、替换、删除并重启主程序。
+/// 自动更新执行器：读取远端清单、下载增量包或全量包、校验 SHA-256、备份、替换、删除并重启主程序。
 /// </summary>
 public sealed class UpdateRunner
 {
     private readonly string _appRoot;
     private readonly string _manifestUrl;
+    private readonly string _environment;
     private readonly UpdateLogger _logger;
 
     /// <summary>更新器正式文件名。</summary>
@@ -37,12 +38,15 @@ public sealed class UpdateRunner
     /// <param name="appRoot">YFrame 主程序目录；默认为 update.exe 所在目录</param>
     /// <param name="manifestUrl">版本清单地址；为空时使用共享默认 UAT 地址</param>
     /// <param name="logger">更新日志器；为空时自动创建</param>
-    public UpdateRunner(string? appRoot = null, string? manifestUrl = null, UpdateLogger? logger = null)
+    /// <param name="environment">签名环境 uat/pdt；为空时使用 uat</param>
+    public UpdateRunner(string? appRoot = null, string? manifestUrl = null,
+        UpdateLogger? logger = null, string? environment = null)
     {
         _appRoot = Path.GetFullPath(appRoot ?? AppContext.BaseDirectory);
         _manifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
             ? Cos_UpdateDefaults.ManifestUrl(Cos_UpdateDefaults.DefaultEnv)
             : manifestUrl;
+        _environment = Cos_UpdateDefaults.NormalizeEnv(environment);
         _logger = logger ?? new UpdateLogger(_appRoot);
     }
 
@@ -75,41 +79,57 @@ public sealed class UpdateRunner
             return new UpdateResult { AlreadyCurrent = true, CurrentVersion = current };
         }
 
-        if (!string.Equals(localVersion, previous, StringComparison.OrdinalIgnoreCase))
+        if (!IsVersionOlder(localVersion, current))
         {
             throw new InvalidOperationException(
-                $"本地版本 {localVersion} 既不是最新版 {current}，也不是上一版本 {previous}，无法执行增量更新。");
+                $"本地版本 {localVersion} 高于远端版本 {current}，不执行降级更新。");
         }
 
-        var package = manifest.Previous;
-        if (package == null || string.IsNullOrWhiteSpace(package.Url))
-            throw new InvalidDataException("远端清单缺少 pervious.url。");
-        if (package.Size <= 0)
-            throw new InvalidDataException("远端清单缺少有效的 pervious.size。");
-        if (string.IsNullOrWhiteSpace(package.Md5))
-            throw new InvalidDataException("远端清单缺少 pervious.md5。");
+        bool isPrevious = string.Equals(localVersion, previous, StringComparison.OrdinalIgnoreCase);
+        bool isFullUpdate;
+        PackageInfo package;
 
-        _logger.Info($"准备下载增量包；url={package.Url}；size={package.Size}；md5={package.Md5}");
+        // 相邻版本优先用增量包；增量包缺失时回退全量包
+        if (isPrevious && HasUsablePackage(manifest.Previous))
+        {
+            isFullUpdate = false;
+            package = manifest.Previous;
+        }
+        else if (HasUsablePackage(manifest.Current))
+        {
+            isFullUpdate = true;
+            package = manifest.Current;
+        }
+        else
+        {
+            throw new InvalidDataException(isPrevious
+                ? "远端清单缺少可用的增量包和全量包。"
+                : $"本地版本 {localVersion} 不是上一版本，且远端清单缺少可用的全量包。");
+        }
+
+        string packageKind = isFullUpdate ? "全量包" : "增量包";
+        string packageFileName = isFullUpdate ? "current.zip" : "increment.zip";
+        _logger.Info($"准备下载{packageKind}；url={package.Url}；size={package.Size}；sha256={package.Sha256}");
 
         string tempDirectory = Path.Combine(Path.GetTempPath(),
             "YFrame_update_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
-        string downloadPath = Path.Combine(tempDirectory, "increment.zip");
+        string downloadPath = Path.Combine(tempDirectory, packageFileName);
         string stagingDirectory = Path.Combine(tempDirectory, "staging");
 
         try
         {
-            Report(progress, 5, "下载增量包", package.Url);
+            Report(progress, 5, $"下载{packageKind}", package.Url);
             await DownloadAsync(package.Url, package.Size, downloadPath, progress, cancellationToken);
-            _logger.Info($"增量包下载完成；path={downloadPath}；size={new FileInfo(downloadPath).Length}");
+            _logger.Info($"{packageKind}下载完成；path={downloadPath}；size={new FileInfo(downloadPath).Length}");
 
-            Report(progress, 58, "校验增量包", "正在校验文件大小和 MD5...");
+            Report(progress, 58, $"校验{packageKind}", "正在校验文件大小和 SHA-256...");
             VerifyPackage(downloadPath, package);
-            _logger.Info("增量包大小和 MD5 校验通过。");
+            _logger.Info($"{packageKind}大小和 SHA-256 校验通过。");
 
-            Report(progress, 64, "解压增量包", "正在检查文件路径...");
+            Report(progress, 64, $"解压{packageKind}", "正在检查文件路径...");
             var changedFiles = ExtractToStaging(downloadPath, stagingDirectory);
-            _logger.Info($"增量包解压完成；文件数={changedFiles.Count}；staging={stagingDirectory}");
+            _logger.Info($"{packageKind}解压完成；文件数={changedFiles.Count}；staging={stagingDirectory}");
 
             // 更新器自身不能在运行时直接覆盖；先落盘为 .new，由下次 YFrame 启动时接替
             bool containsUpdater = changedFiles.RemoveAll(path =>
@@ -121,21 +141,40 @@ public sealed class UpdateRunner
                 _logger.Info($"新更新器已写入 {PendingUpdaterFileName}，等待 YFrame 下次启动接替。");
             }
 
+            // 全量包以完整文件树为准；Config/Log/plugins/Backup 等用户数据不覆盖、不清理
+            List<string> filesToReplace = changedFiles;
+            List<string> filesToRemove = manifest.Removed;
+            if (isFullUpdate)
+            {
+                filesToReplace = changedFiles
+                    .Where(path => !IsProtectedFullUpdatePath(path))
+                    .ToList();
+
+                filesToRemove = manifest.Removed
+                    .Concat(CollectObsoleteFiles(changedFiles))
+                    .Where(path => !IsProtectedFullUpdatePath(path) && !IsUpdaterFile(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                _logger.Info($"全量更新范围；替换={filesToReplace.Count}；清理旧文件={filesToRemove.Count}；" +
+                             $"跳过用户目录/更新器");
+            }
+
             Report(progress, 70, "等待主程序退出", "正在等待 YFrame 关闭以释放文件...");
             await WaitForMainAppExitAsync(progress, cancellationToken);
             _logger.Info("YFrame 主进程已退出，可以替换文件。");
 
             Report(progress, 74, "备份原文件", "正在备份将被替换或删除的文件...");
-            string backupDirectory = BackupFiles(changedFiles, manifest.Removed, current);
-            _logger.Info($"备份完成；目录={backupDirectory}；待替换={changedFiles.Count}；待删除={manifest.Removed.Count}");
+            string backupDirectory = BackupFiles(filesToReplace, filesToRemove, current);
+            _logger.Info($"备份完成；目录={backupDirectory}；待替换={filesToReplace.Count}；待删除={filesToRemove.Count}");
 
-            Report(progress, 82, "替换文件", $"正在更新 {changedFiles.Count} 个文件...");
-            ReplaceFiles(stagingDirectory, changedFiles);
-            _logger.Info($"文件替换完成；数量={changedFiles.Count}");
+            Report(progress, 82, "替换文件", $"正在更新 {filesToReplace.Count} 个文件...");
+            ReplaceFiles(stagingDirectory, filesToReplace);
+            _logger.Info($"文件替换完成；数量={filesToReplace.Count}");
 
-            Report(progress, 92, "删除旧文件", $"正在处理 {manifest.Removed.Count} 个已删除文件...");
-            DeleteRemovedFiles(manifest.Removed);
-            _logger.Info($"已删除文件处理完成；数量={manifest.Removed.Count}");
+            Report(progress, 92, "删除旧文件", $"正在处理 {filesToRemove.Count} 个已删除文件...");
+            DeleteRemovedFiles(filesToRemove);
+            _logger.Info($"已删除文件处理完成；数量={filesToRemove.Count}");
 
             // 更新已成功，删除整个 Backup 目录（含历史残留），避免长期占用磁盘
             Report(progress, 96, "清理备份", "更新成功，正在删除备份目录...");
@@ -285,17 +324,30 @@ public sealed class UpdateRunner
         throw new FileNotFoundException("无法读取本地 YFrame 版本，请确认 YFrame.dll 或 YFrame.exe 存在。");
     }
 
-    /// <summary>下载并反序列化远端版本清单。</summary>
+    /// <summary>下载并验证远端版本清单签名，再反序列化。</summary>
     private async Task<RemoteUpdateManifest> ReadManifestAsync(CancellationToken cancellationToken)
     {
-        string json = await Client.GetStringAsync(_manifestUrl, cancellationToken);
-        var manifest = JsonSerializer.Deserialize<RemoteUpdateManifest>(json, JsonOptions);
+        using var manifestResponse = await Client.GetAsync(_manifestUrl, cancellationToken);
+        manifestResponse.EnsureSuccessStatusCode();
+        byte[] manifestBytes = await manifestResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        using var signatureResponse = await Client.GetAsync(_manifestUrl + ".sig", cancellationToken);
+        signatureResponse.EnsureSuccessStatusCode();
+        byte[] signatureBytes = await signatureResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        string publicKey = UpdateTrustKeys.GetPublicKey(_environment);
+        if (!YF_ManifestSigner.Verify(manifestBytes, signatureBytes, publicKey))
+            throw new InvalidDataException("更新清单签名校验失败，拒绝更新。");
+
+        var manifest = JsonSerializer.Deserialize<RemoteUpdateManifest>(manifestBytes, JsonOptions);
         if (manifest == null)
             throw new InvalidDataException("远端版本清单为空或格式错误。");
+
+        _logger.Info($"更新清单签名校验通过；环境={_environment}；keyId={UpdateTrustKeys.GetKeyId(_environment)}");
         return manifest;
     }
 
-    /// <summary>带进度地下载增量包。</summary>
+    /// <summary>带进度地下载更新包。</summary>
     private static async Task DownloadAsync(
         string url,
         long expectedSize,
@@ -323,7 +375,7 @@ public sealed class UpdateRunner
             if (total > 0 && (DateTime.UtcNow - lastReport).TotalMilliseconds >= 120)
             {
                 double percent = 5 + received * 50.0 / total;
-                Report(progress, percent, "下载增量包", $"{FormatBytes(received)} / {FormatBytes(total)}");
+                Report(progress, percent, "下载更新包", $"{FormatBytes(received)} / {FormatBytes(total)}");
                 lastReport = DateTime.UtcNow;
             }
         }
@@ -331,19 +383,19 @@ public sealed class UpdateRunner
         Report(progress, 56, "下载完成", FormatBytes(received));
     }
 
-    /// <summary>校验下载文件的大小和 MD5。</summary>
+    /// <summary>校验下载文件的大小和 SHA-256。</summary>
     private static void VerifyPackage(string filePath, PackageInfo package)
     {
         long actualSize = new FileInfo(filePath).Length;
         if (actualSize != package.Size)
-            throw new InvalidDataException($"增量包大小不匹配：期望 {package.Size}，实际 {actualSize}。");
+            throw new InvalidDataException($"更新包大小不匹配：期望 {package.Size}，实际 {actualSize}。");
 
-        string actualMd5 = ComputeFileMd5(filePath);
-        if (!string.Equals(actualMd5, package.Md5.Trim(), StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException($"增量包 MD5 不匹配：期望 {package.Md5}，实际 {actualMd5}。");
+        string actualSha256 = YF_Sha256Hasher.ComputeFile(filePath);
+        if (!string.Equals(actualSha256, package.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"更新包 SHA-256 不匹配：期望 {package.Sha256}，实际 {actualSha256}。");
     }
 
-    /// <summary>把增量包解压到临时 staging，并返回所有相对文件路径。</summary>
+    /// <summary>把更新包解压到临时 staging，并返回所有相对文件路径。</summary>
     private static List<string> ExtractToStaging(string zipPath, string stagingDirectory)
     {
         Directory.CreateDirectory(stagingDirectory);
@@ -406,7 +458,7 @@ public sealed class UpdateRunner
     /// <summary>
     /// 将 staging 中的新更新器写到根目录的待接替文件，绝不覆盖正在运行的更新器。
     /// </summary>
-    /// <param name="stagingDirectory">增量包解压目录</param>
+    /// <param name="stagingDirectory">更新包解压目录</param>
     private void CopyPendingUpdater(string stagingDirectory)
     {
         string source = SafeCombine(stagingDirectory, UpdaterFileName);
@@ -463,12 +515,12 @@ public sealed class UpdateRunner
     {
         string path = rawPath.Replace('\\', '/').TrimStart('/');
         if (string.IsNullOrWhiteSpace(path))
-            throw new InvalidDataException("增量包包含空文件路径。");
+            throw new InvalidDataException("更新包包含空文件路径。");
 
         foreach (string segment in path.Split('/'))
         {
             if (segment == "..")
-                throw new InvalidDataException($"增量包包含非法路径：{rawPath}");
+                throw new InvalidDataException($"更新包包含非法路径：{rawPath}");
         }
 
         return path;
@@ -487,11 +539,87 @@ public sealed class UpdateRunner
         return combined;
     }
 
-    /// <summary>计算文件 MD5。</summary>
-    private static string ComputeFileMd5(string filePath)
+    /// <summary>判断本地版本是否低于远端版本；无法解析时返回 false，避免误升级。</summary>
+    private static bool IsVersionOlder(string local, string current)
     {
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Convert.ToHexString(MD5.HashData(stream)).ToLowerInvariant();
+        return Version.TryParse(local, out Version? localVersion) &&
+               Version.TryParse(current, out Version? currentVersion) &&
+               localVersion < currentVersion;
+    }
+
+    /// <summary>判断发布包信息是否完整可用。</summary>
+    private static bool HasUsablePackage(PackageInfo? package)
+    {
+        return package != null &&
+               !string.IsNullOrWhiteSpace(package.Url) &&
+               package.Size > 0 &&
+               !string.IsNullOrWhiteSpace(package.Sha256);
+    }
+
+    /// <summary>
+    /// 判断全量更新中必须保留的路径：用户配置、日志、插件、备份和工具本体。
+    /// 这些路径不覆盖、不清理，避免更新破坏用户数据或删除工具。
+    /// </summary>
+    private static bool IsProtectedFullUpdatePath(string relativePath)
+    {
+        string path = relativePath.Replace('\\', '/').TrimStart('/');
+        if (IsUpdaterFile(path))
+            return true;
+
+        string[] protectedDirectories = { "Config", "Log", "plugins", "Backup", "File" };
+        foreach (string directory in protectedDirectories)
+        {
+            if (path.Equals(directory, StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(directory + "/", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return path.Equals("YFrame.Pack.exe", StringComparison.OrdinalIgnoreCase) ||
+               path.Equals("YFrame.Pack.config.json", StringComparison.OrdinalIgnoreCase) ||
+               path.Equals("YFrame.Installer.exe", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 全量更新时找出当前目录中不属于新完整包、且属于框架管理的旧文件。
+    /// 只清理根目录框架文件和 runtimes/Common 目录，避免误删用户文件。
+    /// </summary>
+    private List<string> CollectObsoleteFiles(IEnumerable<string> packageFiles)
+    {
+        var packageSet = new HashSet<string>(
+            packageFiles.Select(NormalizeRelativePath),
+            StringComparer.OrdinalIgnoreCase);
+
+        var obsolete = new List<string>();
+        foreach (string file in Directory.EnumerateFiles(_appRoot, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(_appRoot, file).Replace('\\', '/');
+            if (packageSet.Contains(relativePath) ||
+                IsProtectedFullUpdatePath(relativePath) ||
+                IsUpdaterFile(relativePath))
+                continue;
+
+            if (IsManagedObsoleteFile(relativePath))
+                obsolete.Add(relativePath);
+        }
+
+        return obsolete;
+    }
+
+    /// <summary>判断旧文件是否属于框架管理的文件类型或目录。</summary>
+    private static bool IsManagedObsoleteFile(string relativePath)
+    {
+        string path = relativePath.Replace('\\', '/');
+        string firstSegment = path.Split('/')[0];
+        if (firstSegment.Equals("runtimes", StringComparison.OrdinalIgnoreCase) ||
+            firstSegment.Equals("Common", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // 嵌套的用户目录一律不动，只清理根目录框架文件
+        if (path.Contains('/'))
+            return false;
+
+        string extension = Path.GetExtension(path).ToLowerInvariant();
+        return extension is ".dll" or ".exe" or ".json" or ".config" or ".pdb" or ".xml" or ".dat" or ".pak";
     }
 
     /// <summary>归一化为“主.次.修订”，兼容四段版本末尾的 0。</summary>

@@ -23,6 +23,18 @@ public sealed class PackConfig
     public string IncrementUrl { get; set; } =
         Cos_UpdateDefaults.IncrementUrl(Cos_UpdateDefaults.DefaultEnv);
 
+    /// <summary>发布包压缩源目录（Release 输出目录）。</summary>
+    public string ReleaseSourceDirectory { get; set; } =
+        @"C:\Users\Administrator\Desktop\code\C#\YFrame\YFrame\bin\Release\net8.0-windows";
+
+    /// <summary>发布包 ZIP 输出目录，默认 Pack 项目根目录。</summary>
+    public string ReleaseArchiveOutputDirectory { get; set; } =
+        @"C:\Users\Administrator\Desktop\code\C#\YFrame\YFrame.Pack";
+
+    /// <summary>Version.props 路径。</summary>
+    public string VersionPropsPath { get; set; } =
+        @"C:\Users\Administrator\Desktop\code\C#\YFrame\Version.props";
+
     /// <summary>配置文件完整路径。</summary>
     public static string ConfigPath => Path.Combine(AppContext.BaseDirectory, FileName);
 
@@ -48,6 +60,15 @@ public sealed class PackConfig
                 config.CurrentUrl = CreateDefault().CurrentUrl;
             if (string.IsNullOrWhiteSpace(config.IncrementUrl))
                 config.IncrementUrl = CreateDefault().IncrementUrl;
+
+            // 旧配置没有发布包参数时补默认值
+            var defaults = new PackConfig();
+            if (string.IsNullOrWhiteSpace(config.ReleaseSourceDirectory))
+                config.ReleaseSourceDirectory = defaults.ReleaseSourceDirectory;
+            if (string.IsNullOrWhiteSpace(config.ReleaseArchiveOutputDirectory))
+                config.ReleaseArchiveOutputDirectory = defaults.ReleaseArchiveOutputDirectory;
+            if (string.IsNullOrWhiteSpace(config.VersionPropsPath))
+                config.VersionPropsPath = defaults.VersionPropsPath;
 
             return config;
         }

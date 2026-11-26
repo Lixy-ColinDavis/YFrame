@@ -10,6 +10,7 @@ using System.Windows.Threading;
 using YF_Manager;
 using YFrame.Model;
 using YFrame.Service;
+using YFrame.Service.CloudBase;
 
 namespace YFrame.ViewModel.Toolbox
 {
@@ -263,6 +264,9 @@ namespace YFrame.ViewModel.Toolbox
                 HardwareInfoSnapshot snapshot = await Task.Run(HardwareInfoService.Load);
                 Apply(snapshot);
                 StatusText = RF("key_Hardware_Updated", DateTime.Now.ToString("HH:mm:ss"));
+
+                // 后台写入 CloudBase；上传失败不能影响本地硬件页面
+                _ = CloudBaseHardwareService.UploadAsync(snapshot);
             }
             catch
             {

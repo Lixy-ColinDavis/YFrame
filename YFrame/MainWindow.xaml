@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:YFrame"
         xmlns:controls="clr-namespace:YFrame.Controls"
+        xmlns:uc="clr-namespace:YFrame.View.UC"
         Title="YF Tools" Height="800" Width="1240"
         Icon="Common/Images/Logo.png"
         Background="Transparent"
@@ -443,6 +444,36 @@
                                             </TextBlock.LayoutTransform>
                                         </TextBlock>
                                     </Border>
+                                    <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="5,0"/>
+                                    <Border x:Name="TabWorkflow" Height="78"
+                                            ToolTip="{DynamicResource key_WorkTask}">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding SwitchLeftPanelCommand}"
+                                                          CommandParameter="2"/>
+                                        </Border.InputBindings>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource RailTab}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                        <Setter Property="Background"
+                                                                Value="{DynamicResource AccentSoftBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{DynamicResource key_WorkTask}"
+                                                   Width="80" Height="16"
+                                                   FontSize="10.5" TextAlignment="Center"
+                                                   TextWrapping="NoWrap"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center">
+                                            <TextBlock.LayoutTransform>
+                                                <RotateTransform Angle="90"/>
+                                            </TextBlock.LayoutTransform>
+                                        </TextBlock>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 
@@ -477,6 +508,18 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
+                                        <TextBlock Text="{DynamicResource key_WorkTask}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
 
                                         <Border HorizontalAlignment="Right">
                                             <Border.Style>
@@ -491,6 +534,21 @@
                                             </Border.Style>
                                             <TextBlock Style="{StaticResource MonoText}" FontSize="10">
                                                 <Run Text="{Binding lsPlugins.Count, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </Border>
+                                        <Border HorizontalAlignment="Right">
+                                            <Border.Style>
+                                                <Style TargetType="Border" BasedOn="{StaticResource BadgeBorder}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Style="{StaticResource MonoText}" FontSize="10">
+                                                <Run Text="{Binding WorkflowBoard.Flows.Count, Mode=OneWay}"/>
                                             </TextBlock>
                                         </Border>
                                     </Grid>
@@ -524,6 +582,9 @@
                                                     <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
                                                     </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Grid.Style>
@@ -544,6 +605,9 @@
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="1">
                                                         <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -568,6 +632,62 @@
                                             </ListBox.ItemTemplate>
                                         </ListBox>
                                     </Grid>
+
+                                    <!-- 工作任务流程列表 -->
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveLeftPanel}" Value="2">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <ListBox x:Name="WorkflowList"
+                                                 Grid.Row="0"
+                                                 Style="{StaticResource VsPluginListBox}"
+                                                 ItemContainerStyle="{StaticResource VsWorkflowListItem}"
+                                                 ItemsSource="{Binding WorkflowBoard.Flows}"
+                                                 SelectedItem="{Binding WorkflowBoard.SelectedFlow, Mode=TwoWay}"
+                                                 PreviewMouseRightButtonDown="WorkflowList_PreviewMouseRightButtonDown"
+                                                 Margin="0,6,0,6">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TextBrush}"
+                                                                   FontSize="12"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <Border Grid.Column="1"
+                                                                Style="{StaticResource BadgeBorder}"
+                                                                Margin="6,0,0,0">
+                                                            <TextBlock Text="{Binding ProgressText}"
+                                                                       FontSize="9"
+                                                                       Foreground="{DynamicResource AccentBrush}"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+
+                                        <Button Grid.Row="1"
+                                                Content="+ 新建流程"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Command="{Binding WorkflowBoard.NewFlowCommand}"
+                                                Margin="0,0,0,8"/>
+                                    </Grid>
                                 </Grid>
                             </DockPanel>
                         </Grid>
@@ -589,6 +709,9 @@
                                         <DataTrigger Binding="{Binding IsToolActive}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsWorkflowActive}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </ContentControl.Style>
@@ -603,10 +726,29 @@
                                         <DataTrigger Binding="{Binding IsToolActive}" Value="False">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsWorkflowActive}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </ContentControl.Style>
                         </ContentControl>
+
+                        <!-- 工作任务流程画布 -->
+                        <uc:WorkflowBoard x:Name="WorkflowBoardView"
+                                          DataContext="{Binding WorkflowBoard}"
+                                          Margin="14,4,14,14">
+                            <uc:WorkflowBoard.Style>
+                                <Style TargetType="{x:Type uc:WorkflowBoard}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.IsWorkflowActive, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </uc:WorkflowBoard.Style>
+                        </uc:WorkflowBoard>
 
                         <!-- 空状态：未选择插件且未打开工具时显示，避免主工作区空白 -->
                         <Grid x:Name="HomeOverviewRoot">
@@ -618,6 +760,7 @@
                                             <MultiDataTrigger.Conditions>
                                                 <Condition Binding="{Binding SelectedPlugin}" Value="{x:Null}"/>
                                                 <Condition Binding="{Binding IsToolActive}" Value="False"/>
+                                                <Condition Binding="{Binding IsWorkflowActive}" Value="False"/>
                                             </MultiDataTrigger.Conditions>
                                             <Setter Property="Visibility" Value="Visible"/>
                                         </MultiDataTrigger>

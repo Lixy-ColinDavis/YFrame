@@ -15,7 +15,7 @@
 4. `YFrame/ViewModel/MainWindowViewModel.cs`：主 VM 门面；
 5. `YFrame/Service/*`：运行时服务；
 6. `YF_Manager/Common/*`：契约、AOP、配置、Mediator、工具；
-7. `YFrame.Pack/`、`YFrame.update/`、`YFrame.Installer/`：交付链路；
+7. `YFrame.Pack/`、`YFrame.Sign/`、`YFrame.update/`、`YFrame.Installer/`：交付链路；
 8. 上层 `..\YF_*`：10 个插件。
 
 ---
@@ -29,7 +29,7 @@ YFrame 是 **Windows 桌面开发者工具平台**：
 - 反射加载外部插件；
 - 插件零编译依赖主程序；
 - 自带工具箱、日志、性能监控、主题、双语、热键、托盘；
-- 具备 Pack 增量包、Update 自动更新、Installer 安装器完整链路。
+- 具备 Pack 增量/全量包、Update 自动更新、Installer 安装器完整链路。
 
 **路径：**
 
@@ -53,9 +53,10 @@ YFrame.sln
 |---|---|---|---|
 | `YFrame` | `YFrame/YFrame.csproj` | WPF App | Shell、主 ViewModel、插件运行时、工具箱、更新检查 |
 | `YF_Manager` | `YF_Manager/YF_Manager.csproj` | Class Library | 插件契约、AOP、配置、Mediator、日志、通用工具 |
-| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 115 个测试 |
+| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 123 个测试 |
 | `YFrame.Installer` | `YFrame.Installer/YFrame.Installer.csproj` | WPF App | 向导式安装器，自包含单文件 |
 | `YFrame.Pack` | `YFrame.Pack/YFrame.Pack.csproj` | WPF App | ZIP 差异、增量包、版本清单 |
+| `YFrame.Sign` | `YFrame.Sign/YFrame.Sign.csproj` | WPF App | 清单签名、临时密钥、路径配置 |
 | `YFrame.update` | `YFrame.update/YFrame.update.csproj` | WPF App | 自动下载、校验、备份、替换、重启 |
 
 **解决方案不含 10 个插件**；插件位于 `C:\Users\Administrator\Desktop\code\C#\YF_*`，单独构建。
@@ -78,10 +79,10 @@ base.OnStartup
   → ApplySavedTheme()
   → UpdateService.CheckAsync()
        ├─ 本地 == 远端 current：继续
-       ├─ 本地 == 远端 pervious：UpdatePromptWindow
-       │     ├─ 立即更新 → 启动 YFrame.update.exe → Shutdown
-       │     └─ 不更新 → 写 UpdateSkipVersion / UpdateSkipUntil（3 天）
-       └─ 其他/网络失败：继续
+       ├─ 本地 == 远端 pervious：UpdatePromptWindow（增量优先）
+       ├─ 本地 < current 的其他版本：UpdatePromptWindow（全量）
+       ├─ 本地 > current：不提示、不降级
+       └─ 网络失败/无可用包：继续
   → 构建 DI 容器
   → YF_Di.Provider
   → 解析 MainWindow
@@ -193,7 +194,8 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
   - 耗时；
   - 返回值/异常；
 - 同步/异步方法都支持；
-- AOP 拦截失败会静默记录，不抛出业务异常。
+- 业务异常记录后必须原样抛出，AOP 不改变调用方语义；
+- 只有日志写入失败会降级为 Debug 输出，不影响业务异常。
 
 ### 5.3 Mediator
 
@@ -229,7 +231,6 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 | `HardwareInfoService` | WMI/注册表/PCIe/多显示器/音频信息 |
 | `AudioTestService` | `winmm.dll` 播放/录音、电平 |
 | `DiskSpeedTestService` | 指定卷 32MB 顺序读写测速 |
-| `PackService` | ZIP 差异、current/increment、版本 JSON |
 | `UpdateRunner` | 下载、校验、备份、替换、删除、重启 |
 | `UpdateLogger` | `Log/Update/yyyy-MM-dd.log` |
 
@@ -338,10 +339,12 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 `UpdateService.CheckAsync`：
 
 - 本地版本 = `AssemblyVersion.ToString(3)`；
-- 远端 `current_version` / `pervious_version`；
+- 远端 `current_version` / `pervious_version` 及 `current` / `pervious` 包信息；
 - 本地 == current：不处理；
-- 本地 == previous：提示；
-- 其他：不提示；
+- 本地 == previous：提示，增量优先；
+- 本地 < current 的其他版本：提示，走全量；
+- 本地 > current：不提示、不降级；
+- 相邻版本至少要有增量或全量包，跨版本必须有全量包；
 - 网络失败静默跳过；
 - 不更新：写 `UpdateSkipVersion` + `UpdateSkipUntil`（UTC，3 天）；
 - 同一远端版本 3 天内不再提示；
@@ -353,17 +356,27 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 
 ```text
 读取 --manifest / Config/config.conf
-→ 下载 increment.zip
-→ 校验 size + MD5
+→ 下载 YF_Version.json + .sig
+→ 使用 UpdateTrustKeys 对应环境公钥验签
+→ 验签失败：拒绝更新
+→ 本地 == current：结束
+→ 本地 < current：
+     ├─ 本地 == previous 且增量包可用：increment.zip
+     └─ 其他旧版本 / 增量缺失：current.zip
+→ 校验 size + SHA-256
 → 解压到 staging，检查路径穿越
 → 等待 YFrame 进程退出
 → 备份
 → 替换
-→ 删除 removed
+→ 删除 removed（全量更新额外清理旧框架文件）
 → 删除整个 Backup
 → 启动 YFrame
 ```
 
+- 全量更新覆盖 `current.zip` 中的框架文件；
+- `Config/`、`Log/`、`plugins/`、`Backup/`、`File/` 等用户目录不覆盖、不清理；
+- 根目录旧框架文件以及 `runtimes/`、`Common/` 中不属于新包的文件会被清理；
+- `YFrame.Pack.exe`、`YFrame.Pack.config.json`、`YFrame.Installer.exe` 保留；
 - 日志：`Log/Update/yyyy-MM-dd.log`；
 - 失败保留备份，成功删除整个 `Backup`；
 - 新包包含 `YFrame.update.exe` → 写 `YFrame.update.new.exe`，由 YFrame 启动接替；
@@ -376,7 +389,7 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 `YFrame.Pack`：
 
 - 输入 `YF-x.y.z.zip` 两个；
-- 按路径 + MD5 比较文件；
+- 按路径 + SHA-256 比较文件；
 - 新增/修改写入 `increment.zip`；
 - 最新完整包复制为 `current.zip`；
 - 输出 `YF_Version.json`；
@@ -456,6 +469,7 @@ dotnet build ..\YF_Clicker\YF_Clicker\YF_Clicker.csproj -c Debug
 dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishProfile=SingleFile
 dotnet publish YFrame.update/YFrame.update.csproj -c Release -p:PublishProfile=SingleFile
 dotnet build YFrame.Pack/YFrame.Pack.csproj -c Release
+dotnet build YFrame.Sign/YFrame.Sign.csproj -c Release
 ```
 
 ---
@@ -500,11 +514,15 @@ YFrame/
 │   ├── Interface/I_YF_Command.cs
 │   ├── Common/Config.cs
 │   ├── Common/UpdateDefaults.cs
+│   ├── Common/UpdateTrustKeys.cs
 │   ├── Common/YF_Messenger.cs
 │   ├── Common/Tools/YF_ConfigHelper.cs
 │   ├── Common/Tools/YF_ZipHelper.cs
+│   ├── Common/Tools/YF_Sha256Hasher.cs
+│   ├── Common/Tools/YF_ManifestSigner.cs
 │   └── Common/Interceptors/LogInterceptor.cs
 ├── YFrame.Pack/
+├── YFrame.Sign/
 ├── YFrame.update/
 ├── YFrame.Installer/
 ├── YFrame.Tests/
@@ -544,7 +562,7 @@ C:\Users\Administrator\Desktop\code\C#\YF_AIHelper
 - 插件 csproj 输出路径多为 Debug 绝对路径，Release 需调整/复制；
 - AI 模型、PaddleOCR 模型不随仓库；
 - OCR 百度翻译凭据目前硬编码，生产前需配置化；
-- 更新校验使用 size + MD5，未做 Authenticode 签名验证；
+- 更新校验使用 SHA-256 + 清单 ECDSA 签名，未做 Authenticode 验证；
 - `YFrame.update` 是框架依赖单文件，需要 .NET 8 Desktop Runtime；
 - 安装器是自包含单文件，体积较大；
 - WPF 透明窗口、高 DPI、全屏和多显示器场景需要实机验证；
@@ -563,7 +581,7 @@ dotnet test YFrame.Tests/YFrame.Tests.csproj -c Debug
 
 ```text
 0 errors
-115 tests passed
+123 tests passed
 ```
 
 如果 WPF 进程占用输出文件：

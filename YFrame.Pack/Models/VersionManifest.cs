@@ -31,7 +31,7 @@ public sealed class VersionManifest
     public List<string> Removed { get; set; } = new();
 }
 
-/// <summary>发布包信息：下载地址、字节大小和 MD5。</summary>
+/// <summary>发布包信息：下载地址、字节大小和 SHA-256。</summary>
 public sealed class PackageInfo
 {
     [JsonPropertyName("url")]
@@ -40,6 +40,6 @@ public sealed class PackageInfo
     [JsonPropertyName("size")]
     public long Size { get; set; }
 
-    [JsonPropertyName("md5")]
-    public string Md5 { get; set; } = string.Empty;
+    [JsonPropertyName("sha256")]
+    public string Sha256 { get; set; } = string.Empty;
 }

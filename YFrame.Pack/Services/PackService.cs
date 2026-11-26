@@ -1,11 +1,11 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using YF_Manager;
 using YFrame.Pack.Models;
 
 namespace YFrame.Pack.Services;
@@ -74,7 +74,7 @@ public static class PackService
                 added.Add(pair.Key);
             }
             else if (oldFile.Length != pair.Value.Length ||
-                     !string.Equals(oldFile.Md5, pair.Value.Md5, StringComparison.OrdinalIgnoreCase))
+                     !string.Equals(oldFile.Sha256, pair.Value.Sha256, StringComparison.OrdinalIgnoreCase))
             {
                 changed.Add(pair.Key);
             }
@@ -111,9 +111,9 @@ public static class PackService
         }
 
         long incrementSize = new FileInfo(incrementPath).Length;
-        string incrementMd5 = ComputeFileMd5(incrementPath);
+        string incrementSha256 = YF_Sha256Hasher.ComputeFile(incrementPath);
         long currentSize = new FileInfo(currentCopyPath).Length;
-        string currentMd5 = ComputeFileMd5(currentCopyPath);
+        string currentSha256 = YF_Sha256Hasher.ComputeFile(currentCopyPath);
 
         var manifest = new VersionManifest
         {
@@ -125,13 +125,13 @@ public static class PackService
             {
                 Url = currentUrl.Trim(),
                 Size = currentSize,
-                Md5 = currentMd5
+                Sha256 = currentSha256
             },
             Previous = new PackageInfo
             {
                 Url = incrementUrl.Trim(),
                 Size = incrementSize,
-                Md5 = incrementMd5
+                Sha256 = incrementSha256
             },
             Removed = removed
         };
@@ -146,8 +146,8 @@ public static class PackService
         log?.Invoke($"已复制最新完整包：{Path.GetFileName(currentCopyPath)}（{FormatBytes(currentSize)}）");
         log?.Invoke($"已生成增量包：{Path.GetFileName(incrementPath)}（{FormatBytes(incrementSize)}）");
         log?.Invoke($"已生成清单：{Path.GetFileName(manifestPath)}");
-        log?.Invoke($"current MD5：{currentMd5}");
-        log?.Invoke($"increment MD5：{incrementMd5}");
+        log?.Invoke($"current SHA-256：{currentSha256}");
+        log?.Invoke($"increment SHA-256：{incrementSha256}");
 
         return new PackResult
         {
@@ -160,9 +160,9 @@ public static class PackService
             CurrentCopyPath = currentCopyPath,
             ManifestPath = manifestPath,
             IncrementSize = incrementSize,
-            IncrementMd5 = incrementMd5,
+            IncrementSha256 = incrementSha256,
             CurrentSize = currentSize,
-            CurrentMd5 = currentMd5
+            CurrentSha256 = currentSha256
         };
     }
 
@@ -219,12 +219,12 @@ public static class PackService
                 throw new InvalidDataException($"{archiveLabel}压缩包存在重复文件路径：{path}");
 
             using var stream = entry.Open();
-            byte[] hash = MD5.HashData(stream);
+            string sha256 = YF_Sha256Hasher.ComputeStream(stream);
             result[path] = new FileEntry
             {
                 Entry = entry,
                 Length = entry.Length,
-                Md5 = Convert.ToHexString(hash).ToLowerInvariant()
+                Sha256 = sha256
             };
 
             index++;
@@ -263,13 +263,6 @@ public static class PackService
                 $"文件名不符合 YF-*.*.*.zip 规则：{fileName}。示例：YF-2.0.0.zip。");
 
         return match.Groups["version"].Value;
-    }
-
-    /// <summary>计算文件 MD5，返回小写十六进制字符串。</summary>
-    private static string ComputeFileMd5(string filePath)
-    {
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Convert.ToHexString(MD5.HashData(stream)).ToLowerInvariant();
     }
 
     /// <summary>校验构建参数，尽早给出可读错误。</summary>
@@ -311,7 +304,7 @@ public static class PackService
     {
         public ZipArchiveEntry Entry { get; init; } = null!;
         public long Length { get; init; }
-        public string Md5 { get; init; } = string.Empty;
+        public string Sha256 { get; init; } = string.Empty;
     }
 }
 
@@ -327,9 +320,9 @@ public sealed class PackResult
     public string CurrentCopyPath { get; init; } = string.Empty;
     public string ManifestPath { get; init; } = string.Empty;
     public long IncrementSize { get; init; }
-    public string IncrementMd5 { get; init; } = string.Empty;
+    public string IncrementSha256 { get; init; } = string.Empty;
     public long CurrentSize { get; init; }
-    public string CurrentMd5 { get; init; } = string.Empty;
+    public string CurrentSha256 { get; init; } = string.Empty;
 
     /// <summary>新增和修改文件总数。</summary>
     public int ChangedTotal => AddedFiles.Count + ChangedFiles.Count;

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using YFrame.Common;
 
 namespace YF_Manager
 {
@@ -106,13 +107,30 @@ namespace YF_Manager
             _configValues["PluginServerPort"] = "9000";
             // 插件管理器上次连接的服务器地址（不含端口）
             _configValues["PluginManagerServerURL"] = "http://127.0.0.1";
+            // 插件来源模式与 HTTPS 清单地址
+            _configValues["PluginSourceMode"] = "https";
+            _configValues["PluginManifestUrl"] =
+                "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json";
+            // APM OpenTelemetry 默认关闭，避免无感上报
+            _configValues["ApmEnabled"] = "true";
+            _configValues["ApmEndpoint"] = "https://ap-guangzhou.apm.tencentcs.com:4320";
+            _configValues["ApmToken"] = "uRNEPJAeWlEeOMRqXykE";
+            _configValues["ApmServiceName"] = "YFrame";
+            _configValues["ApmEnvironment"] = "uat";
+            // CloudBase 硬件表上传默认关闭，配置 API Key 后再启用
+            _configValues["CloudBaseEnabled"] = "false";
+            _configValues["CloudBaseEnvId"] = "worldwide-scorpion-d3c6y1e374741";
+            _configValues["CloudBaseApiKey"] = "";
+            _configValues["CloudBaseHardwareTable"] = "yframe_hardware";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
-            _configValues["Theme"] = Config.Theme; 
+            // 注意：这里必须使用字面量，不能读 Config.Theme；
+            // 否则配置单例首次创建时会再次访问 Lazy<T>.Value，触发重入异常。
+            _configValues["Theme"] = @"Common/Themes/CloudWhiteTheme.xaml";
             // 更新环境：uat（默认）/ pdt；地址为明文配置
             _configValues["Env"] = "uat";
-            _configValues["UpdateBaseUrl"] = Config.DefaultUpdateBaseUrl;
+            _configValues["UpdateBaseUrl"] = Cos_UpdateDefaults.BaseUrl;
         }
 
         /// <summary>
@@ -149,7 +167,12 @@ namespace YF_Manager
                 }
 
                 // 补齐缺失的默认键（兼容旧配置缺少新配置项）
+                int countBeforeDefaults = _configValues.Count;
                 EnsureAllDefaultsExist();
+
+                // 新增默认键必须写回文件，否则配置文件中永远看不到新键
+                if (_configValues.Count > countBeforeDefaults)
+                    SaveToFileInternal();
             }
             catch (Exception ex)
             {
@@ -185,6 +208,29 @@ namespace YF_Manager
                 _configValues.TryAdd("PluginServerPort", "9000");
             if (!existingKeys.Contains("PluginManagerServerURL"))
                 _configValues.TryAdd("PluginManagerServerURL", "http://127.0.0.1");
+            if (!existingKeys.Contains("PluginSourceMode"))
+                _configValues.TryAdd("PluginSourceMode", "https");
+            if (!existingKeys.Contains("PluginManifestUrl"))
+                _configValues.TryAdd("PluginManifestUrl",
+                    "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins/plugins.json");
+            if (!existingKeys.Contains("ApmEnabled"))
+                _configValues.TryAdd("ApmEnabled", "false");
+            if (!existingKeys.Contains("ApmEndpoint"))
+                _configValues.TryAdd("ApmEndpoint", "");
+            if (!existingKeys.Contains("ApmToken"))
+                _configValues.TryAdd("ApmToken", "");
+            if (!existingKeys.Contains("ApmServiceName"))
+                _configValues.TryAdd("ApmServiceName", "YFrame");
+            if (!existingKeys.Contains("ApmEnvironment"))
+                _configValues.TryAdd("ApmEnvironment", "uat");
+            if (!existingKeys.Contains("CloudBaseEnabled"))
+                _configValues.TryAdd("CloudBaseEnabled", "false");
+            if (!existingKeys.Contains("CloudBaseEnvId"))
+                _configValues.TryAdd("CloudBaseEnvId", "worldwide-scorpion-d3c6y1e374741");
+            if (!existingKeys.Contains("CloudBaseApiKey"))
+                _configValues.TryAdd("CloudBaseApiKey", "");
+            if (!existingKeys.Contains("CloudBaseHardwareTable"))
+                _configValues.TryAdd("CloudBaseHardwareTable", "yframe_hardware");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))
@@ -192,7 +238,7 @@ namespace YF_Manager
             if (!existingKeys.Contains("Env"))
                 _configValues.TryAdd("Env", "uat");
             if (!existingKeys.Contains("UpdateBaseUrl"))
-                _configValues.TryAdd("UpdateBaseUrl", Config.DefaultUpdateBaseUrl);
+                _configValues.TryAdd("UpdateBaseUrl", Cos_UpdateDefaults.BaseUrl);
         }
 
         /// <summary>
