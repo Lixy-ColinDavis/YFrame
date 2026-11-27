@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using YF_Manager;
 using YFrame.Model;
+using YFrame.Service.Security;
 using YFrame.Service.Telemetry;
 
 namespace YFrame.Service.CloudBase;
@@ -36,7 +37,7 @@ public static class CloudBaseHardwareService
         if (!Config.CloudBaseEnabled)
             return;
 
-        string apiKey = CloudBaseBuiltInSettings.ApiKey;
+        string apiKey = DpapiSecretStore.Load().CloudBaseApiKey?.Trim() ?? string.Empty;
         apiKey = apiKey?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(apiKey))
         {

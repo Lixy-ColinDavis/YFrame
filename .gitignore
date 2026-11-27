@@ -35,5 +35,9 @@
 *.private.pem
 *.pfx
 *.key
+
+# 安装/更新引导密钥，绝不提交
+YFrame.secrets.bootstrap
+**/YFrame.secrets.bootstrap
 /YFrame.upload.cos/obj
 /YFrame.upload.cos/bin

@@ -464,13 +464,19 @@ ApmServiceName=YFrame
 ApmEnvironment=uat
 ```
 
-APM Endpoint 与 Token 固定在源码：
+APM Endpoint 固定在源码：
 
 ```text
 YFrame/Service/Telemetry/ApmBuiltInSettings.cs
 ```
 
-不再写入 `config.conf`。
+APM Token 从 DPAPI 读取：
+
+```text
+%LocalAppData%\YFrame\secrets.dat
+```
+
+安装/更新时可由根目录 `YFrame.secrets.bootstrap` 首次启动自动迁移。
 
 当前上报的 Span：
 
@@ -513,7 +519,7 @@ CLS 全量日志检索
 
 ### 6.6 CloudBase 硬件入库
 
-硬件扫描完成后，后台调用 CloudBase PostgreSQL RPC：
+硬件扫描完成后，后台调用 CloudBase PostgreSQL RPC，不允许匿名用户直接操作云数据库：
 
 ```text
 https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/rpc/upsert_yframe_hardware
@@ -548,13 +554,13 @@ CloudBaseHardwareTable=yframe_hardware
 CloudBaseHardwareRpc=upsert_yframe_hardware
 ```
 
-CloudBase API Key 固定在源码：
+CloudBase API Key 从 DPAPI 读取：
 
 ```text
-YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs
+%LocalAppData%\YFrame\secrets.dat
 ```
 
-不再写入 `config.conf`。
+安装/更新时可由根目录 `YFrame.secrets.bootstrap` 首次启动自动迁移。
 
 客户端不再直接 INSERT/UPDATE 表。数据库只给 `anon` 执行函数权限：
 
@@ -823,7 +829,8 @@ YFrame/
 │   ├── ViewModel/
 │   ├── Service/
 │   │   ├── Telemetry/           # OpenTelemetry / APM
-│   │   └── CloudBase/           # 硬件表上传
+│   │   ├── CloudBase/           # 硬件表上传
+│   │   └── Security/            # DPAPI / 引导迁移
 │   ├── View/UC/Toolbox/
 │   ├── Controls/                 # Sparkline / VerticalText
 │   └── Common/                   # Themes / Language / Images

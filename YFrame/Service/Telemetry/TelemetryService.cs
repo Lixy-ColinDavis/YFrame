@@ -9,6 +9,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using YF_Manager;
+using YFrame.Service.Security;
 
 namespace YFrame.Service.Telemetry;
 
@@ -38,8 +39,7 @@ public static class TelemetryService
             return;
 
         string endpoint = ApmBuiltInSettings.Endpoint;
-        string token = ApmBuiltInSettings.Token;
-        token = token?.Trim() ?? string.Empty;
+        string token = DpapiSecretStore.Load().ApmToken?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(token))
         {
             Debug.WriteLine("[Telemetry] APM 已启用，但 Endpoint 或 Token 为空，跳过初始化。");

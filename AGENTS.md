@@ -314,7 +314,10 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 ### 8.1 可观测性
 
 - `YFrame.csproj` 引用 `OpenTelemetry` 1.12.0 与 `OpenTelemetry.Exporter.OpenTelemetryProtocol` 1.12.0；
-- APM Endpoint/Token 固定在 `YFrame/Service/Telemetry/ApmBuiltInSettings.cs`，不写入 config.conf；
+- APM Endpoint 固定在 `YFrame/Service/Telemetry/ApmBuiltInSettings.cs`；
+- APM Token 从 DPAPI 读取 `%LocalAppData%\YFrame\secrets.dat`，不写入源码/config.conf；
+- 安装/更新包可在根目录放置 `YFrame.secrets.bootstrap`，首次启动自动迁移 DPAPI；
+- 引导文件不能放 `Config`，否则更新器会保留旧文件；按用户安装迁移后删除，按机器安装保留；
 - `TelemetryService` 使用 `ActivitySource("YFrame")` + OTLP gRPC；
 - 当前 Span：`app.startup`、`hardware.scan`、`cloudbase.upload`、`Error.<类型>`；
 - `hardware.scan` 附加 `hardware.summary`、CPU/内存/GPU/磁盘/显示器/OS 标签；
@@ -329,7 +332,9 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 
 - 服务：`YFrame/Service/CloudBase/CloudBaseHardwareService.cs`；
 - 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseHardwareTable`、`CloudBaseHardwareRpc`；
-- API Key 固定在源码 `YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs`，不写入 config.conf；
+- API Key 从 DPAPI 读取 `%LocalAppData%\YFrame\secrets.dat`，不写入源码/config.conf；
+- 安装/更新包可在根目录放置 `YFrame.secrets.bootstrap`，首次启动自动迁移 DPAPI；
+- 引导文件不能放 `Config`，否则更新器会保留旧文件；按用户安装迁移后删除，按机器安装保留；
 - 地址：`https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/rpc/upsert_yframe_hardware`；
 - 调用 RPC：数据库函数内部 `INSERT ... ON CONFLICT (device_name)`，存在更新、不存在插入；
 - RPC 参数：`p_device_name`、`p_cpu`、`p_gpu`、`p_memory`、`p_disk`；
@@ -561,6 +566,7 @@ YFrame/
 │   ├── Service/*.cs
 │   ├── Service/Telemetry/        # OpenTelemetry / APM
 │   ├── Service/CloudBase/        # CloudBase 硬件入库
+│   ├── Service/Security/         # DPAPI / 引导迁移
 │   ├── View/UC/Toolbox/*.xaml
 │   ├── Controls/Sparkline.cs
 │   ├── Controls/VerticalText.cs

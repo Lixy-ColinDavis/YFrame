@@ -11,6 +11,7 @@ using System.Threading;
 using System.Windows;
 using YF_Manager;
 using YFrame.Service;
+using YFrame.Service.Security;
 using YFrame.Service.Telemetry;
 using YFrame.View;
 
@@ -62,7 +63,10 @@ namespace YFrame
             // 初始化静态 logger（供 LogInterceptor 等底层组件使用）
             YF_Manager_Main.logger = new YF_Manager_Log("主控类", "YF_Manager");
 
-            // APM 默认关闭；开启后从启动链路开始埋点
+            // 安装/更新包可能携带一次性引导密钥；首次启动自动转 DPAPI
+            SecretBootstrapMigrator.TryProvision();
+
+            // APM 默认开启；Endpoint 固定，Token 从 DPAPI 读取
             TelemetryService.Initialize();
             DispatcherUnhandledException += OnDispatcherUnhandledException;
             using Activity? startupActivity = TelemetryService.StartActivity("app.startup");
