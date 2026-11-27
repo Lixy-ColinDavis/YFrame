@@ -185,7 +185,7 @@ namespace YFrame.ViewModel.Toolbox
         {
             SelectFileACommand = new YF_RelayCommand(() => SelectFile(isA: true), () => !IsComputing);
             SelectFileBCommand = new YF_RelayCommand(() => SelectFile(isA: false), () => !IsComputing);
-            ComputeCommand = new YF_RelayCommand(ComputeAsync, () => !IsComputing);
+            ComputeCommand = new YF_RelayCommand(() => _ = ComputeAsync(), () => !IsComputing);
             CopyHashACommand = new YF_RelayCommand(() => CopyToClipboard(FileAHash), () => FileAHash.Length > 0);
             CopyHashBCommand = new YF_RelayCommand(() => CopyToClipboard(FileBHash), () => FileBHash.Length > 0);
             ClearCommand = new YF_RelayCommand(Clear);
@@ -250,7 +250,7 @@ namespace YFrame.ViewModel.Toolbox
         /// <summary>
         /// 异步计算 MD5：单文件只算 A，双文件分别计算并对比
         /// </summary>
-        private async void ComputeAsync()
+        private async Task ComputeAsync()
         {
             // 校验文件 A 必须存在
             if (string.IsNullOrEmpty(FileAPath) || !File.Exists(FileAPath))

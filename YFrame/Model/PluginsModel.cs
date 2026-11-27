@@ -26,7 +26,7 @@ namespace YFrame
         /// </summary>
         public Brush IconBrush => _iconBrush ??= PluginIconHelper.GetBrush(ID, Name);
 
-        private string _name;
+        private string _name = string.Empty;
         public string Name
         {
             get => _name;
@@ -43,7 +43,7 @@ namespace YFrame
             }
         }
 
-        private string _id;
+        private string _id = string.Empty;
         public string ID
         {
             get => _id;

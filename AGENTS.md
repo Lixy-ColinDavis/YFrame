@@ -1,6 +1,6 @@
-# YFrame 项目参考（AI 开发速查）
+# YFrame 项目参考（开发速查）
 
-> **用途：** 让新的 AI 会话在不重复通读全部代码的情况下，准确理解 YFrame 的架构、插件契约、构建方式、更新链路和当前约束。
+> **用途：** 不重复通读全部代码的情况下，准确理解 YFrame 的架构、插件契约、构建方式、更新链路和当前约束。
 >
 > **最后更新：** 2026-11-26
 > **产品版本：** 2.1.0
@@ -34,8 +34,10 @@ YFrame 是 **Windows 桌面开发者工具平台**：
 **路径：**
 
 ```text
-C:\Users\Administrator\Desktop\code\C#\YFrame
+<repo-root>
 ```
+
+> 本文中 `<repo-root>` 表示 `YFrame.sln` 所在目录；`<plugins-root>` 表示 10 个插件仓库的父目录。请按本机实际路径替换。
 
 解决方案：
 
@@ -59,7 +61,7 @@ YFrame.sln
 | `YFrame.Sign` | `YFrame.Sign/YFrame.Sign.csproj` | WPF App | 清单签名、临时密钥、路径配置 |
 | `YFrame.update` | `YFrame.update/YFrame.update.csproj` | WPF App | 自动下载、校验、备份、替换、重启 |
 
-**解决方案不含 10 个插件**；插件位于 `C:\Users\Administrator\Desktop\code\C#\YF_*`，单独构建。
+**解决方案不含 10 个插件**；插件位于 `<plugins-root>\YF_*`，单独构建。
 
 ---
 
@@ -502,7 +504,7 @@ dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishPro
 ## 12. 构建 / 测试 / 运行
 
 ```powershell
-cd C:\Users\Administrator\Desktop\code\C#\YFrame
+cd <repo-root>
 
 dotnet build YFrame.sln -c Debug
 dotnet test YFrame.Tests/YFrame.Tests.csproj -c Debug
@@ -595,7 +597,7 @@ YFrame/
 插件：
 
 ```text
-C:\Users\Administrator\Desktop\code\C#\YF_AIHelper
+<plugins-root>\YF_AIHelper
 ... YF_Clicker, YF_HttpServer, YF_KMScript, YF_Paint,
     YF_Penetration, YF_PluginServer, YF_ScreenOCRTranslate,
     YF_Serialport, YF_TcpHelper

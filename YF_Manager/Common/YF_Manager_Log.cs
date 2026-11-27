@@ -9,8 +9,8 @@ namespace YF_Manager
 {
     public class YF_Manager_Log
     {
-        // log回调，界面输出
-        public static YF_DelegateFunctionModel.dvFunc_Vs d_LogWrite;
+        // log回调，界面输出；未接入 UI 时为空
+        public static YF_DelegateFunctionModel.dvFunc_Vs? d_LogWrite;
 
         /// <summary>
         /// 结构化日志事件，供主程序接入 APM/OpenTelemetry。

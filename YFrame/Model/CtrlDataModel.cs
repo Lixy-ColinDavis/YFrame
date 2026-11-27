@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,14 +13,14 @@ namespace YFrame
     /// </summary>
     public class CtrlDataModel
     {
-        // 插件名称
-        public string Name { get; set; }
+        // 插件名称；未加载时为空字符串
+        public string Name { get; set; } = string.Empty;
 
         // 插件对象-默认不保存，只存加载的那个，节省性能
-        public UserControl userControl { get; set; }
+        public UserControl? userControl { get; set; }
 
         // 命令对象-默认不保存，只存加载的那个，节省性能
-        public I_YF_Command CommandHandler { get; set; }
+        public I_YF_Command? CommandHandler { get; set; }
 
         // 插件ID，便于 O(1) 直接获取，避免遍历字典反查
         public string PluginId { get; set; } = string.Empty;

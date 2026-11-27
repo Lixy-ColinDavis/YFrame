@@ -174,11 +174,11 @@ namespace YFrame
 
         public ObservableCollection<PluginsModel> lsPlugins { get; } = new ObservableCollection<PluginsModel>(); // 插件列表
 
-        private PluginsModel _selectedPlugin = null!;
+        private PluginsModel? _selectedPlugin;
         /// <summary>
         /// 当前在插件列表中选中的插件（VS 风格列表交互）
         /// </summary>
-        public PluginsModel SelectedPlugin
+        public PluginsModel? SelectedPlugin
         {
             get => _selectedPlugin;
             set

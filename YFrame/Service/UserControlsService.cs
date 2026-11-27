@@ -1,4 +1,4 @@
-﻿using Castle.DynamicProxy;
+using Castle.DynamicProxy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -97,7 +97,7 @@ namespace YFrame
                 if (!typeof(UserControl).IsAssignableFrom(userControlType))
                     return false;
                 var viewModel = Activator.CreateInstance(viewModelType);
-                object uc = Activator.CreateInstance(userControlType);
+                object? uc = Activator.CreateInstance(userControlType);
                 userControl = uc as UserControl;
                 if (userControl != null)
                 {

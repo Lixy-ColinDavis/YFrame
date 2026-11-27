@@ -159,13 +159,15 @@ namespace YFrame
         {
             try
             {
-                if (CurrentPlugin == null || CurrentPlugin.CommandHandler == null)
+                CtrlDataModel? plugin = CurrentPlugin;
+                I_YF_Command? handler = plugin?.CommandHandler;
+                if (handler == null)
                 {
                     _logger.CommandInfo("[命令无目标插件] : " + command);
                 }
                 else
                 {
-                    CurrentPlugin.CommandHandler.ExecuteCommand(command, parameter);
+                    handler.ExecuteCommand(command, parameter);
                     _logger.CommandInfo(command);
                 }
             }
@@ -191,14 +193,16 @@ namespace YFrame
         {
             try
             {
-                if (CurrentPlugin?.CommandHandler == null)
+                CtrlDataModel? plugin = CurrentPlugin;
+                I_YF_Command? handler = plugin?.CommandHandler;
+                if (handler == null)
                 {
                     _logger.LogInfo("热键 Ctrl+Y 触发，但没有激活的插件");
                     return;
                 }
 
                 // 统一向当前插件发送热键命令，由插件自行决定是否处理
-                CurrentPlugin.CommandHandler.ExecuteCommand("Hotkey");
+                handler.ExecuteCommand("Hotkey");
                 _logger.CommandInfo("热键 Ctrl+Y 触发，已向当前插件发送 Hotkey 命令");
             }
             catch (Exception ex)
@@ -219,14 +223,16 @@ namespace YFrame
         {
             try
             {
-                if (CurrentPlugin?.CommandHandler == null)
+                CtrlDataModel? plugin = CurrentPlugin;
+                I_YF_Command? handler = plugin?.CommandHandler;
+                if (handler == null)
                 {
                     _logger.LogInfo("没有激活的插件，无法执行脚本操作: " + command);
                     return;
                 }
 
                 // 统一命令名直接转发，由插件自行决定是否处理
-                CurrentPlugin.CommandHandler.ExecuteCommand(command);
+                handler.ExecuteCommand(command);
                 _logger.LogInfo($"脚本操作 '{command}' 已发送到插件");
             }
             catch (Exception ex)

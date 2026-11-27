@@ -477,9 +477,12 @@ namespace YFrame.Tests.YFrame.Service
                 _receivedCommands = receivedCommands;
             }
 
+            // 测试替身必须实现接口事件；本测试不触发回调，因此显式抑制未使用警告
+#pragma warning disable CS0067
             public event EventHandler<PluginEventArgs>? OnPluginCallback;
+#pragma warning restore CS0067
 
-            public void ExecuteCommand(string command, object parameter = null!)
+            public void ExecuteCommand(string command, object? parameter = null)
             {
                 _receivedCommands.Add(command);
             }

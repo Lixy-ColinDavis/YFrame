@@ -64,7 +64,7 @@ namespace YFrame.Tests.YFrame.Model
         {
             public event EventHandler<PluginEventArgs>? OnPluginCallback;
 
-            public void ExecuteCommand(string command, object parameter = null!)
+            public void ExecuteCommand(string command, object? parameter = null)
             {
                 OnPluginCallback?.Invoke(this, new PluginEventArgs
                 {

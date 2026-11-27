@@ -118,8 +118,8 @@ namespace YFrame.Tests.YFrame.Model
         {
             var model = new PluginsModel();
 
-            Assert.Null(model.Name);
-            Assert.Null(model.ID);
+            Assert.Empty(model.Name);
+            Assert.Empty(model.ID);
             Assert.Equal(0, model.Status);
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +13,7 @@ namespace YF_Manager
     public class LogAttribute : Attribute
     {
         public LogLevel Level { get; set; }
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
 
         public LogAttribute(LogLevel level = LogLevel.Info)
         {

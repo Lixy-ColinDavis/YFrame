@@ -544,7 +544,13 @@ namespace YFrame
                         @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", writable: true);
                     parentKey?.DeleteSubKey("YFrame", throwOnMissingSubKey: false);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 卸载阶段注册表可能已被系统或其他卸载器删除；
+                    // 这里不阻断卸载，仅记录调试信息。
+                    System.Diagnostics.Debug.WriteLine(
+                        "[YFrame.Uninstall] 删除卸载注册表失败: " + ex.Message);
+                }
 
                 // 删除安装目录（延迟删除：创建一个临时批处理脚本来自删除）
                 // 因为当前 exe 正在运行，无法直接删除自身目录

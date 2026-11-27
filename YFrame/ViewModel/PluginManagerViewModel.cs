@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -206,9 +207,9 @@ namespace YFrame.ViewModel
             SetStatus(R("key_PluginManager_NotConnected"), B("SubtleTextBrush", Brushes.Gray));
             PluginCountText = R("key_PluginManager_NotConnected");
 
-            ConnectCommand = new YF_RelayCommand<object>(_ => Connect(), _ => CanConnect);
+            ConnectCommand = new YF_RelayCommand<object>(_ => _ = Connect(), _ => CanConnect);
             DisconnectCommand = new YF_RelayCommand<object>(_ => Disconnect(), _ => IsConnected);
-            DownloadCommand = new YF_RelayCommand<YF_Model.RemotePluginInfo>(plugin => DownloadPlugin(plugin));
+            DownloadCommand = new YF_RelayCommand<YF_Model.RemotePluginInfo>(plugin => _ = DownloadPlugin(plugin));
 
             RemotePlugins.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
         }
@@ -221,7 +222,7 @@ namespace YFrame.ViewModel
         /// 连接到插件服务器，获取插件列表
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "连接插件服务器")]
-        public virtual async void Connect()
+        public virtual async Task Connect()
         {
             var url = _service.NormalizeUrl(CurrentAddress);
             if (string.IsNullOrEmpty(url))
@@ -302,7 +303,7 @@ namespace YFrame.ViewModel
         /// 下载指定插件
         /// </summary>
         [Log(Level = LogLevel.Info, Message = "下载插件")]
-        public virtual async void DownloadPlugin(YF_Model.RemotePluginInfo? pluginInfo)
+        public virtual async Task DownloadPlugin(YF_Model.RemotePluginInfo? pluginInfo)
         {
             if (pluginInfo == null) return;
 

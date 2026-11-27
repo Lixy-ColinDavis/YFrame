@@ -36,8 +36,8 @@ namespace YFrame.Tests.YF_Manager.Interface
         {
             var args = new PluginEventArgs();
 
-            Assert.Null(args.PluginId);
-            Assert.Null(args.Command);
+            Assert.Empty(args.PluginId);
+            Assert.Empty(args.Command);
             Assert.Null(args.Data);
             Assert.Equal(default, args.Timestamp);
         }

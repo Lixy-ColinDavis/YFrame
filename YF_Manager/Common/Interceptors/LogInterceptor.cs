@@ -74,7 +74,11 @@ namespace YF_Manager
                     invocation.Proceed();
 
                     // 再把原始 Task 包装成带日志的 Task；异步异常由 InterceptAsync 记录并重新抛出
-                    invocation.ReturnValue = InterceptAsync((dynamic)invocation.ReturnValue,
+                    // invocation.ReturnValue 是 object?，先显式判空，避免把 null 传给 Task 重载
+                    if (invocation.ReturnValue is not Task returnTask)
+                        throw new InvalidOperationException("异步方法返回值不是 Task。");
+
+                    invocation.ReturnValue = InterceptAsync((dynamic)returnTask,
                         invocation, stopwatch, logAttr, methodName, logger);
                 }
                 else
