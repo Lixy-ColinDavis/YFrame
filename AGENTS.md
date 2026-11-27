@@ -231,7 +231,7 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 | `ToolboxService` | 工具注册表、视图工厂、视图缓存 |
 | `UpdateService` | 远端版本检查、三天跳过、启动 updater |
 | `TelemetryService` | OpenTelemetry APM：启动/硬件/上传 Span、Error 分类 Span、OTLP |
-| `CloudBaseHardwareService` | 硬件结果按 `device_name` 查询后 PATCH 或 POST |
+| `CloudBaseHardwareService` | 硬件结果通过 RPC 按 `device_name` upsert |
 | `HardwareInfoService` | WMI/注册表/PCIe/多显示器/音频信息，并写入硬件摘要 Span |
 | `AudioTestService` | `winmm.dll` 播放/录音、电平 |
 | `DiskSpeedTestService` | 指定卷 32MB 顺序读写测速 |
@@ -328,20 +328,31 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 ### 8.2 CloudBase 硬件入库
 
 - 服务：`YFrame/Service/CloudBase/CloudBaseHardwareService.cs`；
-- 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseHardwareTable`；
+- 配置：`CloudBaseEnabled`、`CloudBaseEnvId`、`CloudBaseHardwareTable`、`CloudBaseHardwareRpc`；
 - API Key 固定在源码 `YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs`，不写入 config.conf；
-- 地址：`https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/yframe_hardware`；
-- 先按 `device_name` 查询：存在则 PATCH，不存在则 POST；
+- 地址：`https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/rpc/upsert_yframe_hardware`；
+- 调用 RPC：数据库函数内部 `INSERT ... ON CONFLICT (device_name)`，存在更新、不存在插入；
+- RPC 参数：`p_device_name`、`p_cpu`、`p_gpu`、`p_memory`、`p_disk`；
 - 表字段：`device_name`、`cpu`、`gpu`、`memory`、`disk`、`updatetime`；`id`/`created_at` 用默认值；
 - 多 GPU、多磁盘分别用 ` | ` 合并后写入 text 字段；
-- Publishable Key 对应 `anon`，需要表级 `SELECT/INSERT/UPDATE`：
+- Publishable Key 对应 `anon`，只授予函数执行权限：
 
 ```sql
-GRANT SELECT, INSERT, UPDATE ON public.yframe_hardware TO anon;
+GRANT EXECUTE
+ON FUNCTION public.upsert_yframe_hardware(text,text,text,text,text)
+TO anon;
 ```
 
-- RLS 关闭只关闭行级策略，不能替代表级 GRANT；
-- 当前按 `device_name` 查询后写入，若需要严格防重复，建议给 `device_name` 加唯一索引。
+- 同时撤销表级写权限：
+
+```sql
+REVOKE INSERT, UPDATE, DELETE
+ON public.yframe_hardware
+FROM anon;
+```
+
+- RLS 关闭只关闭行级策略，不能替代表级 GRANT 或 RPC 权限；
+- `device_name` 唯一索引是 `ON CONFLICT` 的前提。
 
 ---
 
@@ -479,6 +490,7 @@ dotnet publish YFrame.Installer/YFrame.Installer.csproj -c Release -p:PublishPro
 | `CloudBaseEnabled` | 是否启用硬件入库，默认 `true` |
 | `CloudBaseEnvId` | CloudBase 环境 ID |
 | `CloudBaseHardwareTable` | 硬件表名，默认 `yframe_hardware` |
+| `CloudBaseHardwareRpc` | 硬件 upsert RPC 名，默认 `upsert_yframe_hardware` |
 
 ---
 
@@ -612,7 +624,7 @@ C:\Users\Administrator\Desktop\code\C#\YF_AIHelper
 - WPF 透明窗口、高 DPI、全屏和多显示器场景需要实机验证；
 - `.sln` 的 CI 只构建核心 + 测试，不构建 Pack/update/插件；
 - APM 目前只有 Trace/Error Span，没有 CPU/内存 Metric，也没有 CLS 式日志检索；
-- CloudBase 使用 Publishable Key 时对应 `anon`，必须显式授予 `SELECT/INSERT/UPDATE`；
+- CloudBase 使用 Publishable Key 时对应 `anon`，只授予 upsert RPC 的 `EXECUTE`，并撤销表级 INSERT/UPDATE/DELETE；
 - 关闭 RLS 只关闭行级策略，不能替代表级 GRANT；
 - Publishable Key 可被客户端提取，生产环境建议用云函数代理并限制写入范围。
 

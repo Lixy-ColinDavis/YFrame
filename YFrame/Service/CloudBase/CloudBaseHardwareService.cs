@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using YF_Manager;
@@ -47,9 +46,12 @@ public static class CloudBaseHardwareService
 
         string envId = Config.CloudBaseEnvId.Trim();
         string table = Config.CloudBaseHardwareTable.Trim();
-        if (string.IsNullOrWhiteSpace(envId) || string.IsNullOrWhiteSpace(table))
+        string rpc = Config.CloudBaseHardwareRpc.Trim();
+        if (string.IsNullOrWhiteSpace(envId)
+            || string.IsNullOrWhiteSpace(table)
+            || string.IsNullOrWhiteSpace(rpc))
         {
-            DebugWrite("CloudBase 环境 ID 或表名为空，跳过上传。");
+            DebugWrite("CloudBase 环境 ID、表名或 RPC 名称为空，跳过上传。");
             return;
         }
 
@@ -57,37 +59,32 @@ public static class CloudBaseHardwareService
         using Activity? activity = TelemetryService.StartActivity("cloudbase.upload");
         activity?.SetTag("cloudbase.env_id", envId);
         activity?.SetTag("cloudbase.table", table);
+        activity?.SetTag("cloudbase.rpc", rpc);
 
         try
         {
-            string baseUrl = $"https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/{Uri.EscapeDataString(table)}";
+            // PostgREST RPC 地址；数据库函数内部完成 INSERT ... ON CONFLICT
+            string requestUrl =
+                $"https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/rpc/{Uri.EscapeDataString(rpc)}";
             string deviceName = BuildDeviceName(snapshot);
-            string filter = $"device_name=eq.{Uri.EscapeDataString(deviceName)}";
-
-            // 先按 device_name 查询；存在则 PATCH，不存在则 POST
-            bool exists = await ExistsAsync(baseUrl, filter, apiKey, cancellationToken);
-            string requestUrl = exists ? $"{baseUrl}?{filter}" : baseUrl;
-            HttpMethod method = exists ? HttpMethod.Patch : HttpMethod.Post;
-            activity?.SetTag("cloudbase.operation", exists ? "update" : "insert");
+            activity?.SetTag("cloudbase.operation", "rpc");
             activity?.SetTag("cloudbase.device_name", deviceName);
 
-            // 只写表结构中的业务字段；id/created_at 使用数据库默认值
-            var row = new
+            // 参数名必须与 PostgreSQL 函数参数一致
+            var payload = new
             {
-                device_name = deviceName,
-                cpu = BuildCpu(snapshot),
-                gpu = BuildGpu(snapshot),
-                memory = BuildMemory(snapshot),
-                disk = BuildDisk(snapshot),
-                updatetime = DateTimeOffset.UtcNow
+                p_device_name = deviceName,
+                p_cpu = BuildCpu(snapshot),
+                p_gpu = BuildGpu(snapshot),
+                p_memory = BuildMemory(snapshot),
+                p_disk = BuildDisk(snapshot)
             };
 
-            using var request = new HttpRequestMessage(method, requestUrl)
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl)
             {
-                Content = JsonContent.Create(row)
+                Content = JsonContent.Create(payload)
             };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-            request.Headers.TryAddWithoutValidation("Prefer", "return=representation");
 
             using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -100,7 +97,7 @@ public static class CloudBaseHardwareService
                 activity?.SetTag("cloudbase.http_status", (int)response.StatusCode);
                 activity?.SetTag("cloudbase.error", body);
                 activity?.SetStatus(ActivityStatusCode.Error,
-                    $"CloudBase HTTP {(int)response.StatusCode}");
+                    $"CloudBase RPC HTTP {(int)response.StatusCode}");
                 activity?.AddEvent(new ActivityEvent("exception",
                     DateTimeOffset.UtcNow,
                     new ActivityTagsCollection
@@ -111,7 +108,7 @@ public static class CloudBaseHardwareService
 
                 YF_Manager_Main.logger?.ErrorInfo(
                     "CloudBaseHardware",
-                    $"上传失败 HTTP {(int)response.StatusCode}: {body}");
+                    $"RPC 上传失败 HTTP {(int)response.StatusCode}: {body}");
             }
             else
             {
@@ -120,7 +117,7 @@ public static class CloudBaseHardwareService
         }
         catch (Exception ex)
         {
-            // 网络、鉴权、表结构变化都不能影响硬件扫描页面
+            // 网络、鉴权、函数结构变化都不能影响硬件扫描页面
             activity?.SetTag("cloudbase.success", false);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddEvent(new ActivityEvent("exception",
@@ -134,35 +131,6 @@ public static class CloudBaseHardwareService
 
             YF_Manager_Main.logger?.ErrorInfo("CloudBaseHardware", ex.Message);
         }
-    }
-
-    /// <summary>
-    /// 查询指定 device_name 是否已存在。
-    /// </summary>
-    /// <param name="baseUrl">表 REST 地址</param>
-    /// <param name="filter">PostgREST 过滤条件</param>
-    /// <param name="apiKey">CloudBase API Key</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>存在返回 true；不存在返回 false</returns>
-    private static async Task<bool> ExistsAsync(
-        string baseUrl,
-        string filter,
-        string apiKey,
-        CancellationToken cancellationToken)
-    {
-        string url = $"{baseUrl}?select=id&{filter}&limit=1";
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-        using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(
-                $"CloudBase 查询失败 HTTP {(int)response.StatusCode}: {body}");
-
-        using JsonDocument document = JsonDocument.Parse(body);
-        return document.RootElement.ValueKind == JsonValueKind.Array
-               && document.RootElement.GetArrayLength() > 0;
     }
 
     /// <summary>构造设备名称，优先使用 WMI 计算机名。</summary>

@@ -513,18 +513,18 @@ CLS 全量日志检索
 
 ### 6.6 CloudBase 硬件入库
 
-硬件扫描完成后，后台调用 CloudBase PostgreSQL PostgREST API：
+硬件扫描完成后，后台调用 CloudBase PostgreSQL RPC：
 
 ```text
-https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/yframe_hardware
+https://{envId}.api.tcloudbasegateway.com/v1/rdb/rest/rpc/upsert_yframe_hardware
 ```
 
 处理逻辑：
 
 ```text
-GET  ?select=id&device_name=eq.<device_name>&limit=1
-  ├─ 存在：PATCH ?device_name=eq.<device_name>
-  └─ 不存在：POST
+POST /rpc/upsert_yframe_hardware
+→ 数据库函数内部 INSERT ... ON CONFLICT (device_name)
+→ 存在则更新，不存在则插入
 ```
 
 字段映射：
@@ -536,7 +536,7 @@ GET  ?select=id&device_name=eq.<device_name>&limit=1
 | `gpu` | 全部 GPU 名称，多个用 ` | ` 分隔 |
 | `memory` | 内存容量与内存条数量 |
 | `disk` | 全部磁盘型号、容量、接口、介质 |
-| `updatetime` | 上传时间（UTC） |
+| `updatetime` | 由数据库函数更新 |
 | `id` / `created_at` | 使用数据库默认值 |
 
 配置：
@@ -545,6 +545,7 @@ GET  ?select=id&device_name=eq.<device_name>&limit=1
 CloudBaseEnabled=true
 CloudBaseEnvId=<CloudBase 环境 ID>
 CloudBaseHardwareTable=yframe_hardware
+CloudBaseHardwareRpc=upsert_yframe_hardware
 ```
 
 CloudBase API Key 固定在源码：
@@ -555,13 +556,23 @@ YFrame/Service/CloudBase/CloudBaseBuiltInSettings.cs
 
 不再写入 `config.conf`。
 
-数据库需要给 `anon` 表级权限：
+客户端不再直接 INSERT/UPDATE 表。数据库只给 `anon` 执行函数权限：
 
 ```sql
-GRANT SELECT, INSERT, UPDATE ON public.yframe_hardware TO anon;
+GRANT EXECUTE
+ON FUNCTION public.upsert_yframe_hardware(text,text,text,text,text)
+TO anon;
 ```
 
-注意：关闭 RLS 只关闭行级策略，不能替代表级 GRANT。
+并撤销表级写权限：
+
+```sql
+REVOKE INSERT, UPDATE, DELETE
+ON public.yframe_hardware
+FROM anon;
+```
+
+关闭 RLS 只关闭行级策略，不能替代表级 GRANT，也不能替代 RPC 权限。
 
 ---
 
@@ -919,7 +930,7 @@ YFrame/bin/Debug/net8.0-windows/Config/config.conf
 - 自动更新已内置清单签名校验（ECDSA P-256 + SHA-256）和包 SHA-256 校验；生产环境仍建议增加 Authenticode 校验；
 - 更新器为框架依赖单文件，目标机器需要 .NET 8 Desktop Runtime；安装器为自包含单文件；
 - APM 当前只上报 Trace 和 Error Span，不包含 CPU/内存 Metric；APM 控制台没有 CLS 式日志检索，完整日志需接 CLS；
-- CloudBase 使用 Publishable Key 时对应 `anon` 角色，必须显式授予 `SELECT/INSERT/UPDATE`；Publishable Key 可被客户端提取，生产环境建议改用云函数代理。
+- CloudBase 使用 Publishable Key 时对应 `anon` 角色，只授予 upsert RPC 的 `EXECUTE`，并撤销表级 INSERT/UPDATE/DELETE；Publishable Key 可被客户端提取，生产环境建议改用云函数代理。
 
 ---
 

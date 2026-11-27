@@ -170,6 +170,13 @@ namespace YF_Manager
             set => Set(value);
         }
 
+        /// <summary>CloudBase PostgreSQL 硬件 upsert RPC 名称。</summary>
+        public static string CloudBaseHardwareRpc
+        {
+            get => Get("upsert_yframe_hardware");
+            set => Set(value);
+        }
+
         /// <summary>
         /// 全局屏幕缩放比例（百分比文本，100-200）
         /// 由框架工具栏统一设置（热键监控 / 打开日志右侧），截图类插件读取后做坐标换算

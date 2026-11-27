@@ -119,6 +119,7 @@ namespace YF_Manager
             _configValues["CloudBaseEnabled"] = "true";
             _configValues["CloudBaseEnvId"] = "worldwide-scorpion-d3c6y1e374741";
             _configValues["CloudBaseHardwareTable"] = "yframe_hardware";
+            _configValues["CloudBaseHardwareRpc"] = "upsert_yframe_hardware";
             // 截图OCR插件屏幕缩放比例（百分比，默认125，范围100-200）
             _configValues["ScreenScale"] = "125";
             // 当前主题（下次启动恢复）
@@ -222,6 +223,8 @@ namespace YF_Manager
                 _configValues.TryAdd("CloudBaseEnvId", "worldwide-scorpion-d3c6y1e374741");
             if (!existingKeys.Contains("CloudBaseHardwareTable"))
                 _configValues.TryAdd("CloudBaseHardwareTable", "yframe_hardware");
+            if (!existingKeys.Contains("CloudBaseHardwareRpc"))
+                _configValues.TryAdd("CloudBaseHardwareRpc", "upsert_yframe_hardware");
             if (!existingKeys.Contains("ScreenScale"))
                 _configValues.TryAdd("ScreenScale", "125");
             if (!existingKeys.Contains("Theme"))
