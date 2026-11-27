@@ -366,7 +366,7 @@ YFrame 的可靠性设计：
 **YF_Clicker**
 
 - H.InputSimulator 模拟鼠标左键；
-- 后台线程连续点击，10 秒自动停止；
+- 后台线程连续点击，预期时间/次数 自动停止；
 - 手动按钮 / 框架 `Ctrl+Y` 启停；
 - 运行状态、点击次数通过回调上报。
 
@@ -644,6 +644,8 @@ CloudBase API Key 同样不写入配置，保存到 `%LocalAppData%\YFrame\secre
 
 独立 WPF 上传器，已加入 `YFrame.sln`，负责两类互不混合的上传任务。
 
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/13037241-7c9e-4241-8ee2-9f243c100148/image.png 'image.png')
+
 **A. 更新包四文件上传**
 
 输入目录必须同时包含 `current.zip`、`increment.zip`、`YF_Version.json`、`YF_Version.json.sig`。
@@ -855,11 +857,10 @@ COS 上传器不会把 SecretId/SecretKey 写入配置，只在运行时从 `Sec
 ## 界面预览
 
 仓库历史设计稿截图：
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/f73e9633-9a73-499d-9afc-1481da4414bd/image.png 'image.png')
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/e57fdc0c-3cc2-4dab-9d0a-cbe19999df79/image.png 'image.png')
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/7a41a185-693e-4c09-a42e-3ff5012f3bc8/image.png 'image.png')
-![image.png](https://raw.gitcode.com/user-images/assets/7353928/a2b14f27-4cfd-4c54-a2e4-ffa2e98f71d6/image.png 'image.png')
-
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/a47310a3-bcfc-4a9f-b603-a4f9a7318e95/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/1a729d2e-4bf0-4533-ad92-8fbd58c776b8/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/0986b125-1eb2-4f47-814d-1918151fef77/image.png 'image.png')
+![image.png](https://raw.gitcode.com/user-images/assets/7353928/c9279382-d132-4a48-9fdd-8c2f005548b9/image.png 'image.png')
 ---
 
 ## 仓库
