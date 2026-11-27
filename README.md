@@ -8,7 +8,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
   <img alt=".NET" src="https://img.shields.io/badge/.NET-8.0-512BD4">
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-0C54C2">
   <img alt="Plugins" src="https://img.shields.io/badge/plugins-10-4F46E5">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-123-059669">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-129-059669">
   <img alt="Themes" src="https://img.shields.io/badge/themes-4-7C3AED">
 </p>
 
@@ -50,7 +50,7 @@ YFrame 工具集，个人项目展示
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
-| 单元测试 | 123 个 |
+| 单元测试 | 129 个 |
 | 当前版本 | 2.1.6 |
 
 ```text
@@ -326,7 +326,7 @@ YFrame 的可靠性设计：
 - AOP 只做旁路记录：日志失败降级为 `Debug` 输出，不改变业务异常和返回值；
 - 更新链先验证后替换：ECDSA 清单签名、包 SHA-256、staging 解压、路径穿越检查、备份与失败保留；
 - 更新器自我替换：运行中的 `YFrame.update.exe` 不直接覆盖，写为 pending 文件，下次启动接替；
-- 上传器幂等顺序：先上传 ZIP，最后上传 `plugins.json`，避免客户端读到半成品；
+- 上传器幂等顺序：先上传 ZIP，再上传签名，最后上传 `plugins.json`，避免客户端读到半成品；
 - 工作流自动保存：450ms 防抖 + 临时文件原子替换，降低频繁写盘和半写文件风险。
 
 安全边界：
@@ -336,6 +336,57 @@ YFrame 的可靠性设计：
 - DPAPI 只保护落盘静态数据，不防同用户运行中的进程读取；
 - `YFrame.secrets.bootstrap` 是安装/更新下发通道，不是强保密容器；
 - 公开分发场景仍建议使用云函数代理或服务端签发短期凭证。
+
+### 4.7 插件供应链安全
+
+插件是会被 `Assembly.LoadFrom` 执行的代码，因此不能只依赖 HTTPS。
+
+信任链：
+
+```text
+plugins.json 原始字节
+→ plugins.json.sig 验签
+→ 读取每个 ZIP 的 size + sha256
+→ 下载并校验 ZIP
+→ staging 解压
+→ 原子替换旧插件
+→ 写安装记录
+→ 加载前校验入口 DLL
+```
+
+清单要求：
+
+| 字段 | 作用 |
+|---|---|
+| `schemaVersion` | 当前为 2，客户端拒绝旧格式 |
+| `keyId` | 选择内置插件公钥 |
+| `plugins[].id` | 必须等于插件目录名 |
+| `plugins[].version` | 安装记录与兼容性约束 |
+| `plugins[].size` | ZIP 字节数 |
+| `plugins[].sha256` | ZIP 内容哈希 |
+| `plugins[].url` | 仅允许 HTTPS |
+
+签名与密钥：
+
+```text
+算法：ECDSA P-256 + SHA-256
+域分离：YFRAME-PLUGIN-MANIFEST-V1
+私钥：SigningKeys\plugins\plugin-manifest-2026-01.private.pem
+公钥：YFrame\Service\Security\PluginTrustKeys.cs
+```
+
+插件签名密钥与更新签名密钥分离。私钥只在签名端使用，不进入客户端、源码或 `upload.settings.json`。
+
+安装约束：
+
+- 先验签清单，再反序列化；
+- 下载后校验大小和 SHA-256；
+- 只解压到 `.staging`，校验绝对路径、`..`、盘符和符号链接；
+- 成功后先备份旧目录，再原子替换；失败恢复旧插件；
+- 写 `.yframe-plugin.json` 记录入口 DLL 哈希；
+- 加载前校验哈希，不匹配拒绝加载；
+- 没有安装记录的旧插件按 legacy 处理并提示重新安装；
+- TCP 插件源没有签名清单，当前直接拒绝安装，避免留下无校验旁路。
 
 ---
 
@@ -667,20 +718,29 @@ COS 对象键统一为 `YFrame/update/{uat|pdt}/{文件名}`。上传器固定�
 
 发布分两步：
 
-1. “仅压缩”：为每个勾选插件生成 `{FolderName}.zip`，并生成 `plugins.json`；
-2. “上传已压缩包”：把 ZIP 上传到 `YFrame/plugins/file/`，最后把 `plugins.json` 上传到 `YFrame/plugins/`。
+1. “仅压缩”：为每个勾选插件生成 `{FolderName}.zip`，计算 SHA-256，并生成带 `schemaVersion/keyId` 的 `plugins.json`；
+2. “上传已压缩包”：把 ZIP 上传到 `YFrame/plugins/file/`，把 `plugins.json.sig` 和 `plugins.json` 上传到 `YFrame/plugins/`。
 
 设计要点：
 
 - 压缩与上传解耦，上传阶段不会重新压缩；
 - 勾选状态保存到 `SelectedPlugins`，下次启动恢复；旧配置没有该字段时默认全选，空集合表示全部取消；
 - ZIP 按插件目录结构打包，使用相对路径与前向斜杠；
-- `plugins.json` 包含 `name`、`fileName`、`url`、`size`；
-- 清单最后上传，保证客户端不会看到“清单已存在但 ZIP 不全”的中间状态。
+- `plugins.json` 包含 `id`、`name`、`version`、`fileName`、`url`、`size`、`sha256`；
+- 清单使用插件私钥签名，生成 `plugins.json.sig`；签名覆盖清单原始字节；
+- 签名文件先上传，清单最后上传，保证客户端不会看到“清单已存在但 ZIP/签名不全”的中间状态。
 
 **配置与输出**
 
-配置位于 `YFrame.Pack/bin/{Debug|Release}/net8.0-windows/Config/upload.settings.json`，主要字段覆盖 Pack 输出目录、SecretKey.csv、Bucket/Region/Environment、插件源目录与 ZIP 输出目录、插件 ZIP/清单的 COS 前缀与公开地址、清单文件名以及 `SelectedPlugins`。
+配置位于 `YFrame.Pack/bin/{Debug|Release}/net8.0-windows/Config/upload.settings.json`，主要字段覆盖 Pack 输出目录、SecretKey.csv、Bucket/Region/Environment、插件源目录与 ZIP 输出目录、插件 ZIP/清单的 COS 前缀与公开地址、清单文件名、`SelectedPlugins`、`PluginPrivateKeyFile` 和 `PluginKeyId`。
+
+插件签名私钥默认路径：
+
+```text
+C:\Users\Administrator\Desktop\code\C#\YFrame\SigningKeys\plugins\plugin-manifest-2026-01.private.pem
+```
+
+私钥只用于上传器签名，不能上传到 COS、不能提交 Git、不能复制到客户端。
 
 上传器默认输出目录与 `YFrame.Sign` 一致，均为 `YFrame.Pack/bin/{Debug|Release}/net8.0-windows/`。构建命令为 `dotnet build YFrame.upload.cos/YFrame.upload.cos.csproj -c Release`。
 
@@ -696,7 +756,7 @@ COS 对象键统一为 `YFrame/update/{uat|pdt}/{文件名}`。上传器固定�
 
 ### 8.2 测试
 
-当前 123 个测试全部通过，覆盖命令、配置、日志、插件调度、文件、TCP、MD5、正则等核心能力。测试项目通过 `dotnet test YFrame.Tests/YFrame.Tests.csproj` 执行。
+当前 129 个测试全部通过，覆盖命令、配置、日志、插件调度、文件、TCP、MD5、正则、插件清单签名和安全安装等核心能力。测试项目通过 `dotnet test YFrame.Tests/YFrame.Tests.csproj` 执行。
 
 ### 8.3 CI
 

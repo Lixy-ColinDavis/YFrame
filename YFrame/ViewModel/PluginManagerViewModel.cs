@@ -322,7 +322,14 @@ namespace YFrame.ViewModel
                 if (!string.IsNullOrWhiteSpace(pluginInfo.DownloadUrl))
                 {
                     await _service.InstallPluginFromUrlAsync(
-                        pluginInfo.FolderName, pluginInfo.DownloadUrl, progress, pluginInfo.Cts.Token);
+                        pluginInfo.FolderName,
+                        pluginInfo.DownloadUrl,
+                        pluginInfo.TotalSize,
+                        pluginInfo.Sha256,
+                        pluginInfo.Version,
+                        pluginInfo.ManifestKeyId,
+                        progress,
+                        pluginInfo.Cts.Token);
                 }
                 else
                 {

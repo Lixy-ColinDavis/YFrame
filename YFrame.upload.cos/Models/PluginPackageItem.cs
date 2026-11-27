@@ -7,6 +7,8 @@ public sealed class PluginPackageItem : ViewModels.ObservableObject
     private long _zipLength;
     private string _zipPath = string.Empty;
     private string _url = string.Empty;
+    private string _sha256 = string.Empty;
+    private string _version = "1.0.0";
     private bool _isSelected = true;
 
     /// <summary>插件目录名，同时作为 ZIP 文件名。</summary>
@@ -34,6 +36,20 @@ public sealed class PluginPackageItem : ViewModels.ObservableObject
             if (SetProperty(ref _zipLength, value))
                 OnPropertyChanged(nameof(ZipSizeText));
         }
+    }
+
+    /// <summary>ZIP 文件 SHA-256。</summary>
+    public string Sha256
+    {
+        get => _sha256;
+        set => SetProperty(ref _sha256, value);
+    }
+
+    /// <summary>插件版本。</summary>
+    public string Version
+    {
+        get => _version;
+        set => SetProperty(ref _version, value);
     }
 
     /// <summary>ZIP 大小文本。</summary>

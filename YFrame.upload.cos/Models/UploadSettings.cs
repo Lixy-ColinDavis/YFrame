@@ -50,6 +50,13 @@ public sealed class UploadSettings
     /// <summary>插件配置清单文件名。</summary>
     public string PluginManifestFileName { get; set; } = "plugins.json";
 
+    /// <summary>插件清单签名私钥 PEM 路径；私钥不得上传或提交。</summary>
+    public string PluginPrivateKeyFile { get; set; } =
+        @"C:\Users\Administrator\Desktop\code\C#\YFrame\SigningKeys\plugins\plugin-manifest-2026-01.private.pem";
+
+    /// <summary>插件清单签名 KeyId，必须与客户端内置公钥匹配。</summary>
+    public string PluginKeyId { get; set; } = "plugin-2026-01";
+
     /// <summary>
     /// 已勾选的插件目录名。null 表示旧配置尚未初始化，默认全选；
     /// 空集合表示用户明确取消全部勾选。

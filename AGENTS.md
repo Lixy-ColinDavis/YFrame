@@ -55,7 +55,7 @@ YFrame.sln
 |---|---|---|---|
 | `YFrame` | `YFrame/YFrame.csproj` | WPF App | Shell、主 ViewModel、插件运行时、工具箱、更新检查 |
 | `YF_Manager` | `YF_Manager/YF_Manager.csproj` | Class Library | 插件契约、AOP、配置、Mediator、日志、通用工具 |
-| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 123 个测试 |
+| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 129 个测试 |
 | `YFrame.Installer` | `YFrame.Installer/YFrame.Installer.csproj` | WPF App | 向导式安装器，自包含单文件 |
 | `YFrame.Pack` | `YFrame.Pack/YFrame.Pack.csproj` | WPF App | ZIP 差异、增量包、版本清单 |
 | `YFrame.Sign` | `YFrame.Sign/YFrame.Sign.csproj` | WPF App | 清单签名、临时密钥、路径配置 |
@@ -117,7 +117,7 @@ public interface I_YF_Detail
 public interface I_YF_Command
 {
     void ExecuteCommand(string command, object? parameter = null);
-    event EventHandler<PluginEventArgs> OnPluginCallback;
+    event EventHandler<PluginEventArgs>? OnPluginCallback;
 }
 ```
 
@@ -178,6 +178,20 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 - 不在插件中重复实现日志、配置、文件、ZIP 等通用能力；
 - UI 文案放 `YFrame/Common/Language/zh-CN.xaml` / `en-US.xaml`，使用 `key_*`；
 - 插件设置放 `Config/...`，不要写死用户路径。
+
+### 4.7 插件供应链安全
+
+- HTTPS 清单 `plugins.json` 必须配合 `plugins.json.sig`，客户端只内置公钥；
+- 清单 v2 字段：`schemaVersion`、`keyId`、`id`、`version`、`size`、`sha256`；
+- 签名算法 ECDSA P-256 + SHA-256，域前缀 `YFRAME-PLUGIN-MANIFEST-V1`；
+- 私钥：`SigningKeys\plugins\plugin-manifest-2026-01.private.pem`，只允许签名端使用；
+- 公钥：`YFrame\Service\Security\PluginTrustKeys.cs`，按 `keyId` 选择；
+- 下载 ZIP 后必须校验 size + SHA-256；
+- 只解压到 `plugins/.staging`，拒绝绝对路径、`..`、盘符和符号链接；
+- 旧插件先移到 `.backup`，staging 成功后再替换，失败回滚；
+- 安装记录 `.yframe-plugin.json` 保存入口 DLL 哈希，加载前校验；
+- 无安装记录的旧插件按 legacy 加载并提示重新安装；
+- TCP 插件源没有签名清单，当前拒绝安装。
 
 ---
 
@@ -649,7 +663,7 @@ dotnet test YFrame.Tests/YFrame.Tests.csproj -c Debug
 
 ```text
 0 errors
-123 tests passed
+129 tests passed
 ```
 
 如果 WPF 进程占用输出文件：

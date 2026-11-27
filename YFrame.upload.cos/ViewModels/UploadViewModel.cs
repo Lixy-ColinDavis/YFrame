@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
+using YF_Manager;
 using YFrame.upload.cos.Models;
 using YFrame.upload.cos.Services;
 
@@ -40,6 +41,8 @@ public sealed class UploadViewModel : ObservableObject
     private string _pluginManifestBaseUrl =
         "https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/plugins";
     private string _pluginManifestFileName = "plugins.json";
+    private string _pluginPrivateKeyFile = string.Empty;
+    private string _pluginKeyId = "plugin-2026-01";
     private string _pluginStatus = "等待处理插件包";
     private double _pluginProgressPercent;
     private bool _isPluginBusy;
@@ -70,6 +73,8 @@ public sealed class UploadViewModel : ObservableObject
         _pluginManifestRemotePrefix = _settings.PluginManifestRemotePrefix;
         _pluginManifestBaseUrl = _settings.PluginManifestBaseUrl;
         _pluginManifestFileName = _settings.PluginManifestFileName;
+        _pluginPrivateKeyFile = _settings.PluginPrivateKeyFile;
+        _pluginKeyId = _settings.PluginKeyId;
 
         Environments = new ObservableCollection<string> { "uat", "pdt" };
         Files = new ObservableCollection<PackFileItem>();
@@ -83,6 +88,7 @@ public sealed class UploadViewModel : ObservableObject
 
         BrowsePluginSourceCommand = new RelayCommand(BrowsePluginSource);
         BrowsePluginOutputCommand = new RelayCommand(BrowsePluginOutput);
+        BrowsePluginKeyCommand = new RelayCommand(BrowsePluginPrivateKey);
         RefreshPluginListCommand = new RelayCommand(RefreshPluginList);
         CompressPluginsCommand = new AsyncRelayCommand(CompressPluginsAsync, CanCompressPlugins);
         UploadPluginsCommand = new AsyncRelayCommand(UploadPluginsAsync, CanUploadPlugins);
@@ -317,6 +323,28 @@ public sealed class UploadViewModel : ObservableObject
         private set => SetProperty(ref _pluginStatus, value);
     }
 
+    /// <summary>插件清单签名私钥 PEM 路径。</summary>
+    public string PluginPrivateKeyFile
+    {
+        get => _pluginPrivateKeyFile;
+        set
+        {
+            if (SetProperty(ref _pluginPrivateKeyFile, value))
+                SaveSettings();
+        }
+    }
+
+    /// <summary>插件清单签名 KeyId。</summary>
+    public string PluginKeyId
+    {
+        get => _pluginKeyId;
+        set
+        {
+            if (SetProperty(ref _pluginKeyId, value))
+                SaveSettings();
+        }
+    }
+
     /// <summary>插件处理进度。</summary>
     public double PluginProgressPercent
     {
@@ -361,6 +389,7 @@ public sealed class UploadViewModel : ObservableObject
 
     public RelayCommand BrowsePluginSourceCommand { get; }
     public RelayCommand BrowsePluginOutputCommand { get; }
+    public RelayCommand BrowsePluginKeyCommand { get; }
     public RelayCommand RefreshPluginListCommand { get; }
     public AsyncRelayCommand CompressPluginsCommand { get; }
     public AsyncRelayCommand UploadPluginsCommand { get; }
@@ -484,6 +513,17 @@ public sealed class UploadViewModel : ObservableObject
         RefreshPluginList();
     }
 
+    /// <summary>选择插件清单签名私钥。</summary>
+    private void BrowsePluginPrivateKey()
+    {
+        string? file = _dialogService.PickFile(
+            "选择插件清单签名私钥",
+            "PEM 私钥|*.pem|所有文件|*.*",
+            Path.GetDirectoryName(PluginPrivateKeyFile));
+        if (file != null)
+            PluginPrivateKeyFile = file;
+    }
+
     /// <summary>扫描插件目录并恢复勾选状态。</summary>
     private void RefreshPluginList()
     {
@@ -545,7 +585,8 @@ public sealed class UploadViewModel : ObservableObject
     private bool CanUploadPlugins()
     {
         string manifestPath = Path.Combine(PluginZipOutputRoot, PluginManifestFileName);
-        return !IsPluginBusy && _credentials != null && File.Exists(manifestPath);
+        return !IsPluginBusy && _credentials != null &&
+               File.Exists(manifestPath) && File.Exists(manifestPath + ".sig");
     }
 
     /// <summary>只压缩已勾选插件并生成清单，不上传。</summary>
@@ -561,9 +602,17 @@ public sealed class UploadViewModel : ObservableObject
 
             if (string.IsNullOrWhiteSpace(PluginZipOutputRoot) ||
                 string.IsNullOrWhiteSpace(PluginBaseUrl) ||
-                string.IsNullOrWhiteSpace(PluginManifestFileName))
+                string.IsNullOrWhiteSpace(PluginManifestFileName) ||
+                string.IsNullOrWhiteSpace(PluginPrivateKeyFile) ||
+                string.IsNullOrWhiteSpace(PluginKeyId))
             {
-                ShowError("插件输出目录、公开地址和清单文件名不能为空。");
+                ShowError("插件输出目录、公开地址、清单文件名和签名配置不能为空。");
+                return;
+            }
+
+            if (!File.Exists(PluginPrivateKeyFile))
+            {
+                ShowError("插件清单签名私钥不存在，请检查路径。");
                 return;
             }
 
@@ -589,8 +638,14 @@ public sealed class UploadViewModel : ObservableObject
             });
 
             string manifestPath = await Task.Run(() => _pluginPackService.PackageAsync(
-                selectedPackages, PluginZipOutputRoot, PluginManifestFileName, packProgress)
+                selectedPackages, PluginZipOutputRoot, PluginManifestFileName, PluginKeyId, packProgress)
                 .GetAwaiter().GetResult());
+
+            // 对清单原始字节签名；上传与客户端验签必须使用同一份字节
+            byte[] manifestBytes = await File.ReadAllBytesAsync(manifestPath);
+            byte[] signature = await Task.Run(() =>
+                YF_PluginManifestSigner.Sign(manifestBytes, PluginPrivateKeyFile));
+            await File.WriteAllBytesAsync(manifestPath + ".sig", signature);
 
             PluginManifestPath = manifestPath;
             PluginProgressPercent = 100;
@@ -763,6 +818,8 @@ public sealed class UploadViewModel : ObservableObject
             PluginManifestRemotePrefix = PluginManifestRemotePrefix,
             PluginManifestBaseUrl = PluginManifestBaseUrl,
             PluginManifestFileName = PluginManifestFileName,
+            PluginPrivateKeyFile = PluginPrivateKeyFile,
+            PluginKeyId = PluginKeyId,
             // 扫描失败时保留原勾选，避免保存动作清空用户选择
             SelectedPlugins = PluginPackages.Count > 0
                 ? PluginPackages.Where(item => item.IsSelected)

@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using YF_Manager;
 using YFrame.upload.cos.Models;
 
 namespace YFrame.upload.cos.Services;
@@ -38,7 +40,8 @@ public sealed class PluginPackService
                 SourcePath = directory,
                 SourceLength = sourceLength,
                 ZipPath = Path.Combine(outputRoot, zipName),
-                Url = BuildUrl(baseUrl, zipName)
+                Url = BuildUrl(baseUrl, zipName),
+                Version = ReadPluginVersion(directory, folderName)
             });
         }
 
@@ -56,6 +59,7 @@ public sealed class PluginPackService
         IReadOnlyList<PluginPackageItem> packages,
         string outputRoot,
         string manifestFileName,
+        string keyId,
         IProgress<PluginPackProgress> progress,
         CancellationToken cancellationToken = default)
     {
@@ -105,6 +109,8 @@ public sealed class PluginPackService
 
                 File.Move(tempZip, package.ZipPath, overwrite: true);
                 package.ZipLength = new FileInfo(package.ZipPath).Length;
+                // 清单中的哈希必须在 ZIP 完全落盘后计算
+                package.Sha256 = YF_Sha256Hasher.ComputeFile(package.ZipPath);
                 package.Status = "已压缩";
             }
             catch
@@ -121,13 +127,18 @@ public sealed class PluginPackService
         string manifestPath = Path.Combine(outputRoot, manifestFileName);
         var manifest = new PluginManifest
         {
+            SchemaVersion = 2,
+            KeyId = keyId,
             Count = packages.Count,
             Plugins = packages.Select(item => new PluginManifestItem
             {
+                Id = item.FolderName,
                 Name = item.FolderName,
+                Version = item.Version,
                 FileName = item.FolderName + ".zip",
                 Url = item.Url,
-                Size = item.ZipLength
+                Size = item.ZipLength,
+                Sha256 = item.Sha256
             }).ToList()
         };
 
@@ -250,6 +261,19 @@ public sealed class PluginPackService
             });
         }
 
+        // 签名文件必须先于清单上传，避免客户端读到新清单时没有可用签名
+        string signaturePath = manifestPath + ".sig";
+        if (!File.Exists(signaturePath))
+            throw new FileNotFoundException("插件清单签名文件不存在，请先重新压缩并签名。", signaturePath);
+
+        files.Add(new CosUploadFile
+        {
+            Name = Path.GetFileName(signaturePath),
+            LocalPath = signaturePath,
+            ObjectKey = $"{manifestPrefix}/{Path.GetFileName(signaturePath)}",
+            Length = new FileInfo(signaturePath).Length
+        });
+
         // 清单独占最后一个上传位置，且使用独立目录 YFrame/plugins
         files.Add(new CosUploadFile
         {
@@ -261,6 +285,28 @@ public sealed class PluginPackService
 
         return uploadService.UploadObjectsAsync(
             credentials, bucket, region, files, progress, cancellationToken);
+    }
+
+    /// <summary>读取插件入口程序集版本；读不到时回退 1.0.0。</summary>
+    /// <param name="pluginDirectory">插件目录</param>
+    /// <param name="folderName">插件目录名</param>
+    /// <returns>版本字符串</returns>
+    private static string ReadPluginVersion(string pluginDirectory, string folderName)
+    {
+        try
+        {
+            string assemblyPath = Path.Combine(pluginDirectory, folderName + ".dll");
+            if (!File.Exists(assemblyPath))
+                return "1.0.0";
+
+            string? version = FileVersionInfo.GetVersionInfo(assemblyPath).FileVersion;
+            return string.IsNullOrWhiteSpace(version) ? "1.0.0" : version;
+        }
+        catch (Exception)
+        {
+            // 版本只用于展示和约束，读取失败不阻断打包
+            return "1.0.0";
+        }
     }
 
     /// <summary>拼接公开访问 URL。</summary>

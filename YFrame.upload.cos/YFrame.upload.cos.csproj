@@ -27,4 +27,9 @@
     <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.51" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 复用插件清单签名与 SHA-256 工具，避免上传端和客户端算法漂移 -->
+    <ProjectReference Include="..\YF_Manager\YF_Manager.csproj" />
+  </ItemGroup>
+
 </Project>

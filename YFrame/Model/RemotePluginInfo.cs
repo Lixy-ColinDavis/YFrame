@@ -61,6 +61,30 @@ namespace YFrame.Model
             set => SetProperty(ref _downloadUrl, value);
         }
 
+        private string _sha256 = "";
+        /// <summary>HTTPS 清单声明的 ZIP SHA-256。</summary>
+        public string Sha256
+        {
+            get => _sha256;
+            set => SetProperty(ref _sha256, value);
+        }
+
+        private string _version = "";
+        /// <summary>插件清单声明的版本。</summary>
+        public string Version
+        {
+            get => _version;
+            set => SetProperty(ref _version, value);
+        }
+
+        private string _manifestKeyId = "";
+        /// <summary>清单签名 KeyId，用于安装记录。</summary>
+        public string ManifestKeyId
+        {
+            get => _manifestKeyId;
+            set => SetProperty(ref _manifestKeyId, value);
+        }
+
         private long _totalSize;
         public long TotalSize
         {

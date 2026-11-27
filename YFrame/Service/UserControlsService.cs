@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Xml.Linq;
 using YF_Manager;
+using YFrame.Service.Security;
 
 namespace YFrame
 {
@@ -88,6 +89,19 @@ namespace YFrame
             try
             {
                 userControl = null; detail = null; commandHandler = null;
+
+                // 安装记录存在时必须校验入口 DLL，防止安装后被替换；
+                // 旧版本手工插件没有记录，按 legacy 处理并记录警告。
+                PluginInstallRecord? installRecord = PluginInstallRecord.VerifyIfPresent(
+                    Path.GetDirectoryName(assemblyPath) ?? string.Empty,
+                    assemblyPath);
+                if (installRecord == null)
+                {
+                    _logger.ErrorInfo(
+                        "TryLoadPlugin",
+                        $"{pluginName} 缺少安装记录，按 legacy 插件加载；建议重新安装。");
+                }
+
                 // 不引入 AssemblyLoadContext，插件随主程序生命周期加载
                 Assembly assembly = Assembly.LoadFrom(assemblyPath);
                 Type? userControlType = assembly.GetType($"{pluginName}.MainControl");
