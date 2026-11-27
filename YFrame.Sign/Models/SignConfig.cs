@@ -171,7 +171,7 @@ public sealed class SignConfig
         return string.IsNullOrWhiteSpace(latest) ? AppContext.BaseDirectory : latest;
     }
 
-    /// <summary>判断清单文件是否包含 current/pervious 的 sha256 字段。</summary>
+    /// <summary>判断清单文件是否包含 current/previous 的 sha256 字段。</summary>
     /// <param name="manifestPath">YF_Version.json 路径</param>
     private static bool ContainsSha256Manifest(string manifestPath)
     {
@@ -180,7 +180,7 @@ public sealed class SignConfig
             using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(manifestPath));
             JsonElement root = document.RootElement;
 
-            foreach (string name in new[] { "current", "pervious" })
+            foreach (string name in new[] { "current", "previous" })
             {
                 if (!root.TryGetProperty(name, out JsonElement package) ||
                     !package.TryGetProperty("sha256", out JsonElement sha256) ||

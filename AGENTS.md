@@ -81,7 +81,7 @@ base.OnStartup
   → ApplySavedTheme()
   → UpdateService.CheckAsync()
        ├─ 本地 == 远端 current：继续
-       ├─ 本地 == 远端 pervious：UpdatePromptWindow（增量优先）
+       ├─ 本地 == 远端 previous：UpdatePromptWindow（增量优先）
        ├─ 本地 < current 的其他版本：UpdatePromptWindow（全量）
        ├─ 本地 > current：不提示、不降级
        └─ 网络失败/无可用包：继续
@@ -391,7 +391,7 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 `UpdateService.CheckAsync`：
 
 - 本地版本 = `AssemblyVersion.ToString(3)`；
-- 远端 `current_version` / `pervious_version` 及 `current` / `pervious` 包信息；
+- 远端 `current_version` / `previous_version` 及 `current` / `previous` 包信息；
 - 本地 == current：不处理；
 - 本地 == previous：提示，增量优先；
 - 本地 < current 的其他版本：提示，走全量；
@@ -445,7 +445,7 @@ UpdateBaseUrl=https://yfcos-1256976024.cos.ap-beijing.myqcloud.com/YFrame/update
 - 新增/修改写入 `increment.zip`；
 - 最新完整包复制为 `current.zip`；
 - 输出 `YF_Version.json`；
-- `pervious` 拼写必须保持；
+- 更新清单字段统一为 `previous_version` / `previous`，不再兼容旧字段；
 - `updatetime` 格式 `yyyy-MM-dd'T'HH-mm-ss`；
 - 输出目录自动加时间戳，避免覆盖；
 - 配置 `YFrame.Pack.config.json` 保存输出根目录和 URL，输入 ZIP 路径不保存；

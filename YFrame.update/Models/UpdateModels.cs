@@ -9,13 +9,13 @@ public sealed class RemoteUpdateManifest
     [JsonPropertyName("current_version")]
     public string CurrentVersion { get; set; } = string.Empty;
 
-    [JsonPropertyName("pervious_version")]
+    [JsonPropertyName("previous_version")]
     public string PreviousVersion { get; set; } = string.Empty;
 
     [JsonPropertyName("current")]
     public PackageInfo Current { get; set; } = new();
 
-    [JsonPropertyName("pervious")]
+    [JsonPropertyName("previous")]
     public PackageInfo Previous { get; set; } = new();
 
     [JsonPropertyName("removed")]

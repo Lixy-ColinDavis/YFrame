@@ -80,7 +80,7 @@ public sealed class YF_ManifestSignerTests : IDisposable
     {
         string manifestPath = Path.Combine(_directory, "YF_Version.json");
         File.WriteAllText(manifestPath,
-            "{\"current\":{\"md5\":\"abc\"},\"pervious\":{\"md5\":\"def\"}}", Encoding.UTF8);
+            "{\"current\":{\"md5\":\"abc\"},\"previous\":{\"md5\":\"def\"}}", Encoding.UTF8);
         var key = YF_ManifestSigner.GenerateTemporaryKey(_directory);
 
         Assert.Throws<InvalidDataException>(() =>
@@ -94,7 +94,7 @@ public sealed class YF_ManifestSignerTests : IDisposable
         File.WriteAllText(path,
             "{\"current\":{\"url\":\"https://example/current.zip\",\"size\":1,\"sha256\":\"" +
             new string('a', 64) +
-            "\"},\"pervious\":{\"url\":\"https://example/increment.zip\",\"size\":1,\"sha256\":\"" +
+            "\"},\"previous\":{\"url\":\"https://example/increment.zip\",\"size\":1,\"sha256\":\"" +
             new string('b', 64) + "\"}}",
             Encoding.UTF8);
         return path;

@@ -145,7 +145,7 @@ namespace YF_Manager
             return (privatePath, publicPath);
         }
 
-        /// <summary>校验清单是否包含 current/pervious 的 sha256 字段。</summary>
+        /// <summary>校验清单是否包含 current/previous 的 sha256 字段。</summary>
         /// <param name="manifestBytes">清单原始字节</param>
         private static void ValidateManifest(byte[] manifestBytes)
         {
@@ -165,7 +165,7 @@ namespace YF_Manager
                 JsonElement root = document.RootElement;
 
                 ValidatePackage(root, "current");
-                ValidatePackage(root, "pervious");
+                ValidatePackage(root, "previous");
             }
             catch (JsonException ex)
             {
@@ -175,7 +175,7 @@ namespace YF_Manager
 
         /// <summary>校验清单中的一个发布包节点。</summary>
         /// <param name="root">JSON 根节点</param>
-        /// <param name="propertyName">current 或 pervious</param>
+        /// <param name="propertyName">current 或 previous</param>
         private static void ValidatePackage(JsonElement root, string propertyName)
         {
             if (!root.TryGetProperty(propertyName, out JsonElement package) ||

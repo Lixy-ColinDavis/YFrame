@@ -227,13 +227,13 @@ public static class UpdateService
         [JsonPropertyName("current_version")]
         public string CurrentVersion { get; set; } = string.Empty;
 
-        [JsonPropertyName("pervious_version")]
+        [JsonPropertyName("previous_version")]
         public string PreviousVersion { get; set; } = string.Empty;
 
         [JsonPropertyName("current")]
         public RemotePackageInfo? Current { get; set; }
 
-        [JsonPropertyName("pervious")]
+        [JsonPropertyName("previous")]
         public RemotePackageInfo? Previous { get; set; }
     }
 

@@ -486,7 +486,7 @@
                                            Style="{StaticResource MutedText}" Margin="0,7,0,0"/>
                                 <TextBlock Text="• 删除的文件写入 removed 数组"
                                            Style="{StaticResource MutedText}" Margin="0,7,0,0"/>
-                                <TextBlock Text="• current / pervious 均记录 size 和 SHA-256"
+                                <TextBlock Text="• current / previous 均记录 size 和 SHA-256"
                                            Style="{StaticResource MutedText}" Margin="0,7,0,0"/>
                                 <TextBlock Text="• 配置只保存输出目录和发布地址，输入路径不保存"
                                            Style="{StaticResource MutedText}" Margin="0,7,0,0"

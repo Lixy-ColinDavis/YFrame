@@ -593,10 +593,10 @@ CloudBase API Key 同样不写入配置，保存到 `%LocalAppData%\YFrame\secre
 |---|---|
 | `product` | 产品名 |
 | `current_version` | 最新版本 |
-| `pervious_version` | 上一版本，历史拼写必须保持 |
+| `previous_version` | 上一版本 |
 | `updatetime` | 构建时间 |
 | `current` | 完整包 URL、大小、SHA-256 |
-| `pervious` | 增量包 URL、大小、SHA-256 |
+| `previous` | 增量包 URL、大小、SHA-256 |
 | `removed` | 新版本删除的文件列表 |
 
 输出目录自动附加时间戳；`YFrame.Pack.config.json` 只保存输出根目录和 URL，不保存输入 ZIP 路径；启动时自动扫描 exe 目录中版本最高的两个 ZIP。
@@ -608,7 +608,7 @@ CloudBase API Key 同样不写入配置，保存到 `%LocalAppData%\YFrame\secre
 | 本地版本 | 行为 |
 |---|---|
 | 等于 `current_version` | 已是最新，不更新 |
-| 等于 `pervious_version` 且增量包可用 | 下载 `increment.zip`，增量更新 |
+| 等于 `previous_version` 且增量包可用 | 下载 `increment.zip`，增量更新 |
 | 低于 `current_version` 的其他版本 | 下载 `current.zip`，全量更新 |
 | 增量包缺失但全量包可用 | 回退全量更新 |
 | 高于 `current_version` | 不降级 |

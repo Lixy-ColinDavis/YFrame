@@ -68,9 +68,9 @@ public sealed class UpdateRunner
 
         string current = NormalizeVersion(manifest.CurrentVersion);
         string previous = NormalizeVersion(manifest.PreviousVersion);
-        _logger.Info($"远端清单；current_version={current}；pervious_version={previous}；removed={manifest.Removed.Count}");
+        _logger.Info($"远端清单；current_version={current}；previous_version={previous}；removed={manifest.Removed.Count}");
         if (string.IsNullOrEmpty(current) || string.IsNullOrEmpty(previous))
-            throw new InvalidDataException("远端版本清单缺少 current_version 或 pervious_version。");
+            throw new InvalidDataException("远端版本清单缺少 current_version 或 previous_version。");
 
         if (string.Equals(localVersion, current, StringComparison.OrdinalIgnoreCase))
         {

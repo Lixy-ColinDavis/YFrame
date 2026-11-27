@@ -5,7 +5,7 @@ namespace YFrame.Pack.Models;
 
 /// <summary>
 /// YF_Version.json 的数据结构。
-/// 字段名按发布端约定固定，pervious 为历史拼写，不能改成 previous。
+/// 字段名统一使用 previous，不再兼容旧字段。
 /// </summary>
 public sealed class VersionManifest
 {
@@ -15,7 +15,7 @@ public sealed class VersionManifest
     [JsonPropertyName("current_version")]
     public string CurrentVersion { get; set; } = string.Empty;
 
-    [JsonPropertyName("pervious_version")]
+    [JsonPropertyName("previous_version")]
     public string PreviousVersion { get; set; } = string.Empty;
 
     [JsonPropertyName("updatetime")]
@@ -24,7 +24,7 @@ public sealed class VersionManifest
     [JsonPropertyName("current")]
     public PackageInfo Current { get; set; } = new();
 
-    [JsonPropertyName("pervious")]
+    [JsonPropertyName("previous")]
     public PackageInfo Previous { get; set; } = new();
 
     [JsonPropertyName("removed")]
