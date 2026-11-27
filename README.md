@@ -2,7 +2,7 @@
 
 > **YFrame** 是一个基于 **.NET 8 + WPF** 的模块化 Windows 桌面工具平台，由插件框架、系统工具箱、增量发布工具链三部分组成。
 
-YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架负责插件加载、主题、日志、热键、性能监控和工具箱；插件以独立 DLL 交付；`YFrame.Pack` 与 `YFrame.update` 负责版本差异打包和自动更新。
+YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架负责插件加载、主题、日志、热键、性能监控和工具箱；插件以独立 DLL 交付；`YFrame.Pack` 与 `YFrame.update` 负责版本差异打包和自动更新；`YFrame.sign` 与 `YFrame.upload.cos`签名加密与上传腾讯云对象存储(COS)。 
 
 <p>
   <img alt=".NET" src="https://img.shields.io/badge/.NET-8.0-512BD4">
@@ -34,7 +34,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
 
 ## 1. 项目概览
 
-YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用的桌面应用基础设施：
+YFrame 工具集，个人项目展示
 
 - 新工具可以只写一个独立插件 DLL，不需要改主框架；
 - 插件与主框架没有编译时依赖，通过 `YF_Manager` 契约通信；
@@ -46,12 +46,12 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | 项目 | 数量/说明 |
 |---|---|
 | 目标框架 | `.NET 8.0-windows` |
-| 解决方案项目 | 7 个 |
+| 解决方案项目 | 8 个 |
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
 | 单元测试 | 123 个 |
-| 当前版本 | 2.1.0 |
+| 当前版本 | 2.1.6 |
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
@@ -147,6 +147,7 @@ YFrame 的目标不是“再写一个工具箱”，而是提供一套可复用�
 | `YFrame.Pack` | WPF Application | ZIP 差异、增量包、版本清单 |
 | `YFrame.Sign` | WPF Application | 清单签名、临时密钥、路径配置 |
 | `YFrame.update` | WPF Application | 自动下载、校验、备份、替换、重启 |
+| `YFrame.upload.cos` | WPF Application | 腾讯云对象存储（COS）、更新文件上传、插件打包与上传 |
 
 10 个插件位于上层目录 `..\YF_*`，独立编译并输出到主框架的 `plugins/` 下，不属于 `YFrame.sln`。
 
@@ -454,10 +455,12 @@ Ctrl+Y → 全屏 BitBlt → 框选 → 标注画板 → 复制/保存/钉图
 - 顶部对齐，最大化后不会在顶部出现大块空白；
 - 超过两台时卡片内部滚动。
 
-### 6.5 APM 可观测性
+### 6.5 应用性能监控(APM) 可观测性
+
+
+![b98d2056af47a91ec78b83b4e92902ee.png](https://raw.gitcode.com/user-images/assets/7353928/ff32d604-b2a0-4bcc-bc3e-8ffe5dc418b6/b98d2056af47a91ec78b83b4e92902ee.png 'b98d2056af47a91ec78b83b4e92902ee.png')
 
 框架通过 OpenTelemetry OTLP 接入腾讯云 APM，默认开启：
-
 ```ini
 ApmEnabled=true
 ApmServiceName=YFrame
@@ -518,6 +521,7 @@ CLS 全量日志检索
 ```
 
 ### 6.6 CloudBase 硬件入库
+![173464c6d7100295339705b8a37c075d.png](https://raw.gitcode.com/user-images/assets/7353928/be2df9a1-bf8e-443c-a42f-058b939911fb/173464c6d7100295339705b8a37c075d.png '173464c6d7100295339705b8a37c075d.png')
 
 硬件扫描完成后，后台调用 CloudBase PostgreSQL RPC，不允许匿名用户直接操作云数据库：
 
@@ -840,6 +844,7 @@ YFrame/
 ├── YFrame.Pack/                  # 增量包构建工具
 ├── YFrame.Sign/                  # 清单签名工具
 ├── YFrame.update/                # 自动更新器
+├── YFrame.upload.cos/            # COS文化上传
 ├── Version.props                 # 统一版本
 ├── YFrame.sln
 ├── README.md
