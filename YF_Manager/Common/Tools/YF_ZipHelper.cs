@@ -65,16 +65,23 @@ namespace YF_Manager
         #region 解压
 
         /// <summary>
-        /// 将 ZIP 文件解压到指定目录
+        /// 将 ZIP 文件解压到指定目录。
+        /// 失败时抛出异常，不再静默返回 false。
+        /// 插件安装请使用带路径校验和 staging 的专用安装器。
         /// </summary>
         /// <param name="zipPath">ZIP 文件路径</param>
         /// <param name="destinationDir">目标解压目录（不存在则自动创建）</param>
-        /// <returns>解压成功返回 true，失败返回 false</returns>
+        /// <returns>解压成功返回 true；失败抛出异常</returns>
+        /// <exception cref="FileNotFoundException">ZIP 文件不存在</exception>
+        /// <exception cref="InvalidDataException">ZIP 损坏、路径非法或解压失败</exception>
+        [Obsolete("ExtractToDirectory 不再静默失败，请改用带路径校验和 staging 的插件安装器。")]
         [Log(Level = LogLevel.Info, Message = "解压 ZIP 文件")]
         public virtual bool ExtractToDirectory(string zipPath, string destinationDir)
         {
-            if (string.IsNullOrEmpty(zipPath) || !File.Exists(zipPath))
-                return false;
+            if (string.IsNullOrWhiteSpace(zipPath) || !File.Exists(zipPath))
+                throw new FileNotFoundException("解压 ZIP 失败：文件不存在。", zipPath);
+            if (string.IsNullOrWhiteSpace(destinationDir))
+                throw new ArgumentException("解压目标目录不能为空。", nameof(destinationDir));
 
             try
             {
@@ -82,11 +89,13 @@ namespace YF_Manager
                 if (!Directory.Exists(destinationDir))
                     Directory.CreateDirectory(destinationDir);
 
-                ZipFile.ExtractToDirectory(zipPath, destinationDir, overwriteFiles: true);                return true;
+                ZipFile.ExtractToDirectory(zipPath, destinationDir, overwriteFiles: true);
+                return true;
             }
-            catch
+            catch (Exception ex) when (ex is not InvalidDataException)
             {
-                return false;
+                // 统一转换为解压失败异常，保留原始异常便于定位
+                throw new InvalidDataException("解压 ZIP 失败。", ex);
             }
         }
 

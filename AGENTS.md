@@ -55,7 +55,7 @@ YFrame.sln
 |---|---|---|---|
 | `YFrame` | `YFrame/YFrame.csproj` | WPF App | Shell、主 ViewModel、插件运行时、工具箱、更新检查 |
 | `YF_Manager` | `YF_Manager/YF_Manager.csproj` | Class Library | 插件契约、AOP、配置、Mediator、日志、通用工具 |
-| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 129 个测试 |
+| `YFrame.Tests` | `YFrame.Tests/YFrame.Tests.csproj` | xUnit | 131 个测试 |
 | `YFrame.Installer` | `YFrame.Installer/YFrame.Installer.csproj` | WPF App | 向导式安装器，自包含单文件 |
 | `YFrame.Pack` | `YFrame.Pack/YFrame.Pack.csproj` | WPF App | ZIP 差异、增量包、版本清单 |
 | `YFrame.Sign` | `YFrame.Sign/YFrame.Sign.csproj` | WPF App | 清单签名、临时密钥、路径配置 |
@@ -191,7 +191,8 @@ YFrame/bin/Debug/net8.0-windows/plugins/{PluginName}
 - 旧插件先移到 `.backup`，staging 成功后再替换，失败回滚；
 - 安装记录 `.yframe-plugin.json` 保存入口 DLL 哈希，加载前校验；
 - 无安装记录的旧插件按 legacy 加载并提示重新安装；
-- TCP 插件源没有签名清单，当前拒绝安装。
+- TCP 插件源没有签名清单，当前拒绝安装；
+- `YF_ZipHelper.ExtractToDirectory` 已标记 `[Obsolete]`，失败改为抛异常，插件安装不得再调用。
 
 ---
 
@@ -663,7 +664,7 @@ dotnet test YFrame.Tests/YFrame.Tests.csproj -c Debug
 
 ```text
 0 errors
-129 tests passed
+131 tests passed
 ```
 
 如果 WPF 进程占用输出文件：

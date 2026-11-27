@@ -8,7 +8,7 @@ YFrame 将常用开发者工具统一到一个可扩展的 Shell 中：主框架
   <img alt=".NET" src="https://img.shields.io/badge/.NET-8.0-512BD4">
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-0C54C2">
   <img alt="Plugins" src="https://img.shields.io/badge/plugins-10-4F46E5">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-129-059669">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-131-059669">
   <img alt="Themes" src="https://img.shields.io/badge/themes-4-7C3AED">
 </p>
 
@@ -50,7 +50,7 @@ YFrame 工具集，个人项目展示
 | 插件 | 10 个 |
 | 主题 | 4 套 |
 | 语言 | 中文 / English |
-| 单元测试 | 129 个 |
+| 单元测试 | 131 个 |
 | 当前版本 | 2.1.6 |
 
 ```text
@@ -756,7 +756,7 @@ C:\Users\Administrator\Desktop\code\C#\YFrame\SigningKeys\plugins\plugin-manifes
 
 ### 8.2 测试
 
-当前 129 个测试全部通过，覆盖命令、配置、日志、插件调度、文件、TCP、MD5、正则、插件清单签名和安全安装等核心能力。测试项目通过 `dotnet test YFrame.Tests/YFrame.Tests.csproj` 执行。
+当前 131 个测试全部通过，覆盖命令、配置、日志、插件调度、文件、TCP、MD5、正则、插件清单签名、安全安装和 ZIP 解压失败行为等核心能力。测试项目通过 `dotnet test YFrame.Tests/YFrame.Tests.csproj` 执行。
 
 ### 8.3 CI
 
